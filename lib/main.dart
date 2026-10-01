@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'services/seed_service.dart';
-import 'widgets/auth_wrapper.dart';
+import 'screens/auth/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,7 +29,8 @@ class OPDConnectApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         useMaterial3: true,
       ),
-      home: const AuthWrapper(),
+      // Set SplashScreen as the entry point so onboarding shows on launch
+      home: const SplashScreen(),
     );
   }
 }
