@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'login_screen.dart';
+import '../../widgets/auth_wrapper.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -15,128 +15,223 @@ class _SplashScreenState extends State<SplashScreen> {
   final List<Map<String, String>> _onboardingData = [
     {
       "title": "Book OPD Slots Remotely",
-      "subtitle": "Skip early morning physical lines. Select your hospital, doctor, and preferred time slot from home.",
-      "icon": "0x1F3E5", // Hospital
+      "subtitle":
+          "Skip early morning physical lines. Select your government hospital, doctor, and time slot from home.",
+      "image": "assets/images/splash1.png",
     },
     {
       "title": "Live Queue Tracking",
-      "subtitle": "Watch your queue position in real time. Arrive at the consultation room only when it's your turn.",
-      "icon": "0x1F552", // Clock
+      "subtitle":
+          "Watch your queue position in real time. Arrive at the consultation room only when it's your turn.",
+      "image": "assets/images/splash2.png",
     },
     {
       "title": "Departure & Smart Alerts",
-      "subtitle": "Get timely SMS and push alerts telling you exactly when to leave home based on live wait time.",
-      "icon": "0x1F514", // Bell
+      "subtitle":
+          "Get timely SMS and push alerts telling you exactly when to leave home based on live wait time.",
+      "image": "assets/images/splash3.png",
     },
   ];
 
+  void _navigateToNext() {
+    if (_currentPage < _onboardingData.length - 1) {
+      _controller.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOutCubic,
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const AuthWrapper()),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final Size size = MediaQuery.of(context).size;
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: PageView.builder(
-                controller: _controller,
-                onPageChanged: (index) => setState(() => _currentPage = index),
-                itemCount: _onboardingData.length,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.all(30.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 140,
-                          height: 140,
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: Text(
-                              String.fromCharCode(int.parse(_onboardingData[index]["icon"]!)),
-                              style: const TextStyle(fontSize: 60),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 40),
-                        Text(
-                          _onboardingData[index]["title"]!,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1E293B),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _onboardingData[index]["subtitle"]!,
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: Colors.grey.shade600,
-                            height: 1.5,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // 1. Background Image Carousel
+          PageView.builder(
+            controller: _controller,
+            onPageChanged: (index) => setState(() => _currentPage = index),
+            itemCount: _onboardingData.length,
+            itemBuilder: (context, index) {
+              return Image.asset(
+                _onboardingData[index]["image"]!,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: const Color(0xFF0F172A),
+                    child: const Center(
+                      child: Icon(Icons.image_not_supported_outlined,
+                          size: 60, color: Colors.white38),
                     ),
                   );
                 },
+              );
+            },
+          ),
+
+          // 2. Figma-Style Soft Gradient Overlay
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withOpacity(0.25),
+                  Colors.black.withOpacity(0.40),
+                  Colors.black.withOpacity(0.88),
+                  Colors.black.withOpacity(0.96),
+                ],
+                stops: const [0.0, 0.45, 0.80, 1.0],
               ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                _onboardingData.length,
-                (index) => AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  height: 8,
-                  width: _currentPage == index ? 24 : 8,
-                  decoration: BoxDecoration(
-                    color: _currentPage == index ? Colors.blue.shade700 : Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 40),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-              child: SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue.shade700,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+
+          // 3. Header Action (Skip Button)
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white.withOpacity(0.85),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                   ),
                   onPressed: () {
-                    if (_currentPage < _onboardingData.length - 1) {
-                      _controller.nextPage(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeIn,
-                      );
-                    } else {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (_) => const LoginScreen()),
-                      );
-                    }
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AuthWrapper()),
+                    );
                   },
-                  child: Text(
-                    _currentPage == _onboardingData.length - 1 ? "Get Started" : "Next",
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                  child: const Text(
+                    "Skip",
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.3,
+                    ),
                   ),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+
+          // 4. Content Block (Typography + Indicator + Figma Button)
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Title Text
+                  Text(
+                    _onboardingData[_currentPage]["title"]!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      height: 1.25,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Subtitle Text
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text(
+                      _onboardingData[_currentPage]["subtitle"]!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.white.withOpacity(0.78),
+                        height: 1.5,
+                        letterSpacing: 0.1,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+
+                  // Active Page Indicators (Figma Pill Style)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      _onboardingData.length,
+                      (index) => AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        height: 6,
+                        width: _currentPage == index ? 26 : 6,
+                        decoration: BoxDecoration(
+                          color: _currentPage == index
+                              ? const Color(0xFF2563EB)
+                              : Colors.white.withOpacity(0.35),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: size.height * 0.04),
+
+                  // Figma Styled Full-Width Pill Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2563EB), // Figma Blue
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30), // Pill Shape
+                        ),
+                      ),
+                      onPressed: _navigateToNext,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            _currentPage == _onboardingData.length - 1
+                                ? "Get Started"
+                                : "Continue",
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.arrow_forward_rounded, size: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
