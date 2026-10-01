@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "485137437849",
+    "project_id": "opd-connect",
+    "storage_bucket": "opd-connect.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:485137437849:android:cd49d4461c991383509408",
+        "android_client_info": {
+          "package_name": "com.example.opd_connect"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_loZku3p_qkS0PWmCv0tpIGoPzc-wjaU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
