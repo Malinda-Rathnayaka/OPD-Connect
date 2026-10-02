@@ -141,14 +141,67 @@ class _RegisterScreenState extends State<RegisterScreen> {
       await _authService.signOut();
 
       if (!mounted) return;
+
+      // Show role-specific success message
+      final isDoctor = _selectedRole == 'doctor';
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Email verified successfully! Please log in with your credentials.'),
-          duration: Duration(seconds: 4),
+        SnackBar(
+          content: Text(isDoctor
+              ? 'Registration successful! Your account is pending admin approval. You will be able to log in once the hospital admin approves your account.'
+              : 'Email verified successfully! Please log in with your credentials.'),
+          duration: Duration(seconds: isDoctor ? 6 : 4),
         ),
       );
 
-      Navigator.pop(context); // Return to Login Screen
+      // Show extra dialog for doctors
+      if (isDoctor && mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            icon: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFEF3C7),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.hourglass_top_rounded, size: 40, color: Color(0xFFD97706)),
+            ),
+            title: const Text(
+              'Registration Successful!',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+            ),
+            content: const Text(
+              'Your doctor account has been created and is now pending admin approval.\n\n'
+              'The hospital IT administrator will review your registration. '
+              'Once approved, you will be able to log in and access the Doctor Dashboard.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, height: 1.5),
+            ),
+            actionsAlignment: MainAxisAlignment.center,
+            actions: [
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E40AF),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(ctx);       // Close dialog
+                    Navigator.pop(context);   // Go back to Login
+                  },
+                  child: const Text('Go to Login'),
+                ),
+              ),
+            ],
+          ),
+        );
+      } else {
+        Navigator.pop(context); // Return to Login Screen
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
