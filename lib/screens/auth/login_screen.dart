@@ -38,11 +38,67 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
     try {
-      await _authService.loginWithEmail(
+      final credential = await _authService.loginWithEmail(
         email,
         password,
       );
+
       if (!mounted) return;
+
+      // Check if user is a doctor pending admin approval
+      if (credential.user != null) {
+        final userData = await _authService.getUserData(credential.user!.uid);
+        if (userData != null && userData.role == 'doctor' && !userData.isApproved) {
+          // Sign out immediately — doctor cannot proceed
+          await _authService.signOut();
+          if (!mounted) return;
+
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (ctx) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              icon: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.hourglass_top_rounded, size: 40, color: Color(0xFFD97706)),
+              ),
+              title: const Text(
+                'Account Pending Approval',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+              ),
+              content: const Text(
+                'Your doctor account has been registered successfully, but the hospital admin has not approved your account yet.\n\n'
+                'Please wait for the admin to review and approve your registration before logging in.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, height: 1.5),
+              ),
+              actionsAlignment: MainAxisAlignment.center,
+              actions: [
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E40AF),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    ),
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('OK, I Understand'),
+                  ),
+                ),
+              ],
+            ),
+          );
+
+          setState(() => _isLoading = false);
+          return;
+        }
+      }
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const AuthWrapper()),
