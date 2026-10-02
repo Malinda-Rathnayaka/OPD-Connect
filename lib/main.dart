@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'services/seed_service.dart';
 import 'screens/auth/splash_screen.dart';
@@ -7,11 +8,14 @@ import 'screens/auth/splash_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Load environment variables from .env file
+  await dotenv.load(fileName: ".env");
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Auto-seed admin account
+  // Auto-seed initial admin data using .env credentials
   await SeedService.seedAdminAccount();
 
   runApp(const OPDConnectApp());
@@ -26,10 +30,10 @@ class OPDConnectApp extends StatelessWidget {
       title: 'OPD Connect',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      // Set SplashScreen as the entry point so onboarding shows on launch
+      // Starts with SplashScreen onboarding flow
       home: const SplashScreen(),
     );
   }

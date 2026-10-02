@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/auth_wrapper.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -25,9 +26,12 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _login() async {
-    if (_emailController.text.trim().isEmpty || _passwordController.text.trim().isEmpty) {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter both email/phone and password')),
+        const SnackBar(content: Text('Please enter both email address and password')),
       );
       return;
     }
@@ -35,8 +39,13 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       await _authService.loginWithEmail(
-        _emailController.text.trim(),
-        _passwordController.text.trim(),
+        email,
+        password,
+      );
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const AuthWrapper()),
       );
     } catch (e) {
       if (!mounted) return;
@@ -78,16 +87,17 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 40),
 
-              // Email / Phone Input Field
+              // Email Input Field
               TextField(
                 controller: _emailController,
-                keyboardType: TextInputType.visiblePassword, // Forces soft keyboard focus on emulators
+                keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
                 autocorrect: false,
                 enableSuggestions: false,
                 decoration: InputDecoration(
-                  labelText: 'Email or Mobile Number',
-                  prefixIcon: const Icon(Icons.person_outline),
+                  labelText: 'Email Address',
+                  hintText: 'e.g. user@gmail.com',
+                  prefixIcon: const Icon(Icons.email_outlined),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -131,7 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue.shade700,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30), // Matching Figma pill button design
+                            borderRadius: BorderRadius.circular(30),
                           ),
                           elevation: 0,
                         ),

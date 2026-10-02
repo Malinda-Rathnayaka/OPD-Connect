@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../widgets/auth_wrapper.dart';
+import 'login_screen.dart'; // Direct navigation to LoginScreen
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -40,9 +40,10 @@ class _SplashScreenState extends State<SplashScreen> {
         curve: Curves.easeInOutCubic,
       );
     } else {
+      // Navigate directly to LoginScreen instead of AuthWrapper
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const AuthWrapper()),
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
       );
     }
   }
@@ -79,7 +80,7 @@ class _SplashScreenState extends State<SplashScreen> {
             },
           ),
 
-          // 2. Figma-Style Soft Gradient Overlay
+          // 2. Gradient Overlay
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -96,7 +97,7 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
           ),
 
-          // 3. Header Action (Skip Button)
+          // 3. Skip Button
           SafeArea(
             child: Align(
               alignment: Alignment.topRight,
@@ -113,9 +114,10 @@ class _SplashScreenState extends State<SplashScreen> {
                     ),
                   ),
                   onPressed: () {
+                    // Route to LoginScreen on Skip
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (_) => const AuthWrapper()),
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
                     );
                   },
                   child: const Text(
@@ -131,7 +133,7 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
           ),
 
-          // 4. Content Block (Typography + Indicator + Figma Button)
+          // 4. Content Block
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -170,7 +172,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                   const SizedBox(height: 28),
 
-                  // Active Page Indicators (Figma Pill Style)
+                  // Indicators
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(
@@ -192,18 +194,18 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                   SizedBox(height: size.height * 0.04),
 
-                  // Figma Styled Full-Width Pill Button
+                  // Full-Width Pill Button
                   SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2563EB), // Figma Blue
+                        backgroundColor: const Color(0xFF2563EB),
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shadowColor: Colors.transparent,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30), // Pill Shape
+                          borderRadius: BorderRadius.circular(30),
                         ),
                       ),
                       onPressed: _navigateToNext,

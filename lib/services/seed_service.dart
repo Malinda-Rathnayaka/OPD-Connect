@@ -1,13 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class SeedService {
   static FirebaseAuth get _auth => FirebaseAuth.instance;
   static FirebaseFirestore get _db => FirebaseFirestore.instance;
 
-  static const String adminEmail = "admin@opdconnect.lk";
-  static const String adminPassword = "AdminPassword123!";
+  // ===========================================================================
+  // ADMIN CREDENTIALS CONFIGURATION
+  // Reads values dynamically from the .env file in the project root directory.
+  // Fallback defaults are provided if .env variables are missing.
+  // ===========================================================================
+  static String get adminEmail =>
+      dotenv.env['ADMIN_EMAIL'] ?? "admin@opdconnect.lk";
+
+  static String get adminPassword =>
+      dotenv.env['ADMIN_PASSWORD'] ?? "AdminPassword123!";
 
   static Future<void> seedAdminAccount() async {
     try {
@@ -23,16 +32,20 @@ class SeedService {
         );
 
         await _db.collection('users').doc(credential.user!.uid).set({
-          'emailOrPhone': adminEmail,
+          'email': adminEmail,
           'name': 'Hospital IT Admin',
           'role': 'admin',
           'isVerified': true,
+          'createdAt': FieldValue.serverTimestamp(),
         });
 
-        debugPrint("Admin account created: $adminEmail");
+        // Sign out immediately so auto-login doesn't bypass onboarding/login screen
+        await _auth.signOut();
+
+        debugPrint("Admin account created successfully: $adminEmail");
       }
     } catch (e) {
-      debugPrint("Admin account check/seed completed.");
+      debugPrint("Admin seed check finished: ${e.toString()}");
     }
   }
 }
