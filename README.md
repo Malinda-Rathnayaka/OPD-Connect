@@ -66,7 +66,7 @@ The application UI is designed based on the **[OPD Connect Figma Design](https:/
 ## 🛠️ Architecture & Tech Stack
 
 * **Frontend Framework**: Flutter (Dart)
-* **Authentication**: Firebase Authentication (Email/Password)
+* **Authentication**: Firebase Authentication (Email/Password) & EmailJS OTP
 * **Database**: Google Cloud Firestore (Real-time streams & collections)
 * **Environment Management**: `flutter_dotenv`
 * **Design Standards**: Material 3 Design Guidelines
@@ -85,7 +85,7 @@ opd_connect/
 │   ├── models/
 │   │   └── user_model.dart         # User data model & role definitions
 │   ├── services/
-│   │   ├── auth_service.dart       # Authentication & profile management
+│   │   ├── auth_service.dart       # Authentication, EmailJS OTP & profile management
 │   │   ├── admin_service.dart      # Admin statistics & approval actions
 │   │   └── seed_service.dart       # Automatic admin account initialization
 │   ├── widgets/
@@ -94,7 +94,7 @@ opd_connect/
 │       ├── auth/
 │       │   ├── splash_screen.dart   # Onboarding carousel
 │       │   ├── login_screen.dart    # Login with role verification
-│       │   └── register_screen.dart # Multi-role registration (Patient / Doctor)
+│       │   └── register_screen.dart # Multi-role registration & Email OTP
 │       └── admin/
 │           ├── admin_dashboard_screen.dart       # Main admin overview & stats
 │           ├── admin_user_list_screen.dart       # Patient & Doctor lists (CRUD)
@@ -104,127 +104,3 @@ opd_connect/
 ├── .gitignore                      # Git ignore file (excludes secrets & .env)
 ├── pubspec.yaml                    # Dependencies & asset manifests
 └── README.md                       # Project documentation
-```
-
----
-
-## ⚡ Getting Started
-
-### Prerequisites
-* [Flutter SDK](https://docs.flutter.dev/get-started/install) (`^3.13.0` or higher)
-* [Dart SDK](https://dart.dev/get-dart) (`^3.0.0` or higher)
-* [Android Studio](https://developer.android.com/studio) / [VS Code](https://code.visualstudio.com/) with Flutter plugins
-* A configured [Firebase Project](https://console.firebase.google.com/)
-
-### Installation Steps
-
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/Malinda-Rathnayaka/OPD-Connect.git
-   cd OPD-Connect/opd_connect
-   ```
-
-2. **Install Dependencies**:
-   ```bash
-   flutter pub get
-   ```
-
-3. **Configure Environment Variables**:
-   Copy `.env.example` to `.env` in the root directory:
-   ```bash
-   cp .env.example .env
-   ```
-   Edit `.env` and configure your initial admin credentials:
-   ```env
-   ADMIN_EMAIL=admin@opdconnect.lk
-   ADMIN_PASSWORD=YourSecurePassword123!
-   ```
-
-4. **Run the Application**:
-   ```bash
-   flutter run
-   ```
-
----
-
-## ⚙️ Environment Configuration (.env)
-
-The application uses `flutter_dotenv` to manage sensitive seed credentials securely without hardcoding them into source control.
-
-| Variable Name | Description | Default Example |
-|---|---|---|
-| `ADMIN_EMAIL` | Email address for initial auto-seeded Admin account | `admin@opdconnect.lk` |
-| `ADMIN_PASSWORD` | Password for initial auto-seeded Admin account | `AdminPassword123!` |
-
-> ⚠️ **Note**: Never commit your active `.env` file to Git. `.env` is listed in `.gitignore`.
-
----
-
-## 🔒 Authentication & Approval Workflow
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Doctor
-    participant App as Flutter App
-    participant Auth as Firebase Auth
-    participant DB as Cloud Firestore
-    actor Admin
-
-    Doctor->>App: Register (Role: Doctor)
-    App->>Auth: Create User Account
-    App->>DB: Save User Profile (isApproved = false)
-    App-->>Doctor: "Registration successful. Awaiting admin approval."
-    
-    Doctor->>App: Attempt Login
-    App->>Auth: Authenticate Credentials
-    App->>DB: Fetch Profile (Check isApproved)
-    DB-->>App: isApproved = false
-    App->>Auth: Sign Out Immediately
-    App-->>Doctor: Dialog: "Account Pending Admin Approval"
-
-    Admin->>App: Open Admin Dashboard
-    Admin->>App: Review Pending Approvals
-    Admin->>DB: Set isApproved = true
-    DB-->>App: Stream Update
-
-    Doctor->>App: Re-attempt Login
-    App->>Auth: Authenticate Credentials
-    App->>DB: Fetch Profile (isApproved = true)
-    App-->>Doctor: Navigate to Doctor Dashboard
-```
-
----
-
-## 🛡️ Security & Best Practices
-
-- **Role Guarding**: `AuthWrapper` continuously validates authentication state and redirects users to role-specific screens (Admin, Doctor, Patient).
-- **Environment Isolation**: Sensitive configuration and seed passwords remain in local `.env` files.
-- **Data Integrity**: Admin operations (update, delete, approve) are handled through atomic Firestore updates with validation.
-
----
-
-## 📝 Changelog & Roadmap
-
-### v1.0.0 (Current Release)
-- [x] Initial UI Onboarding & Splash Screens with carousel
-- [x] Firebase Authentication (Email/Password)
-- [x] Multi-role User Registration (Patient & Doctor)
-- [x] Admin Approval Workflow for Doctors
-- [x] Admin Dashboard with Real-time Metrics & User Management (CRUD)
-- [x] Responsive layout with zero overflow on all screen sizes
-- [x] Figma design system color alignment
-
-### Upcoming Features
-- [ ] Patient OPD slot booking system with hospital & department filters
-- [ ] Real-time queue token generation and live display
-- [ ] SMS / Push notification service for smart departure alerts
-- [ ] Prescription & lab report attachment uploads
-
----
-
-## 👥 Authors & Acknowledgments
-
-* **Malinda Rathnayaka** — *Lead Developer / HCI Project*
-* **SLIIT** — *Faculty of Computing (IT3060 - Human Computer Interaction)*
-* **Design Reference**: [OPD Connect UI on Figma](https://www.figma.com/design/Uuu84aeXApggGVkASJ4D4x/OPD-Connect-UI?node-id=134-3068)
