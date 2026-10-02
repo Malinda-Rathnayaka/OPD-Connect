@@ -71,6 +71,7 @@ class AuthService {
         'name': name,
         'role': role,
         'isVerified': role == 'patient', // Doctors require IT verification
+        'isApproved': role != 'doctor', // Doctors need admin approval before login
         'createdAt': FieldValue.serverTimestamp(),
       });
   }
