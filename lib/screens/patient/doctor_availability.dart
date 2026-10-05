@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'patient_home_screen.dart';
 import 'select_appointment_slot.dart';
+import 'find_opd_hospital.dart';
+import 'my_family_profile.dart';
 
 class DoctorAvailabilityScreen extends StatelessWidget {
   const DoctorAvailabilityScreen({super.key});
@@ -8,6 +11,7 @@ class DoctorAvailabilityScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: true,
         title: const Text('Doctor Availability'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
@@ -145,7 +149,43 @@ class DoctorAvailabilityScreen extends StatelessWidget {
         currentIndex: 1,
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
-        onTap: (_) {},
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PatientHomeScreen(),
+                ),
+              );
+              break;
+            case 1:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const FindOpdHospitalScreen(),
+                ),
+              );
+              break;
+            case 2:
+            case 4:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MyFamilyProfileScreen(),
+                ),
+              );
+              break;
+            case 3:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const DoctorAvailabilityScreen(),
+                ),
+              );
+              break;
+          }
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),

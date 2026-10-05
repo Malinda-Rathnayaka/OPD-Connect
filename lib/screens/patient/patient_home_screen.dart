@@ -1,8 +1,49 @@
 import 'package:flutter/material.dart';
 import 'my_family_profile.dart';
+import 'find_opd_hospital.dart';
+import 'doctor_availability.dart';
 
-class PatientHomeScreen extends StatelessWidget {
+class PatientHomeScreen extends StatefulWidget {
   const PatientHomeScreen({super.key});
+
+  @override
+  State<PatientHomeScreen> createState() => _PatientHomeScreenState();
+}
+
+class _PatientHomeScreenState extends State<PatientHomeScreen> {
+  int _selectedIndex = 0;
+
+  void _navigateTo(Widget screen) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => screen,
+      ),
+    );
+  }
+
+  void _handleBottomNavTap(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0:
+        break;
+      case 1:
+        _navigateTo(const FindOpdHospitalScreen());
+        break;
+      case 2:
+        _navigateTo(const MyFamilyProfileScreen());
+        break;
+      case 3:
+        _navigateTo(const DoctorAvailabilityScreen());
+        break;
+      case 4:
+        _navigateTo(const MyFamilyProfileScreen());
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -10,7 +51,7 @@ class PatientHomeScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -31,41 +72,55 @@ class PatientHomeScreen extends StatelessWidget {
             ),
           ],
         ),
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 8),
-            child: Icon(Icons.notifications_none_outlined),
+        actions: [
+          IconButton(
+            onPressed: () {
+              _navigateTo(const MyFamilyProfileScreen());
+            },
+            icon: Icon(Icons.notifications_none_outlined),
           ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              height: 72,
+              height: 76,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: 3,
-                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                separatorBuilder: (_, __) => SizedBox(width: 12),
                 itemBuilder: (context, index) {
-                  final profiles = [
-                    ('My Account', '', 'MA', true),
-                    ('Kamala', 'Mother', 'K', false),
-                    ('Nisha', 'Wife', 'N', false),
-                  ];
-                  final profile = profiles[index];
+                  if (index == 0) {
+                    return _buildProfileTab(
+                      title: 'My Account',
+                      subtitle: '',
+                      initials: 'MA',
+                      selected: true,
+                    );
+                  }
 
-                  return _ProfileTab(
-                    title: profile.$1,
-                    subtitle: profile.$2,
-                    initials: profile.$3,
-                    selected: profile.$4,
+                  if (index == 1) {
+                    return _buildProfileTab(
+                      title: 'Kamala',
+                      subtitle: 'Mother',
+                      initials: 'K',
+                      selected: false,
+                    );
+                  }
+
+                  return _buildProfileTab(
+                    title: 'Nisha',
+                    subtitle: 'Wife',
+                    initials: 'N',
+                    selected: false,
                   );
                 },
+              ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             Card(
               elevation: 2,
               shape: RoundedRectangleBorder(
@@ -73,15 +128,15 @@ class PatientHomeScreen extends StatelessWidget {
               ),
               color: Colors.amber.shade100,
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.access_time, color: Colors.brown),
-                        const SizedBox(width: 8),
-                        const Expanded(
+                        Icon(Icons.access_time, color: Colors.brown),
+                        SizedBox(width: 8),
+                        Expanded(
                           child: Text(
                             'ACTIVE QUEUE TRACKER',
                             style: TextStyle(
@@ -92,12 +147,12 @@ class PatientHomeScreen extends StatelessWidget {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.75),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Text(
+                          child: Text(
                             '3 Patients Ahead',
                             style: TextStyle(
                               fontSize: 12,
@@ -107,8 +162,8 @@ class PatientHomeScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 14),
-                    const Text(
+                    SizedBox(height: 14),
+                    Text(
                       'Colombo General · Dental Clinic · Token #14',
                       style: TextStyle(
                         fontSize: 16,
@@ -119,7 +174,7 @@ class PatientHomeScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Card(
               elevation: 2,
               shape: RoundedRectangleBorder(
@@ -127,13 +182,13 @@ class PatientHomeScreen extends StatelessWidget {
               ),
               color: Colors.blue,
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             'UPCOMING APPOINTMENT',
                             style: TextStyle(
@@ -145,12 +200,12 @@ class PatientHomeScreen extends StatelessWidget {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.22),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Text(
+                          child: Text(
                             'In 2 Days',
                             style: TextStyle(
                               fontSize: 12,
@@ -161,8 +216,8 @@ class PatientHomeScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 14),
-                    const Text(
+                    SizedBox(height: 14),
+                    Text(
                       'Dr. Perera (General Medicine)',
                       style: TextStyle(
                         fontSize: 18,
@@ -170,16 +225,16 @@ class PatientHomeScreen extends StatelessWidget {
                         color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    const Text(
+                    SizedBox(height: 6),
+                    Text(
                       'Colombo General Hospital',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    const Text(
+                    SizedBox(height: 6),
+                    Text(
                       'Mon, 22 Sep · 9:00 AM',
                       style: TextStyle(
                         fontSize: 14,
@@ -190,143 +245,73 @@ class PatientHomeScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 18),
+            SizedBox(height: 18),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const MyFamilyProfileScreen(),
-                    ),
-                  );
+                  _navigateTo(const MyFamilyProfileScreen());
                 },
-
-                class _ProfileTab extends StatelessWidget {
-                  final String title;
-                  final String subtitle;
-                  final String initials;
-                  final bool selected;
-
-                  const _ProfileTab({
-                    required this.title,
-                    required this.subtitle,
-                    required this.initials,
-                    required this.selected,
-                  });
-
-                  @override
-                  Widget build(BuildContext context) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: selected ? Colors.blue : Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: selected ? Colors.blue : Colors.grey.shade300,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CircleAvatar(
-                            radius: 18,
-                            backgroundColor: selected ? Colors.white : Colors.blue.shade50,
-                            child: Text(
-                              initials,
-                              style: TextStyle(
-                                color: selected ? Colors.blue : Colors.blue,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                title,
-                                style: TextStyle(
-                                  color: selected ? Colors.white : Colors.black87,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              if (subtitle.isNotEmpty) ...[
-                                const SizedBox(height: 2),
-                                Text(
-                                  subtitle,
-                                  style: TextStyle(
-                                    color: selected ? Colors.white70 : Colors.black54,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-                }
-                icon: const Icon(Icons.add_circle_outline),
-                label: const Text('New OPD Appointment Booking'),
+                icon: Icon(Icons.add_circle_outline),
+                label: Text('New OPD Appointment Booking'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 22),
-            const Text(
+            SizedBox(height: 22),
+            Text(
               'Quick Tools',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             GridView.count(
               crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 12,
               crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
               childAspectRatio: 1.4,
-              children: const [
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              children: [
                 _QuickToolCard(
-                  icon: Icons.calendar_month,
+                  icon: Icons.calendar_today,
                   title: 'My Bookings',
                   subtitle: 'View or edit sessions',
+                  onTap: () {
+                    _navigateTo(const FindOpdHospitalScreen());
+                  },
                 ),
                 _QuickToolCard(
                   icon: Icons.people,
                   title: 'Queue Status',
                   subtitle: 'Check live counters',
+                  onTap: () {
+                    _navigateTo(const DoctorAvailabilityScreen());
+                  },
                 ),
                 _QuickToolCard(
-                  icon: Icons.notifications_none,
+                  icon: Icons.notifications,
                   title: 'Notifications',
                   subtitle: 'Announcements & news',
+                  onTap: () {
+                    _navigateTo(const MyFamilyProfileScreen());
+                  },
                 ),
                 _QuickToolCard(
                   icon: Icons.person,
                   title: 'Profile',
                   subtitle: 'Family member details',
+                  onTap: () {
+                    _navigateTo(const MyFamilyProfileScreen());
+                  },
                 ),
               ],
             ),
@@ -335,94 +320,162 @@ class PatientHomeScreen extends StatelessWidget {
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        currentIndex: 0,
+        currentIndex: _selectedIndex,
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
-        onTap: (_) {},
-        items: const [
+        onTap: _handleBottomNavTap,
+        items: [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             label: 'Home',
           ),
-              return Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search),
+            label: 'Search',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today_outlined),
+            label: 'Appointments',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.queue_outlined),
+            label: 'Queue',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileTab({
+    required String title,
+    required String subtitle,
+    required String initials,
+    required bool selected,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: selected ? Colors.blue : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: selected ? Colors.blue : Colors.grey.shade300,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: selected ? Colors.white : Colors.blue.shade50,
+            child: Text(
+              initials,
+              style: TextStyle(
+                color: Colors.blue,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          SizedBox(width: 10),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: selected ? Colors.white : Colors.black87,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(icon, color: Colors.blue),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ],
+              ),
+              if (subtitle.isNotEmpty) ...[
+                SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: selected ? Colors.white70 : Colors.black54,
+                    fontSize: 12,
+                  ),
                 ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickToolCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _QuickToolCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Material(
+      color: Colors.white,
       elevation: 2,
-      shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            CircleAvatar(
-              radius: 22,
-              backgroundColor: Colors.blue.shade50,
-              child: Icon(icon, color: Colors.blue),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
+        child: Container(
+          padding: EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: Colors.blue),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.black54,
+              SizedBox(height: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-          ],
+              SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.black54,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

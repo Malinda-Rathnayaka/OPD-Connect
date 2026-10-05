@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'patient_home_screen.dart';
 import 'find_opd_hospital.dart';
+import 'doctor_availability.dart';
 
 class MyFamilyProfileScreen extends StatelessWidget {
   const MyFamilyProfileScreen({super.key});
@@ -10,6 +12,7 @@ class MyFamilyProfileScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: true,
         title: const Text('My Family & Profile'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
@@ -141,7 +144,43 @@ class MyFamilyProfileScreen extends StatelessWidget {
         currentIndex: 4,
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
-        onTap: (_) {},
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PatientHomeScreen(),
+                ),
+              );
+              break;
+            case 1:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const FindOpdHospitalScreen(),
+                ),
+              );
+              break;
+            case 2:
+            case 4:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MyFamilyProfileScreen(),
+                ),
+              );
+              break;
+            case 3:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const DoctorAvailabilityScreen(),
+                ),
+              );
+              break;
+          }
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),

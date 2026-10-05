@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'patient_home_screen.dart';
+import 'find_opd_hospital.dart';
+import 'doctor_availability.dart';
+import 'my_family_profile.dart';
+import 'patient_home_screen.dart';
 
 class BookingConfirmedScreen extends StatelessWidget {
   const BookingConfirmedScreen({super.key});
@@ -8,6 +13,17 @@ class BookingConfirmedScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (context) => const PatientHomeScreen(),
+              ),
+              (route) => false,
+            );
+          },
+        ),
         title: const Text('Booking Confirmed'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
@@ -183,7 +199,44 @@ class BookingConfirmedScreen extends StatelessWidget {
         currentIndex: 2,
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
-        onTap: (_) {},
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PatientHomeScreen(),
+                ),
+                (route) => false,
+              );
+              break;
+            case 1:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const FindOpdHospitalScreen(),
+                ),
+              );
+              break;
+            case 2:
+            case 4:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MyFamilyProfileScreen(),
+                ),
+              );
+              break;
+            case 3:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const DoctorAvailabilityScreen(),
+                ),
+              );
+              break;
+          }
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),

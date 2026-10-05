@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'patient_home_screen.dart';
+import 'find_opd_hospital.dart';
+import 'doctor_availability.dart';
+import 'my_family_profile.dart';
 import 'booking_confirmed.dart';
 
 class ReviewConfirmBookingScreen extends StatefulWidget {
@@ -15,6 +19,7 @@ class _ReviewConfirmBookingScreenState extends State<ReviewConfirmBookingScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: true,
         title: const Text('Review & Confirm Booking'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
@@ -143,7 +148,43 @@ class _ReviewConfirmBookingScreenState extends State<ReviewConfirmBookingScreen>
         currentIndex: 2,
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
-        onTap: (_) {},
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PatientHomeScreen(),
+                ),
+              );
+              break;
+            case 1:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const FindOpdHospitalScreen(),
+                ),
+              );
+              break;
+            case 2:
+            case 4:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MyFamilyProfileScreen(),
+                ),
+              );
+              break;
+            case 3:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const DoctorAvailabilityScreen(),
+                ),
+              );
+              break;
+          }
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),

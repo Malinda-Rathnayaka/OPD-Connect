@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'patient_home_screen.dart';
+import 'find_opd_hospital.dart';
+import 'doctor_availability.dart';
+import 'my_family_profile.dart';
 import 'review_confirm_booking.dart';
 
 class SelectAppointmentSlotScreen extends StatefulWidget {
@@ -38,6 +42,7 @@ class _SelectAppointmentSlotScreenState extends State<SelectAppointmentSlotScree
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: true,
         title: const Text('Select Appointment Slot'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
@@ -259,7 +264,43 @@ class _SelectAppointmentSlotScreenState extends State<SelectAppointmentSlotScree
         currentIndex: 2,
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
-        onTap: (_) {},
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PatientHomeScreen(),
+                ),
+              );
+              break;
+            case 1:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const FindOpdHospitalScreen(),
+                ),
+              );
+              break;
+            case 2:
+            case 4:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MyFamilyProfileScreen(),
+                ),
+              );
+              break;
+            case 3:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const DoctorAvailabilityScreen(),
+                ),
+              );
+              break;
+          }
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
