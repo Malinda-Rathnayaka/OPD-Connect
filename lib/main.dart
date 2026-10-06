@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'services/seed_service.dart';
 import 'screens/auth/splash_screen.dart';
+import 'screens/patient/patient_home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +36,9 @@ class OPDConnectApp extends StatelessWidget {
       ),
       // Starts with SplashScreen onboarding flow
       home: const SplashScreen(),
+
+      // Test 
+      //home: const PatientHomeScreen(),
     );
   }
 }
