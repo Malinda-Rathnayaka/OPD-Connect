@@ -179,7 +179,10 @@ class _ReviewConfirmBookingScreenState extends State<ReviewConfirmBookingScreen>
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const DoctorAvailabilityScreen(),
+                  builder: (context) => DoctorAvailabilityScreen(
+                    hospitalId: 'hospital-1',
+                    hospitalName: 'Colombo National Hospital',
+                  ),
                 ),
               );
               break;

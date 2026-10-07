@@ -37,7 +37,12 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         _navigateTo(const MyFamilyProfileScreen());
         break;
       case 3:
-        _navigateTo(const DoctorAvailabilityScreen());
+        _navigateTo(
+          DoctorAvailabilityScreen(
+            hospitalId: 'hospital-1',
+            hospitalName: 'Colombo National Hospital',
+          ),
+        );
         break;
       case 4:
         _navigateTo(const MyFamilyProfileScreen());
@@ -294,7 +299,12 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                   title: 'Queue Status',
                   subtitle: 'Check live counters',
                   onTap: () {
-                    _navigateTo(const DoctorAvailabilityScreen());
+                    _navigateTo(
+                      DoctorAvailabilityScreen(
+                        hospitalId: 'hospital-1',
+                        hospitalName: 'Colombo National Hospital',
+                      ),
+                    );
                   },
                 ),
                 _QuickToolCard(

@@ -4,7 +4,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'services/seed_service.dart';
 import 'screens/auth/splash_screen.dart';
-import 'screens/patient/patient_home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +17,9 @@ void main() async {
 
   // Auto-seed initial admin data using .env credentials
   await SeedService.seedAdminAccount();
+
+  // Seed hospitals and doctors for the patient search flow
+  await SeedService.seedHospitalsAndDoctors();
 
   runApp(const OPDConnectApp());
 }

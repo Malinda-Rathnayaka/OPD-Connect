@@ -3,7 +3,6 @@ import 'patient_home_screen.dart';
 import 'find_opd_hospital.dart';
 import 'doctor_availability.dart';
 import 'my_family_profile.dart';
-import 'patient_home_screen.dart';
 
 class BookingConfirmedScreen extends StatelessWidget {
   const BookingConfirmedScreen({super.key});
@@ -231,7 +230,10 @@ class BookingConfirmedScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const DoctorAvailabilityScreen(),
+                  builder: (context) => DoctorAvailabilityScreen(
+                    hospitalId: 'hospital-1',
+                    hospitalName: 'Colombo National Hospital',
+                  ),
                 ),
               );
               break;
