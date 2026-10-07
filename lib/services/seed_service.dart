@@ -39,13 +39,275 @@ class SeedService {
           'createdAt': FieldValue.serverTimestamp(),
         });
 
-        // Sign out immediately so auto-login doesn't bypass onboarding/login screen
         await _auth.signOut();
-
         debugPrint("Admin account created successfully: $adminEmail");
       }
     } catch (e) {
       debugPrint("Admin seed check finished: ${e.toString()}");
+    }
+  }
+
+  static Future<void> seedColomboNationalHospital() async {
+    try {
+      final firestore = FirebaseFirestore.instance;
+      const hospitalId = 'colombo-national';
+      const hospitalName = 'Colombo National Hospital';
+      final createdAt = Timestamp.now();
+
+      final nextMonday = DateTime.now();
+      var nextSessionDate = DateTime(
+        nextMonday.year,
+        nextMonday.month,
+        nextMonday.day,
+      );
+
+      while (nextSessionDate.weekday != DateTime.monday) {
+        nextSessionDate = nextSessionDate.add(const Duration(days: 1));
+      }
+
+      nextSessionDate = DateTime(
+        nextSessionDate.year,
+        nextSessionDate.month,
+        nextSessionDate.day,
+        9,
+        0,
+      );
+
+      final doctors = [
+        {
+          'id': 'doctor-general',
+          'fullName': 'Dr. Perera',
+          'department': 'General Medicine',
+          'hospitalId': hospitalId,
+          'hospitalName': hospitalName,
+          'isOnDuty': true,
+          'avgWaitTime': 15,
+          'patientRating': 4.9,
+          'availableSlots': ['Mon, 22 Sep', 'Tue, 23 Sep'],
+          'createdAt': createdAt,
+        },
+        {
+          'id': 'doctor-dental',
+          'fullName': 'Dr. Silva',
+          'department': 'Dental',
+          'hospitalId': hospitalId,
+          'hospitalName': hospitalName,
+          'isOnDuty': true,
+          'avgWaitTime': 10,
+          'patientRating': 4.7,
+          'availableSlots': ['Mon, 22 Sep', 'Tue, 23 Sep'],
+          'createdAt': createdAt,
+        },
+        {
+          'id': 'doctor-eye',
+          'fullName': 'Dr. Fernando',
+          'department': 'Eye Clinic',
+          'hospitalId': hospitalId,
+          'hospitalName': hospitalName,
+          'isOnDuty': true,
+          'avgWaitTime': 20,
+          'patientRating': 4.8,
+          'availableSlots': ['Mon, 22 Sep', 'Tue, 23 Sep'],
+          'createdAt': createdAt,
+        },
+        {
+          'id': 'doctor-ent',
+          'fullName': 'Dr. Jayawardena',
+          'department': 'ENT',
+          'hospitalId': hospitalId,
+          'hospitalName': hospitalName,
+          'isOnDuty': true,
+          'avgWaitTime': 12,
+          'patientRating': 4.6,
+          'availableSlots': ['Mon, 22 Sep', 'Tue, 23 Sep'],
+          'createdAt': createdAt,
+        },
+        {
+          'id': 'doctor-cardio',
+          'fullName': 'Dr. Wickramasinghe',
+          'department': 'Cardiology',
+          'hospitalId': hospitalId,
+          'hospitalName': hospitalName,
+          'isOnDuty': true,
+          'avgWaitTime': 25,
+          'patientRating': 4.9,
+          'availableSlots': ['Mon, 22 Sep', 'Tue, 23 Sep'],
+          'createdAt': createdAt,
+        },
+        {
+          'id': 'doctor-pedia',
+          'fullName': 'Dr. Rajapaksa',
+          'department': 'Pediatrics',
+          'hospitalId': hospitalId,
+          'hospitalName': hospitalName,
+          'isOnDuty': true,
+          'avgWaitTime': 18,
+          'patientRating': 4.8,
+          'availableSlots': ['Mon, 22 Sep', 'Tue, 23 Sep'],
+          'createdAt': createdAt,
+        },
+      ];
+
+      final sessionDays = [
+        {'date': 'Mon, 22 Sep', 'day': 'Mon', 'slots': 12},
+        {'date': 'Tue, 23 Sep', 'day': 'Tue', 'slots': 3},
+        {'date': 'Wed, 24 Sep', 'day': 'Wed', 'slots': 0},
+        {'date': 'Thu, 25 Sep', 'day': 'Thu', 'slots': 8},
+        {'date': 'Fri, 26 Sep', 'day': 'Fri', 'slots': 0},
+        {'date': 'Sat, 27 Sep', 'day': 'Sat', 'slots': 5},
+        {'date': 'Sun, 28 Sep', 'day': 'Sun', 'slots': 10},
+      ];
+
+      final batch = firestore.batch();
+
+      batch.set(
+        firestore.collection('hospitals').doc(hospitalId),
+        {
+          'name': hospitalName,
+          'district': 'Colombo',
+          'city': 'Colombo',
+          'address': 'Colombo 10',
+          'distance': 2.3,
+          'isOpen': true,
+          'clinics': [
+            'General Medicine',
+            'Dental',
+            'Eye Clinic',
+            'ENT',
+            'Cardiology',
+            'Pediatrics',
+          ],
+          'phone': '+94 11 269 1111',
+          'nextSession': Timestamp.fromDate(nextSessionDate),
+        },
+        SetOptions(merge: true),
+      );
+
+      for (final doctor in doctors) {
+        final doctorId = doctor['id'] as String;
+        final doctorData = {
+          'fullName': doctor['fullName'],
+          'department': doctor['department'],
+          'hospitalId': doctor['hospitalId'],
+          'hospitalName': doctor['hospitalName'],
+          'isOnDuty': doctor['isOnDuty'],
+          'avgWaitTime': doctor['avgWaitTime'],
+          'patientRating': doctor['patientRating'],
+          'availableSlots': doctor['availableSlots'],
+          'createdAt': doctor['createdAt'],
+        };
+
+        batch.set(
+          firestore.collection('doctors').doc(doctorId),
+          doctorData,
+          SetOptions(merge: true),
+        );
+
+        final doctorShortName = doctorId.replaceFirst('doctor-', '');
+
+        for (final day in sessionDays) {
+          final sessionId =
+              'session-${doctorShortName}-${(day['day'] as String).toLowerCase()}';
+          final availableSlots = day['slots'] as int;
+
+          batch.set(
+            firestore.collection('sessions').doc(sessionId),
+            {
+              'hospitalId': hospitalId,
+              'hospitalName': hospitalName,
+              'doctorId': doctorId,
+              'doctorName': doctor['fullName'],
+              'department': doctor['department'],
+              'date': day['date'],
+              'dayOfWeek': day['day'],
+              'sessionType': 'Morning',
+              'startTime': '09:00 AM',
+              'endTime': '12:00 PM',
+              'availableSlots': availableSlots,
+              'totalSlots': 15,
+              'isAvailable': availableSlots > 0,
+            },
+            SetOptions(merge: true),
+          );
+        }
+      }
+
+      await batch.commit();
+      debugPrint(
+        'Colombo National Hospital data seeded: 1 hospital, 6 doctors, 42 sessions',
+      );
+    } catch (e) {
+      debugPrint('Error seeding Colombo National Hospital data: $e');
+    }
+  }
+
+  static Future<void> cleanUpOtherHospitals() async {
+    try {
+      final firestore = FirebaseFirestore.instance;
+      const keepHospitalId = 'colombo-national';
+
+      int deletedHospitals = 0;
+      final hospitalsSnapshot = await firestore.collection('hospitals').get();
+      final hospitalDocs = hospitalsSnapshot.docs
+          .where((doc) => doc.id != keepHospitalId)
+          .toList();
+
+      for (var i = 0; i < hospitalDocs.length; i += 500) {
+        final batch = firestore.batch();
+        final chunk = hospitalDocs.skip(i).take(500).toList();
+
+        for (final doc in chunk) {
+          batch.delete(doc.reference);
+        }
+
+        await batch.commit();
+        deletedHospitals += chunk.length;
+      }
+
+      debugPrint('Deleted $deletedHospitals hospitals');
+
+      int deletedDoctors = 0;
+      final doctorsSnapshot = await firestore
+          .collection('doctors')
+          .where('hospitalId', isNotEqualTo: keepHospitalId)
+          .get();
+
+      for (var i = 0; i < doctorsSnapshot.docs.length; i += 500) {
+        final batch = firestore.batch();
+        final chunk = doctorsSnapshot.docs.skip(i).take(500).toList();
+
+        for (final doc in chunk) {
+          batch.delete(doc.reference);
+        }
+
+        await batch.commit();
+        deletedDoctors += chunk.length;
+      }
+
+      debugPrint('Deleted $deletedDoctors doctors');
+
+      int deletedSessions = 0;
+      final sessionsSnapshot = await firestore
+          .collection('sessions')
+          .where('hospitalId', isNotEqualTo: keepHospitalId)
+          .get();
+
+      for (var i = 0; i < sessionsSnapshot.docs.length; i += 500) {
+        final batch = firestore.batch();
+        final chunk = sessionsSnapshot.docs.skip(i).take(500).toList();
+
+        for (final doc in chunk) {
+          batch.delete(doc.reference);
+        }
+
+        await batch.commit();
+        deletedSessions += chunk.length;
+      }
+
+      debugPrint('Deleted $deletedSessions sessions');
+      debugPrint('Cleanup completed successfully');
+    } catch (e) {
+      debugPrint('Error cleaning up other hospitals: $e');
     }
   }
 
@@ -60,7 +322,14 @@ class SeedService {
           'address': 'Colombo 10, Sri Lanka',
           'distance': 2.3,
           'isOpen': true,
-          'clinics': ['General Medicine', 'Dental', 'Eye Clinic', 'ENT', 'Cardiology', 'Pediatrics'],
+          'clinics': [
+            'General Medicine',
+            'Dental',
+            'Eye Clinic',
+            'ENT',
+            'Cardiology',
+            'Pediatrics',
+          ],
           'phone': '+94 11 269 1111',
           'nextSession': Timestamp.fromDate(DateTime.now().add(const Duration(days: 2))),
         },
@@ -76,7 +345,6 @@ class SeedService {
         'Pediatrics': ['Dr. Seneviratne', 'Dr. Ranasinghe', 'Dr. Karunaratne'],
       };
 
-      final hospitalNames = <String>[];
       final now = Timestamp.now();
 
       for (int index = 0; index < hospitals.length; index++) {
@@ -94,7 +362,6 @@ class SeedService {
           'nextSession': hospital['nextSession'],
         };
 
-        hospitalNames.add(hospital['name'] as String);
         batch.set(
           _db.collection('hospitals').doc(hospitalId),
           hospitalData,
@@ -132,9 +399,10 @@ class SeedService {
       }
 
       await batch.commit();
-
+      final hospitalsCount = hospitals.length;
+      final doctorsCount = hospitals.length * 3;
       debugPrint(
-        'Hospitals and doctors seeded successfully: ${hospitals.length} hospitals, ${hospitals.length * 3} doctors',
+        'Hospitals and doctors seeded successfully: $hospitalsCount hospitals, $doctorsCount doctors',
       );
     } catch (e) {
       debugPrint('Error seeding hospitals and doctors: $e');
