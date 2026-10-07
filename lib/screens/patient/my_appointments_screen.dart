@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'live_queue_tracker_screen.dart';
 import 'cancel_appointment_screen.dart';
 import 'reschedule_appointment_screen.dart';
+import 'visit_summary_screen.dart'; // ← අලුතින් add කරපු එක
 
 class MyAppointmentsScreen extends StatefulWidget {
   const MyAppointmentsScreen({super.key});
@@ -11,9 +12,8 @@ class MyAppointmentsScreen extends StatefulWidget {
 }
 
 class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
-  int _selectedTab = 0; // 0 = Upcoming, 1 = Past Visits
+  int _selectedTab = 0;
 
-  // ===== UPCOMING APPOINTMENTS DATA =====
   final List<Map<String, dynamic>> _upcomingAppointments = [
     {
       'doctorName': 'Dr. Kamal Perera',
@@ -39,7 +39,6 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
     },
   ];
 
-  // ===== PAST VISITS DATA =====
   final List<Map<String, dynamic>> _pastAppointments = [
     {
       'doctorName': 'Dr. Kamal Perera',
@@ -78,7 +77,6 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Tab එකට අනුව data තෝරන්න
     final appointments =
         _selectedTab == 0 ? _upcomingAppointments : _pastAppointments;
 
@@ -112,7 +110,6 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ===== TAB SWITCHER =====
               Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
@@ -128,7 +125,6 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
               ),
               const SizedBox(height: 20),
 
-              // ===== SECTION HEADER =====
               Text(
                 _selectedTab == 0 ? "TODAY'S & FUTURE SESSIONS" : 'PAST VISITS',
                 style: TextStyle(
@@ -140,7 +136,6 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
               ),
               const SizedBox(height: 10),
 
-              // ===== APPOINTMENT LIST =====
               if (appointments.isEmpty)
                 _emptyState()
               else
@@ -187,7 +182,6 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
     );
   }
 
-  // ===== Empty State =====
   Widget _emptyState() {
     return Container(
       width: double.infinity,
@@ -226,7 +220,6 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
     );
   }
 
-  // ===== Tab Button =====
   Widget _tabButton(String label, int index) {
     final isSelected = _selectedTab == index;
     return Expanded(
@@ -256,7 +249,6 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
     );
   }
 
-  // ===== Appointment Card =====
   Widget _appointmentCard({
     required BuildContext context,
     required String doctorName,
@@ -289,7 +281,6 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Doctor name + Token
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -330,7 +321,6 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
           ),
           const SizedBox(height: 12),
 
-          // Date + Badge
           Row(
             children: [
               const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
@@ -364,16 +354,13 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
           ),
           const SizedBox(height: 14),
 
-          // Buttons
           Row(
             children: [
               // ===== Secondary Button =====
               Expanded(
                 child: OutlinedButton(
                   onPressed: () {
-                    // ===== Reschedule / Cancel Booking / Book Again =====
                     if (secondaryButton == 'Reschedule') {
-                      // Reschedule screen එකට යන්න
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -387,7 +374,6 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                         ),
                       );
                     } else if (secondaryButton == 'Cancel Booking') {
-                      // Cancel screen එකට යන්න
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -400,7 +386,19 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                         ),
                       );
                     } else if (secondaryButton == 'Book Again') {
-                      // TODO: Booking screen එකට යන්න
+                      // ===== Book Again — New Booking (Modify mode) =====
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => RescheduleAppointmentScreen(
+                            doctorName: doctorName,
+                            department: department,
+                            token: 'New',
+                            dateTime: 'Not scheduled',
+                            isReschedule: false,
+                          ),
+                        ),
+                      );
                     }
                   },
                   style: OutlinedButton.styleFrom(
@@ -427,7 +425,6 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                 child: ElevatedButton(
                   onPressed: () {
                     if (primaryButton == 'Track Queue') {
-                      // Live Queue Tracker screen එකට යන්න
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -435,7 +432,6 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                         ),
                       );
                     } else if (primaryButton == 'Modify') {
-                      // Modify screen එකට යන්න
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -444,12 +440,23 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                             department: department,
                             token: token,
                             dateTime: dateTime,
-                            isReschedule: false, // Modify mode
+                            isReschedule: false,
                           ),
                         ),
                       );
                     } else if (primaryButton == 'View Summary') {
-                      // TODO: Summary screen එකට යන්න
+                      // ===== View Summary =====
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => VisitSummaryScreen(
+                            doctorName: doctorName,
+                            department: department,
+                            token: token,
+                            dateTime: dateTime,
+                          ),
+                        ),
+                      );
                     }
                   },
                   style: ElevatedButton.styleFrom(
