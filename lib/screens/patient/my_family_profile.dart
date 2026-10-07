@@ -1,8 +1,12 @@
+import 'dart:io' show File;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'department_select.dart';
 import 'patient_home_screen.dart';
-import 'find_opd_hospital.dart';
 import 'doctor_availability.dart';
 import '../../models/family_member_model.dart';
 import '../../models/patient_model.dart';
@@ -150,14 +154,64 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
     }
   }
 
+  bool _isValidRemoteImageUrl(String value) {
+    final normalized = value.trim();
+    if (normalized.isEmpty) return false;
+    return normalized.startsWith('http://') ||
+        normalized.startsWith('https://') ||
+        normalized.startsWith('data:image/');
+  }
+
+  ImageProvider<Object>? _buildProfileImageProvider() {
+    if (_profileImageUrl.isNotEmpty && _isValidRemoteImageUrl(_profileImageUrl)) {
+      return NetworkImage(_profileImageUrl);
+    }
+    return null;
+  }
+
+  Future<void> _pickProfileImage() async {
+    try {
+      final pickedFile = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 1200,
+      );
+
+      if (pickedFile == null) return;
+
+      String imageUrl = '';
+
+      if (kIsWeb) {
+        imageUrl = pickedFile.path;
+      } else {
+        final storageRef = FirebaseStorage.instance
+            .ref()
+            .child('profile_pictures')
+            .child('$_patientId.jpg');
+
+        final file = File(pickedFile.path);
+        await storageRef.putFile(file);
+        imageUrl = await storageRef.getDownloadURL();
+      }
+
+      await _updateProfileImage(imageUrl);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to update profile picture: $error')),
+      );
+    }
+  }
+
   Future<void> _updateProfileImage(String imageUrl) async {
+    final safeImageUrl = imageUrl.trim();
     await _savePatientProfile(
       fullName: _displayName,
       nic: _displayNic,
       phone: _displayPhone,
       email: _patient?.email ?? '',
       preferredLanguage: _displayLanguage,
-      profileImageUrl: imageUrl,
+      profileImageUrl: safeImageUrl,
     );
   }
 
@@ -425,7 +479,7 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
   }
 
   void _goToBookingFlow() {
-    _navigateTo(const FindOpdHospitalScreen());
+    _navigateTo(const DepartmentSelectScreen());
   }
 
   void _navigateTo(Widget screen) {
@@ -450,8 +504,6 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
             onSelected: (value) {
               if (value == 'edit') {
                 _showEditProfileDialog();
-              } else if (value == 'picture') {
-                _showProfilePictureDialog();
               } else if (value == 'remove') {
                 _removeProfile();
               } else if (value == 'logout') {
@@ -460,7 +512,6 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
             },
             itemBuilder: (context) => const [
               PopupMenuItem(value: 'edit', child: Text('Edit Profile')),
-              PopupMenuItem(value: 'picture', child: Text('Add/Change Picture')),
               PopupMenuItem(value: 'remove', child: Text('Remove Profile')),
               PopupMenuItem(value: 'logout', child: Text('Logout')),
             ],
@@ -486,35 +537,45 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
                         padding: const EdgeInsets.all(16),
                         child: Row(
                           children: [
-                            PopupMenuButton<String>(
-                              onSelected: (value) {
-                                if (value == 'edit') {
-                                  _showEditProfileDialog();
-                                } else if (value == 'picture') {
-                                  _showProfilePictureDialog();
-                                } else if (value == 'remove') {
-                                  _removeProfile();
-                                }
-                              },
-                              itemBuilder: (context) => const [
-                                PopupMenuItem(value: 'edit', child: Text('Edit Profile')),
-                                PopupMenuItem(value: 'picture', child: Text('Add/Change Picture')),
-                                PopupMenuItem(value: 'remove', child: Text('Remove Profile')),
-                              ],
-                              child: CircleAvatar(
-                                radius: 32,
-                                backgroundColor: Colors.blue.shade100,
-                                backgroundImage: _profileImageUrl.isNotEmpty
-                                    ? NetworkImage(_profileImageUrl)
-                                    : null,
-                                child: _profileImageUrl.isEmpty
-                                    ? const Icon(
-                                        Icons.person,
-                                        size: 36,
+                            Stack(
+                              children: [
+                                CircleAvatar(
+                                  radius: 32,
+                                  backgroundColor: Colors.blue.shade100,
+                                  backgroundImage: _buildProfileImageProvider(),
+                                  child: _buildProfileImageProvider() == null
+                                      ? const Icon(
+                                          Icons.person,
+                                          size: 36,
+                                          color: Colors.blue,
+                                        )
+                                      : null,
+                                ),
+                                Positioned(
+                                  right: 0,
+                                  bottom: 0,
+                                  child: InkWell(
+                                    onTap: _pickProfileImage,
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
                                         color: Colors.blue,
-                                      )
-                                    : null,
-                              ),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.edit,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -681,7 +742,7 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const FindOpdHospitalScreen(),
+                  builder: (context) => const DepartmentSelectScreen(),
                 ),
               );
               break;
@@ -698,10 +759,7 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => DoctorAvailabilityScreen(
-                    hospitalId: 'hospital-1',
-                    hospitalName: 'Colombo National Hospital',
-                  ),
+                  builder: (context) => const DepartmentSelectScreen(),
                 ),
               );
               break;

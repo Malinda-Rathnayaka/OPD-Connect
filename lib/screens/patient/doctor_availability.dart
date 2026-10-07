@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'find_opd_hospital.dart';
+import 'department_select.dart';
 import 'my_family_profile.dart';
 import 'patient_home_screen.dart';
 import 'select_appointment_slot.dart';
@@ -8,11 +8,13 @@ import 'select_appointment_slot.dart';
 class DoctorAvailabilityScreen extends StatefulWidget {
   final String hospitalId;
   final String hospitalName;
+  final String department;
 
   const DoctorAvailabilityScreen({
     super.key,
     required this.hospitalId,
     required this.hospitalName,
+    required this.department,
   });
 
   @override
@@ -21,10 +23,15 @@ class DoctorAvailabilityScreen extends StatefulWidget {
 
 class _DoctorAvailabilityScreenState extends State<DoctorAvailabilityScreen> {
   Future<List<Map<String, dynamic>>> _loadDoctors() async {
-    final snapshot = await FirebaseFirestore.instance
+    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
         .collection('doctors')
-        .where('hospitalId', isEqualTo: widget.hospitalId)
-        .get();
+        .where('hospitalId', isEqualTo: widget.hospitalId);
+
+    if (widget.department.isNotEmpty) {
+      query = query.where('department', isEqualTo: widget.department);
+    }
+
+    final snapshot = await query.get();
 
     final doctors = snapshot.docs.map((doc) {
       final data = doc.data();
@@ -70,7 +77,7 @@ class _DoctorAvailabilityScreenState extends State<DoctorAvailabilityScreen> {
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: true,
-          title: Text(widget.hospitalName),
+          title: Text('${widget.hospitalName} • ${widget.department}'),
           backgroundColor: Colors.blue,
           foregroundColor: Colors.white,
         ),
@@ -92,8 +99,11 @@ class _DoctorAvailabilityScreenState extends State<DoctorAvailabilityScreen> {
             final doctors = snapshot.data ?? const <Map<String, dynamic>>[];
 
             if (doctors.isEmpty) {
-              return const Center(
-                child: Text('No doctors available for this hospital.'),
+              return Center(
+                child: Text(
+                  'No ${widget.department} doctors available at ${widget.hospitalName}.',
+                  textAlign: TextAlign.center,
+                ),
               );
             }
 
@@ -202,8 +212,11 @@ class _DoctorAvailabilityScreenState extends State<DoctorAvailabilityScreen> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => SelectAppointmentSlotScreen(
+                                      hospitalId: widget.hospitalId,
+                                      hospitalName: widget.hospitalName,
                                       doctorId: doctorId,
                                       doctorName: doctorName,
+                                      department: department,
                                     ),
                                   ),
                                 );
@@ -247,7 +260,7 @@ class _DoctorAvailabilityScreenState extends State<DoctorAvailabilityScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const FindOpdHospitalScreen(),
+                    builder: (context) => const DepartmentSelectScreen(),
                   ),
                 );
                 break;
@@ -264,7 +277,7 @@ class _DoctorAvailabilityScreenState extends State<DoctorAvailabilityScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const FindOpdHospitalScreen(),
+                    builder: (context) => const DepartmentSelectScreen(),
                   ),
                 );
                 break;

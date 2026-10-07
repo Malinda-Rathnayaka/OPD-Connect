@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'department_select.dart';
 import 'my_family_profile.dart';
-import 'find_opd_hospital.dart';
 import 'doctor_availability.dart';
 
 class PatientHomeScreen extends StatefulWidget {
@@ -31,18 +31,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
       case 0:
         break;
       case 1:
-        _navigateTo(const FindOpdHospitalScreen());
-        break;
       case 2:
-        _navigateTo(const MyFamilyProfileScreen());
-        break;
       case 3:
-        _navigateTo(
-          DoctorAvailabilityScreen(
-            hospitalId: 'hospital-1',
-            hospitalName: 'Colombo National Hospital',
-          ),
-        );
+        _navigateTo(const DepartmentSelectScreen());
         break;
       case 4:
         _navigateTo(const MyFamilyProfileScreen());
@@ -255,7 +246,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  _navigateTo(const MyFamilyProfileScreen());
+                  _navigateTo(const DepartmentSelectScreen());
                 },
                 icon: Icon(Icons.add_circle_outline),
                 label: Text('New OPD Appointment Booking'),
@@ -291,7 +282,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                   title: 'My Bookings',
                   subtitle: 'View or edit sessions',
                   onTap: () {
-                    _navigateTo(const FindOpdHospitalScreen());
+                    _navigateTo(const DepartmentSelectScreen());
                   },
                 ),
                 _QuickToolCard(
@@ -299,12 +290,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                   title: 'Queue Status',
                   subtitle: 'Check live counters',
                   onTap: () {
-                    _navigateTo(
-                      DoctorAvailabilityScreen(
-                        hospitalId: 'hospital-1',
-                        hospitalName: 'Colombo National Hospital',
-                      ),
-                    );
+                    _navigateTo(const DepartmentSelectScreen());
                   },
                 ),
                 _QuickToolCard(

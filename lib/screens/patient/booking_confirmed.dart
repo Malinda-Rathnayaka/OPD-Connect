@@ -1,11 +1,32 @@
 import 'package:flutter/material.dart';
+import 'department_select.dart';
 import 'patient_home_screen.dart';
-import 'find_opd_hospital.dart';
 import 'doctor_availability.dart';
 import 'my_family_profile.dart';
 
 class BookingConfirmedScreen extends StatelessWidget {
-  const BookingConfirmedScreen({super.key});
+  final String hospitalName;
+  final String department;
+  final String doctorName;
+  final DateTime date;
+  final String time;
+  final int tokenNumber;
+  final String referenceNumber;
+  final String patientName;
+  final String bookingFor;
+
+  const BookingConfirmedScreen({
+    super.key,
+    required this.hospitalName,
+    required this.department,
+    required this.doctorName,
+    required this.date,
+    required this.time,
+    required this.tokenNumber,
+    required this.referenceNumber,
+    this.patientName = 'Kamal Perera',
+    this.bookingFor = 'Myself',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -51,10 +72,10 @@ class BookingConfirmedScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'SMS details sent to +94 77 123 4567',
+            Text(
+              'SMS details sent to $patientName ($bookingFor)',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
                 color: Colors.grey,
               ),
@@ -73,11 +94,11 @@ class BookingConfirmedScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            const Align(
+            Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'OPD-2026-04821',
-                style: TextStyle(
+                referenceNumber,
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
                 ),
@@ -122,18 +143,18 @@ class BookingConfirmedScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Row(
-              children: const [
+              children: [
                 Expanded(
                   child: _InfoBox(
                     label: 'Assigned Token',
-                    value: '#14 (Dental)',
+                    value: '#$tokenNumber ($department)',
                   ),
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: _InfoBox(
                     label: 'Appt Time',
-                    value: '9:00 AM',
+                    value: time,
                   ),
                 ),
               ],
@@ -213,7 +234,7 @@ class BookingConfirmedScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const FindOpdHospitalScreen(),
+                  builder: (context) => const DepartmentSelectScreen(),
                 ),
               );
               break;
@@ -230,10 +251,7 @@ class BookingConfirmedScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => DoctorAvailabilityScreen(
-                    hospitalId: 'hospital-1',
-                    hospitalName: 'Colombo National Hospital',
-                  ),
+                  builder: (context) => const DepartmentSelectScreen(),
                 ),
               );
               break;

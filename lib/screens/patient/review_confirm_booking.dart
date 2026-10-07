@@ -1,12 +1,35 @@
 import 'package:flutter/material.dart';
+import 'department_select.dart';
 import 'patient_home_screen.dart';
-import 'find_opd_hospital.dart';
 import 'doctor_availability.dart';
 import 'my_family_profile.dart';
 import 'booking_confirmed.dart';
 
 class ReviewConfirmBookingScreen extends StatefulWidget {
-  const ReviewConfirmBookingScreen({super.key});
+  final String hospitalId;
+  final String hospitalName;
+  final String doctorId;
+  final String doctorName;
+  final String department;
+  final DateTime date;
+  final String time;
+  final int slotNumber;
+  final String patientName;
+  final String bookingFor;
+
+  const ReviewConfirmBookingScreen({
+    super.key,
+    required this.hospitalId,
+    required this.hospitalName,
+    required this.doctorId,
+    required this.doctorName,
+    required this.department,
+    required this.date,
+    required this.time,
+    required this.slotNumber,
+    this.patientName = 'Kamal Perera',
+    this.bookingFor = 'Myself',
+  });
 
   @override
   State<ReviewConfirmBookingScreen> createState() => _ReviewConfirmBookingScreenState();
@@ -14,6 +37,27 @@ class ReviewConfirmBookingScreen extends StatefulWidget {
 
 class _ReviewConfirmBookingScreenState extends State<ReviewConfirmBookingScreen> {
   bool _agreedToGuidelines = false;
+
+  String _formatDate(DateTime date) {
+    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+    final weekday = weekdays[date.weekday - 1];
+    final month = months[date.month - 1];
+    return '$weekday, ${date.day} $month';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,27 +93,27 @@ class _ReviewConfirmBookingScreenState extends State<ReviewConfirmBookingScreen>
                     const SizedBox(height: 16),
                     _DetailRow(
                       label: 'Patient',
-                      value: 'Kamal Perera (Myself)',
+                      value: '${widget.patientName} (${widget.bookingFor})',
                     ),
                     const SizedBox(height: 12),
                     _DetailRow(
                       label: 'Hospital',
-                      value: 'Colombo National General Hospital',
+                      value: widget.hospitalName,
                     ),
                     const SizedBox(height: 12),
                     _DetailRow(
                       label: 'Department',
-                      value: 'General Medicine Department',
+                      value: widget.department,
                     ),
                     const SizedBox(height: 12),
                     _DetailRow(
                       label: 'Doctor',
-                      value: 'Dr. Perera',
+                      value: widget.doctorName,
                     ),
                     const SizedBox(height: 12),
                     _DetailRow(
                       label: 'Date & Time',
-                      value: 'Mon, 22 Sep @ 9:00 AM (Slot #14)',
+                      value: '${_formatDate(widget.date)} @ ${widget.time} (Slot #${widget.slotNumber})',
                     ),
                   ],
                 ),
@@ -103,10 +147,23 @@ class _ReviewConfirmBookingScreenState extends State<ReviewConfirmBookingScreen>
               child: ElevatedButton(
                 onPressed: _agreedToGuidelines
                     ? () {
+                        final referenceNumber =
+                            'OPD-${DateTime.now().year}-${DateTime.now().millisecondsSinceEpoch % 100000}';
+
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const BookingConfirmedScreen(),
+                            builder: (context) => BookingConfirmedScreen(
+                              hospitalName: widget.hospitalName,
+                              department: widget.department,
+                              doctorName: widget.doctorName,
+                              date: widget.date,
+                              time: widget.time,
+                              tokenNumber: widget.slotNumber,
+                              referenceNumber: referenceNumber,
+                              patientName: widget.patientName,
+                              bookingFor: widget.bookingFor,
+                            ),
                           ),
                         );
                       }
@@ -162,7 +219,7 @@ class _ReviewConfirmBookingScreenState extends State<ReviewConfirmBookingScreen>
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const FindOpdHospitalScreen(),
+                  builder: (context) => const DepartmentSelectScreen(),
                 ),
               );
               break;
@@ -180,8 +237,9 @@ class _ReviewConfirmBookingScreenState extends State<ReviewConfirmBookingScreen>
                 context,
                 MaterialPageRoute(
                   builder: (context) => DoctorAvailabilityScreen(
-                    hospitalId: 'hospital-1',
-                    hospitalName: 'Colombo National Hospital',
+                    hospitalId: widget.hospitalId,
+                    hospitalName: widget.hospitalName,
+                    department: widget.department,
                   ),
                 ),
               );
