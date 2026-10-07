@@ -3,11 +3,83 @@ import 'patient_home_screen.dart';
 import 'doctor_availability.dart';
 import 'my_family_profile.dart';
 
-class FindOpdHospitalScreen extends StatelessWidget {
+class FindOpdHospitalScreen extends StatefulWidget {
   const FindOpdHospitalScreen({super.key});
 
   @override
+  State<FindOpdHospitalScreen> createState() => _FindOpdHospitalScreenState();
+}
+
+class _FindOpdHospitalScreenState extends State<FindOpdHospitalScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _selectedCategory = 'All';
+
+  final List<Map<String, dynamic>> _hospitals = const [
+    {
+      'hospitalName': 'Colombo National Hospital',
+      'status': 'OPEN',
+      'statusColor': Colors.green,
+      'distance': '2.3 km',
+      'clinics': 'General Medicine, Dental, Eye Clinic, Cardiology',
+      'nextSession': 'Mon 22 Sep',
+    },
+    {
+      'hospitalName': 'Sri Jayawardenepura General Hospital',
+      'status': 'OPEN',
+      'statusColor': Colors.green,
+      'distance': '6.8 km',
+      'clinics': 'General Medicine, ENT, Cardiology',
+      'nextSession': 'Tue 23 Sep',
+    },
+    {
+      'hospitalName': 'North Colombo Teaching Hospital',
+      'status': 'CLOSED',
+      'statusColor': Colors.red,
+      'distance': '14.5 km',
+      'clinics': 'General Medicine, Eye Clinic, ENT',
+      'nextSession': 'Tue 23 Sep',
+    },
+  ];
+
+  final List<String> _categories = const [
+    'All',
+    'General Medicine',
+    'Dental',
+    'Eye Clinic',
+    'ENT',
+    'Cardiology',
+  ];
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<Map<String, dynamic>> get _filteredHospitals {
+    final query = _searchController.text.trim().toLowerCase();
+
+    return _hospitals.where((hospital) {
+      final hospitalName = (hospital['hospitalName'] as String).toLowerCase();
+      final clinics = (hospital['clinics'] as String).toLowerCase();
+      final nextSession = (hospital['nextSession'] as String).toLowerCase();
+
+      final matchesSearch = query.isEmpty ||
+          hospitalName.contains(query) ||
+          clinics.contains(query) ||
+          nextSession.contains(query);
+
+      final matchesCategory = _selectedCategory == 'All' ||
+          clinics.contains(_selectedCategory.toLowerCase());
+
+      return matchesSearch && matchesCategory;
+    }).toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final filteredHospitals = _filteredHospitals;
+
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: true,
@@ -21,6 +93,10 @@ class FindOpdHospitalScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextField(
+              controller: _searchController,
+              onChanged: (_) {
+                setState(() {});
+              },
               decoration: InputDecoration(
                 hintText: 'Search Hospital Name...',
                 prefixIcon: const Icon(Icons.search),
@@ -53,46 +129,45 @@ class FindOpdHospitalScreen extends StatelessWidget {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: const [
-                  _FilterChip(label: 'General Medicine'),
-                  SizedBox(width: 8),
-                  _FilterChip(label: 'Dental'),
-                  SizedBox(width: 8),
-                  _FilterChip(label: 'Eye Clinic'),
-                  SizedBox(width: 8),
-                  _FilterChip(label: 'ENT'),
-                  SizedBox(width: 8),
-                  _FilterChip(label: 'Cardiology'),
-                ],
+                children: _categories.map((category) {
+                  final isSelected = category == _selectedCategory;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: _FilterChip(
+                      label: category,
+                      isSelected: isSelected,
+                      onSelected: () {
+                        setState(() {
+                          _selectedCategory = category;
+                        });
+                      },
+                    ),
+                  );
+                }).toList(),
               ),
             ),
             const SizedBox(height: 20),
-            const _HospitalCard(
-              hospitalName: 'Colombo National Hospital',
-              status: 'OPEN',
-              statusColor: Colors.green,
-              distance: '2.3 km',
-              clinics: 'Clinics: General, Dental, Eye, Cardiology',
-              nextSession: 'Next Session: Mon 22 Sep',
-            ),
-            const SizedBox(height: 12),
-            const _HospitalCard(
-              hospitalName: 'Sri Jayawardenepura General Hospital',
-              status: 'OPEN',
-              statusColor: Colors.green,
-              distance: '6.8 km',
-              clinics: 'Clinics: General, ENT, Cardiology',
-              nextSession: 'Next Session: Tue 23 Sep',
-            ),
-            const SizedBox(height: 12),
-            const _HospitalCard(
-              hospitalName: 'North Colombo Teaching Hospital',
-              status: 'CLOSED',
-              statusColor: Colors.red,
-              distance: '14.5 km',
-              clinics: 'Clinics: General, Eye, ENT',
-              nextSession: 'Next Session: Tue 23 Sep',
-            ),
+            if (filteredHospitals.isEmpty)
+              const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('No hospitals match your search or selected category.'),
+                ),
+              )
+            else
+              ...filteredHospitals.map((hospital) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _HospitalCard(
+                    hospitalName: hospital['hospitalName'] as String,
+                    status: hospital['status'] as String,
+                    statusColor: hospital['statusColor'] as Color,
+                    distance: hospital['distance'] as String,
+                    clinics: 'Clinics: ${hospital['clinics'] as String}',
+                    nextSession: 'Next Session: ${hospital['nextSession'] as String}',
+                  ),
+                );
+              }),
           ],
         ),
       ),
@@ -167,15 +242,29 @@ class FindOpdHospitalScreen extends StatelessWidget {
 
 class _FilterChip extends StatelessWidget {
   final String label;
+  final bool isSelected;
+  final VoidCallback onSelected;
 
-  const _FilterChip({required this.label});
+  const _FilterChip({
+    required this.label,
+    required this.isSelected,
+    required this.onSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Chip(
+    return ChoiceChip(
       label: Text(label),
+      selected: isSelected,
+      onSelected: (_) => onSelected(),
+      selectedColor: Colors.blue,
       backgroundColor: Colors.blue.shade50,
-      side: BorderSide(color: Colors.blue.shade200),
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : Colors.blue.shade800,
+      ),
+      side: BorderSide(
+        color: isSelected ? Colors.blue : Colors.blue.shade200,
+      ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
