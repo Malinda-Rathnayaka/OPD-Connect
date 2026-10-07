@@ -36,6 +36,15 @@ class PatientService {
     }
   }
 
+  /// Delete a patient document by its Firestore document ID.
+  Future<void> deletePatient(String patientId) async {
+    try {
+      await _db.collection('patients').doc(patientId).delete();
+    } catch (error) {
+      rethrow;
+    }
+  }
+
   /// Fetch all family members associated with a patient.
   Future<List<FamilyMemberModel>> getFamilyMembers(String patientId) async {
     try {
