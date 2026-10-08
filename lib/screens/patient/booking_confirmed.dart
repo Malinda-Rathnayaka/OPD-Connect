@@ -8,6 +8,7 @@ class BookingConfirmedScreen extends StatelessWidget {
   final String hospitalName;
   final String department;
   final String doctorName;
+  final String sessionId;
   final DateTime date;
   final String time;
   final int tokenNumber;
@@ -20,6 +21,7 @@ class BookingConfirmedScreen extends StatelessWidget {
     required this.hospitalName,
     required this.department,
     required this.doctorName,
+    required this.sessionId,
     required this.date,
     required this.time,
     required this.tokenNumber,
@@ -158,6 +160,11 @@ class BookingConfirmedScreen extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 20),
+            _InfoBox(
+              label: 'Session ID',
+              value: sessionId,
             ),
             const SizedBox(height: 20),
             Row(

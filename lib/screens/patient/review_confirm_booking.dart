@@ -11,6 +11,7 @@ class ReviewConfirmBookingScreen extends StatefulWidget {
   final String doctorId;
   final String doctorName;
   final String department;
+  final String sessionId;
   final DateTime date;
   final String time;
   final int slotNumber;
@@ -24,6 +25,7 @@ class ReviewConfirmBookingScreen extends StatefulWidget {
     required this.doctorId,
     required this.doctorName,
     required this.department,
+    required this.sessionId,
     required this.date,
     required this.time,
     required this.slotNumber,
@@ -112,6 +114,11 @@ class _ReviewConfirmBookingScreenState extends State<ReviewConfirmBookingScreen>
                     ),
                     const SizedBox(height: 12),
                     _DetailRow(
+                      label: 'Session ID',
+                      value: widget.sessionId,
+                    ),
+                    const SizedBox(height: 12),
+                    _DetailRow(
                       label: 'Date & Time',
                       value: '${_formatDate(widget.date)} @ ${widget.time} (Slot #${widget.slotNumber})',
                     ),
@@ -163,6 +170,7 @@ class _ReviewConfirmBookingScreenState extends State<ReviewConfirmBookingScreen>
                               referenceNumber: referenceNumber,
                               patientName: widget.patientName,
                               bookingFor: widget.bookingFor,
+                              sessionId: widget.sessionId,
                             ),
                           ),
                         );
