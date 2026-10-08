@@ -1,4 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 import 'department_select.dart';
 import 'patient_home_screen.dart';
 import 'doctor_availability.dart';
@@ -29,7 +32,7 @@ class ReviewConfirmBookingScreen extends StatefulWidget {
     required this.date,
     required this.time,
     required this.slotNumber,
-    this.patientName = 'Kamal Perera',
+    this.patientName = '',
     this.bookingFor = 'Myself',
   });
 
@@ -39,6 +42,41 @@ class ReviewConfirmBookingScreen extends StatefulWidget {
 
 class _ReviewConfirmBookingScreenState extends State<ReviewConfirmBookingScreen> {
   bool _agreedToGuidelines = false;
+  String _resolvedPatientName = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLoggedInUserName();
+  }
+
+  Future<void> _loadLoggedInUserName() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      setState(() {
+        _resolvedPatientName = widget.patientName.trim().isNotEmpty ? widget.patientName : 'Patient';
+      });
+      return;
+    }
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+
+      final name = doc.data()?['name']?.toString().trim();
+      setState(() {
+        _resolvedPatientName = (name != null && name.isNotEmpty)
+            ? name
+            : (widget.patientName.trim().isNotEmpty ? widget.patientName : 'Patient');
+      });
+    } catch (_) {
+      setState(() {
+        _resolvedPatientName = widget.patientName.trim().isNotEmpty ? widget.patientName : 'Patient';
+      });
+    }
+  }
 
   String _formatDate(DateTime date) {
     const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -95,7 +133,7 @@ class _ReviewConfirmBookingScreenState extends State<ReviewConfirmBookingScreen>
                     const SizedBox(height: 16),
                     _DetailRow(
                       label: 'Patient',
-                      value: '${widget.patientName} (${widget.bookingFor})',
+                      value: '${_resolvedPatientName.isNotEmpty ? _resolvedPatientName : 'Patient'} (${widget.bookingFor})',
                     ),
                     const SizedBox(height: 12),
                     _DetailRow(
@@ -168,7 +206,7 @@ class _ReviewConfirmBookingScreenState extends State<ReviewConfirmBookingScreen>
                               time: widget.time,
                               tokenNumber: widget.slotNumber,
                               referenceNumber: referenceNumber,
-                              patientName: widget.patientName,
+                              patientName: _resolvedPatientName.isNotEmpty ? _resolvedPatientName : 'Patient',
                               bookingFor: widget.bookingFor,
                               sessionId: widget.sessionId,
                             ),

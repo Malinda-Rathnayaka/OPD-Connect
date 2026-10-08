@@ -65,15 +65,27 @@ class AuthService {
     final user = _auth.currentUser;
     if (user == null) throw FirebaseAuthException(code: 'no-current-user');
 
-    await _db.collection('users').doc(user.uid).set({
-        'email': user.email ?? email,
-        'phone': phone,
-        'name': name,
-        'role': role,
-        'isVerified': role == 'patient', // Doctors require IT verification
-        'isApproved': role != 'doctor', // Doctors need admin approval before login
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+    final userData = {
+      'email': user.email ?? email,
+      'phone': phone,
+      'name': name,
+      'role': role,
+      'isVerified': role == 'patient',
+      'isApproved': role != 'doctor',
+      'createdAt': FieldValue.serverTimestamp(),
+    };
+
+    await _db.collection('users').doc(user.uid).set(userData, SetOptions(merge: true));
+
+    await _db.collection('patients').doc(user.uid).set({
+      'fullName': name,
+      'nic': '',
+      'phone': phone,
+      'email': user.email ?? email,
+      'preferredLanguage': 'English',
+      'profileImageUrl': '',
+      'createdAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   /// Retrieve User Profile from Firestore

@@ -1,10 +1,12 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 import 'department_select.dart';
 import 'patient_home_screen.dart';
-import 'doctor_availability.dart';
 import 'my_family_profile.dart';
 
-class BookingConfirmedScreen extends StatelessWidget {
+class BookingConfirmedScreen extends StatefulWidget {
   final String hospitalName;
   final String department;
   final String doctorName;
@@ -26,9 +28,50 @@ class BookingConfirmedScreen extends StatelessWidget {
     required this.time,
     required this.tokenNumber,
     required this.referenceNumber,
-    this.patientName = 'Kamal Perera',
+    this.patientName = '',
     this.bookingFor = 'Myself',
   });
+
+  @override
+  State<BookingConfirmedScreen> createState() => _BookingConfirmedScreenState();
+}
+
+class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
+  String _resolvedPatientName = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLoggedInUserName();
+  }
+
+  Future<void> _loadLoggedInUserName() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      setState(() {
+        _resolvedPatientName = widget.patientName.trim().isNotEmpty ? widget.patientName : 'Patient';
+      });
+      return;
+    }
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+
+      final name = doc.data()?['name']?.toString().trim();
+      setState(() {
+        _resolvedPatientName = (name != null && name.isNotEmpty)
+            ? name
+            : (widget.patientName.trim().isNotEmpty ? widget.patientName : 'Patient');
+      });
+    } catch (_) {
+      setState(() {
+        _resolvedPatientName = widget.patientName.trim().isNotEmpty ? widget.patientName : 'Patient';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +118,7 @@ class BookingConfirmedScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'SMS details sent to $patientName ($bookingFor)',
+              'SMS details sent to ${_resolvedPatientName.isNotEmpty ? _resolvedPatientName : 'Patient'} (${widget.bookingFor})',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 14,
@@ -99,7 +142,7 @@ class BookingConfirmedScreen extends StatelessWidget {
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                referenceNumber,
+                widget.referenceNumber,
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
@@ -149,14 +192,14 @@ class BookingConfirmedScreen extends StatelessWidget {
                 Expanded(
                   child: _InfoBox(
                     label: 'Assigned Token',
-                    value: '#$tokenNumber ($department)',
+                    value: '#${widget.tokenNumber} (${widget.department})',
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _InfoBox(
                     label: 'Appt Time',
-                    value: time,
+                    value: widget.time,
                   ),
                 ),
               ],
@@ -164,7 +207,7 @@ class BookingConfirmedScreen extends StatelessWidget {
             const SizedBox(height: 20),
             _InfoBox(
               label: 'Session ID',
-              value: sessionId,
+              value: widget.sessionId,
             ),
             const SizedBox(height: 20),
             Row(
