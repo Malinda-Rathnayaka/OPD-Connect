@@ -1,10 +1,43 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/doctor/doctor_leave_model.dart';
 import '../models/user_model.dart';
 
 /// Service class for admin operations — CRUD on all user accounts
 /// and doctor approval workflow.
 class AdminService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+
+  Stream<List<DoctorLeaveModel>> getPendingDoctorLeaves() {
+    return _db
+        .collection('doctor_leaves')
+        .where('status', isEqualTo: 'PENDING')
+        .snapshots()
+        .map((snapshot) {
+      final leaves = snapshot.docs
+          .map(DoctorLeaveModel.fromFirestore)
+          .toList();
+      leaves.sort((a, b) => a.date.compareTo(b.date));
+      return leaves;
+    });
+  }
+
+  Future<void> approveDoctorLeave(String leaveId) async {
+    await _updateLeaveStatus(leaveId, 'APPROVED');
+  }
+
+  Future<void> rejectDoctorLeave(String leaveId) async {
+    await _updateLeaveStatus(leaveId, 'REJECTED');
+  }
+
+  Future<void> _updateLeaveStatus(String leaveId, String status) async {
+    if (!{'APPROVED', 'REJECTED'}.contains(status)) {
+      throw ArgumentError.value(status, 'status');
+    }
+    await _db.collection('doctor_leaves').doc(leaveId).update({
+      'status': status,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
 
   // ─────────────────────────────────────────────────────────
   // READ — streams & one-off fetches

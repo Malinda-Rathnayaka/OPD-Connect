@@ -287,7 +287,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               // Email Address Field
               TextField(
                 controller: _emailController,
-                keyboardType: TextInputType.visiblePassword, // Forces soft keyboard on emulators
+                keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
                 autocorrect: false,
                 enableSuggestions: false,
