@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'my_appointments_screen.dart'; // ← අලුතින් add කරපු import එක
+import 'my_appointments_screen.dart';
+import 'alerts_settings_screen.dart';
+import 'department_status_screen.dart'; // ← අලුතින් add කරපු එක
 
 class PatientHomeScreen extends StatefulWidget {
   const PatientHomeScreen({super.key});
@@ -46,7 +48,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                   CircleAvatar(
                     radius: 22,
                     backgroundColor: Colors.blue.shade100,
-                    child: const Icon(Icons.notifications_none, color: Colors.blue),
+                    child: const Icon(Icons.notifications_none,
+                        color: Colors.blue),
                   ),
                 ],
               ),
@@ -80,7 +83,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                         color: Colors.orange.shade100,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.access_time, color: Colors.orange, size: 22),
+                      child: const Icon(Icons.access_time,
+                          color: Colors.orange, size: 22),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -109,7 +113,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
                         color: Colors.orange,
                         borderRadius: BorderRadius.circular(20),
@@ -139,7 +144,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.white24,
                         borderRadius: BorderRadius.circular(20),
@@ -174,7 +180,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                       children: [
                         Row(
                           children: const [
-                            Icon(Icons.calendar_today, color: Colors.white70, size: 16),
+                            Icon(Icons.calendar_today,
+                                color: Colors.white70, size: 16),
                             SizedBox(width: 6),
                             Text(
                               'Mon, 22 Sep • 9:00 AM',
@@ -187,7 +194,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                           ],
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
                             color: Colors.orange,
                             borderRadius: BorderRadius.circular(20),
@@ -215,7 +223,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                   onPressed: () {
                     // TODO: Booking screen එකට යන්න
                   },
-                  icon: const Icon(Icons.add_circle_outline, color: Colors.white),
+                  icon: const Icon(Icons.add_circle_outline,
+                      color: Colors.white),
                   label: const Text(
                     'New OPD Appointment Booking',
                     style: TextStyle(
@@ -259,7 +268,6 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                     title: 'My Bookings',
                     subtitle: 'View or edit sessions',
                     onTap: () {
-                      // My Appointments screen එකට යන්න
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -274,7 +282,13 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                     title: 'Queue Status',
                     subtitle: 'Check live counters',
                     onTap: () {
-                      // TODO: Queue screen එකට යන්න
+                      // Department Status screen එකට යන්න
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const DepartmentStatusScreen(),
+                        ),
+                      );
                     },
                   ),
                   _quickToolCard(
@@ -283,7 +297,12 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                     title: 'Notifications',
                     subtitle: 'Announcements & news',
                     onTap: () {
-                      // TODO: Notifications screen එකට යන්න
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AlertsSettingsScreen(),
+                        ),
+                      );
                     },
                   ),
                   _quickToolCard(
@@ -306,15 +325,30 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         currentIndex: _selectedIndex,
         onTap: (index) {
           if (index == 2) {
-            // Appointments tab එක click කරාම My Appointments screen එකට යන්න
+            // Appointments tab
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (_) => const MyAppointmentsScreen(),
               ),
             );
+          } else if (index == 3) {
+            // Queue tab — Department Status screen එකට යන්න
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const DepartmentStatusScreen(),
+              ),
+            );
+          } else if (index == 4) {
+            // Profile tab
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const AlertsSettingsScreen(),
+              ),
+            );
           } else {
-            // අනිත් tabs සඳහා දැනට selected index එක විතරක් වෙනස් කරන්න
             setState(() {
               _selectedIndex = index;
             });
@@ -326,7 +360,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Appointments'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_today), label: 'Appointments'),
           BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Queue'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
@@ -372,10 +407,10 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     required Color iconColor,
     required String title,
     required String subtitle,
-    VoidCallback? onTap, // ← අලුතින් add කරපු parameter එක
+    VoidCallback? onTap,
   }) {
     return GestureDetector(
-      onTap: onTap, // ← click කරද්දී run වෙනවා
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
