@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/auth_wrapper.dart';
 import 'register_screen.dart';
+import '../../staff/staff_workspace.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -66,15 +67,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 child: const Icon(Icons.hourglass_top_rounded, size: 40, color: Color(0xFFD97706)),
               ),
-              title: const Text(
-                'Account Pending Approval',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+              title: Text(
+                userData.approvalStatus == 'rejected' ? 'Registration needs correction' : 'Account Pending Approval',
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
               ),
-              content: const Text(
-                'Your doctor account has been registered successfully, but the hospital admin has not approved your account yet.\n\n'
+              content: Text(
+                userData.approvalStatus == 'rejected'
+                    ? '${userData.reviewNote.replaceFirst('Rejected: ', '')}\n\nContact hospital staff to correct your registration before it can be approved.'
+                    : 'Your doctor account has been registered successfully, but the hospital admin has not approved your account yet.\n\n'
                 'Please wait for the admin to review and approve your registration before logging in.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, height: 1.5),
+                style: const TextStyle(fontSize: 14, height: 1.5),
               ),
               actionsAlignment: MainAxisAlignment.center,
               actions: [
@@ -235,7 +238,21 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   )
                 ],
-              )
+              ),
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 12),
+              TextButton.icon(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => const HospitalStaffWorkspace(preview: true),
+                )),
+                icon: const Icon(Icons.local_hospital_outlined, size: 19),
+                label: const Text('Explore hospital staff preview'),
+              ),
+              const Text('Example data · No sign-in required',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
             ],
           ),
         ),

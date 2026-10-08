@@ -15,6 +15,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _registrationController = TextEditingController();
+  final _departmentController = TextEditingController();
 
   final AuthService _authService = AuthService();
 
@@ -33,6 +35,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _registrationController.dispose();
+    _departmentController.dispose();
     super.dispose();
   }
 
@@ -85,6 +89,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _isLoading = true);
     try {
+      if (_selectedRole == 'doctor' &&
+          (_registrationController.text.trim().isEmpty || _departmentController.text.trim().isEmpty)) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Enter your medical registration number and hospital department.'),
+        ));
+        return;
+      }
       await _authService.createAccountAndSendVerification(
         email: email,
         password: password,
@@ -136,6 +147,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         name: fullName,
         phone: phone,
         role: _selectedRole,
+        registrationNumber: _registrationController.text,
+        department: _departmentController.text,
       );
 
       await _authService.signOut();
@@ -378,6 +391,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 16),
 
+              if (_selectedRole == 'doctor') ...[
+                TextField(controller: _registrationController,
+                  decoration: const InputDecoration(labelText: 'Medical registration number',
+                    helperText: 'As shown on your medical registration document',
+                    prefixIcon: Icon(Icons.badge_outlined))),
+                const SizedBox(height: 16),
+                TextField(controller: _departmentController,
+                  decoration: const InputDecoration(labelText: 'Hospital department',
+                    prefixIcon: Icon(Icons.local_hospital_outlined))),
+                const SizedBox(height: 20),
+              ],
               // Terms & Conditions Checkbox
               Row(
                 children: [

@@ -23,8 +23,8 @@ class AuthWrapper extends StatelessWidget {
           return const LoginScreen();
         }
 
-        return FutureBuilder<UserModel?>(
-          future: authService.getUserData(snapshot.data!.uid),
+        return StreamBuilder<UserModel?>(
+          stream: authService.watchUserData(snapshot.data!.uid),
           builder: (context, userSnapshot) {
             if (userSnapshot.connectionState == ConnectionState.waiting) {
               return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -36,10 +36,41 @@ class AuthWrapper extends StatelessWidget {
 
             UserModel user = userSnapshot.data!;
 
+            if (!user.isActive) {
+              return Scaffold(
+                appBar: AppBar(title: const Text('Account inactive')),
+                body: Center(child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.lock_outline, size: 48),
+                    const SizedBox(height: 16),
+                    const Text('Your account is inactive. Contact hospital staff for help.', textAlign: TextAlign.center),
+                    const SizedBox(height: 20),
+                    FilledButton(onPressed: authService.signOut, child: const Text('Sign out')),
+                  ]),
+                )),
+              );
+            }
+
             // ─── Doctor Approval Gate ──────────────────────
             // If the doctor account has NOT been approved by admin,
             // show a "pending approval" screen and block dashboard access.
             if (user.role == 'doctor' && !user.isApproved) {
+              if (user.approvalStatus == 'rejected') {
+                return Scaffold(
+                  appBar: AppBar(title: const Text('Registration needs correction')),
+                  body: Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(user.reviewNote.replaceFirst('Rejected: ', ''), textAlign: TextAlign.center),
+                      const SizedBox(height: 12),
+                      const Text('Contact hospital staff to correct your registration.', textAlign: TextAlign.center),
+                      const SizedBox(height: 20),
+                      FilledButton(onPressed: authService.signOut, child: const Text('Sign out')),
+                    ],
+                  ))),
+                );
+              }
               return _DoctorPendingApprovalScreen(authService: authService);
             }
 

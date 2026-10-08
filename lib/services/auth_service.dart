@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import '../models/user_model.dart';
 
 class AuthService {
@@ -16,7 +17,8 @@ class AuthService {
     final normalizedEmail = email.trim().toLowerCase();
     User? currentUser = _auth.currentUser;
 
-    if (currentUser == null || currentUser.email?.toLowerCase() != normalizedEmail) {
+    if (currentUser == null ||
+        currentUser.email?.toLowerCase() != normalizedEmail) {
       try {
         final credential = await _auth.createUserWithEmailAndPassword(
           email: normalizedEmail,
@@ -61,22 +63,38 @@ class AuthService {
     required String name,
     required String phone,
     required String role,
+    String registrationNumber = '',
+    String department = '',
   }) async {
     final user = _auth.currentUser;
     if (user == null) throw FirebaseAuthException(code: 'no-current-user');
 
     await _db.collection('users').doc(user.uid).set({
-        'email': user.email ?? email,
-        'phone': phone,
-        'name': name,
-        'role': role,
-        'isVerified': role == 'patient', // Doctors require IT verification
-        'isApproved': role != 'doctor', // Doctors need admin approval before login
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      'email': user.email ?? email,
+      'phone': phone,
+      'name': name,
+      'role': role,
+      'isActive': true,
+      if (role == 'doctor') 'registrationNumber': registrationNumber.trim(),
+      if (role == 'doctor') 'department': department.trim(),
+      'isVerified': role == 'patient', // Doctors require IT verification
+      'isApproved':
+          role != 'doctor', // Doctors need admin approval before login
+      'createdAt': FieldValue.serverTimestamp(),
+    });
   }
 
   /// Retrieve User Profile from Firestore
+  Stream<UserModel?> watchUserData(String uid) => _db
+      .collection('users')
+      .doc(uid)
+      .snapshots()
+      .map(
+        (doc) => doc.exists && doc.data() != null
+            ? UserModel.fromMap(doc.data()!, uid)
+            : null,
+      );
+
   Future<UserModel?> getUserData(String uid) async {
     final doc = await _db.collection('users').doc(uid).get();
     if (doc.exists && doc.data() != null) {
