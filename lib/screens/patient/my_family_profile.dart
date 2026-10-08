@@ -10,8 +10,8 @@ import 'package:image_picker/image_picker.dart';
 import '../../models/family_member_model.dart';
 import '../../models/patient_model.dart';
 import '../../services/patient_service.dart';
-import 'department_select.dart';
 import 'patient_home_screen.dart';
+import 'select_appointment_slot.dart';
 
 class MyFamilyProfileScreen extends StatefulWidget {
   const MyFamilyProfileScreen({super.key});
@@ -474,7 +474,9 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
   void _goToBookingFlow() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const DepartmentSelectScreen()),
+      MaterialPageRoute(
+        builder: (context) => const SelectAppointmentSlotScreen(),
+      ),
     );
   }
 
@@ -740,22 +742,9 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
               );
               break;
             case 1:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const DepartmentSelectScreen()),
-              );
-              break;
             case 2:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const DepartmentSelectScreen()),
-              );
-              break;
             case 3:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const DepartmentSelectScreen()),
-              );
+              _goToBookingFlow();
               break;
             case 4:
               break;

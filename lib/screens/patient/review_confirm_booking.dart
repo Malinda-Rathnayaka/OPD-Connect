@@ -2,38 +2,25 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import 'department_select.dart';
-import 'patient_home_screen.dart';
-import 'doctor_availability.dart';
-import 'my_family_profile.dart';
 import 'booking_confirmed.dart';
+import 'my_family_profile.dart';
+import 'patient_home_screen.dart';
+import 'select_appointment_slot.dart';
 
 class ReviewConfirmBookingScreen extends StatefulWidget {
-  final String hospitalId;
-  final String hospitalName;
-  final String doctorId;
-  final String doctorName;
-  final String department;
   final String sessionId;
-  final DateTime date;
+  final String doctorId;
   final String time;
-  final int slotNumber;
-  final String patientName;
-  final String bookingFor;
+  final String date;
+  final int availableSlots;
 
   const ReviewConfirmBookingScreen({
     super.key,
-    required this.hospitalId,
-    required this.hospitalName,
-    required this.doctorId,
-    required this.doctorName,
-    required this.department,
     required this.sessionId,
-    required this.date,
+    required this.doctorId,
     required this.time,
-    required this.slotNumber,
-    this.patientName = '',
-    this.bookingFor = 'Myself',
+    required this.date,
+    required this.availableSlots,
   });
 
   @override
@@ -42,61 +29,190 @@ class ReviewConfirmBookingScreen extends StatefulWidget {
 
 class _ReviewConfirmBookingScreenState extends State<ReviewConfirmBookingScreen> {
   bool _agreedToGuidelines = false;
-  String _resolvedPatientName = '';
+  bool _isSubmitting = false;
+  String _patientName = 'Patient';
+  String _doctorName = 'Doctor';
+  String _department = 'General Medicine';
+  String _hospitalName = 'Colombo National Hospital';
+  String _hospitalId = 'colombo-national';
 
   @override
   void initState() {
     super.initState();
-    _loadLoggedInUserName();
+    _doctorName = widget.doctorId.isNotEmpty ? widget.doctorId : 'Doctor';
+    _loadLoggedInUser();
+    _loadDoctorInfo();
   }
 
-  Future<void> _loadLoggedInUserName() async {
+  Future<void> _loadLoggedInUser() async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
       setState(() {
-        _resolvedPatientName = widget.patientName.trim().isNotEmpty ? widget.patientName : 'Patient';
+        _patientName = 'Patient';
       });
       return;
     }
 
     try {
-      final doc = await FirebaseFirestore.instance
+      final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUser.uid)
           .get();
 
-      final name = doc.data()?['name']?.toString().trim();
+      final name = userDoc.data()?['name']?.toString().trim();
       setState(() {
-        _resolvedPatientName = (name != null && name.isNotEmpty)
-            ? name
-            : (widget.patientName.trim().isNotEmpty ? widget.patientName : 'Patient');
+        _patientName = name != null && name.isNotEmpty ? name : 'Patient';
       });
-    } catch (_) {
+    } catch (error) {
+      debugPrint('DEBUG: failed to load user data: $error');
       setState(() {
-        _resolvedPatientName = widget.patientName.trim().isNotEmpty ? widget.patientName : 'Patient';
+        _patientName = currentUser.displayName ?? currentUser.email?.split('@').first ?? 'Patient';
       });
     }
   }
 
-  String _formatDate(DateTime date) {
-    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
-    ];
-    final weekday = weekdays[date.weekday - 1];
-    final month = months[date.month - 1];
-    return '$weekday, ${date.day} $month';
+  Future<void> _loadDoctorInfo() async {
+    if (widget.doctorId.isEmpty) return;
+    try {
+      final doc = await FirebaseFirestore.instance.collection('doctors').doc(widget.doctorId).get();
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data()!;
+        setState(() {
+          _doctorName = data['fullName']?.toString() ?? widget.doctorId;
+          _department = data['department']?.toString() ?? 'General Medicine';
+          _hospitalName = data['hospitalName']?.toString() ?? 'Colombo National Hospital';
+          _hospitalId = data['hospitalId']?.toString() ?? 'colombo-national';
+        });
+      }
+    } catch (e) {
+      debugPrint('DEBUG: Error loading doctor info: $e');
+    }
+  }
+
+  void _navigateToSlotSelection() {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const SelectAppointmentSlotScreen(),
+        ),
+      );
+    }
+  }
+
+  Future<void> _confirmBooking() async {
+    if (!_agreedToGuidelines) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please agree to the OPD guidelines before continuing.')),
+      );
+      return;
+    }
+
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign in before booking an appointment.')),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final sessionRef = FirebaseFirestore.instance.collection('sessions').doc(widget.sessionId);
+      final sessionSnapshot = await sessionRef.get();
+
+      if (!sessionSnapshot.exists) {
+        throw Exception('Selected session was not found.');
+      }
+
+      final sessionData = sessionSnapshot.data() ?? {};
+      final currentAvailableSlots = (sessionData['availableSlots'] as num?)?.toInt() ?? 0;
+
+      if (currentAvailableSlots <= 0) {
+        throw Exception('This session is fully booked. Please choose another session.');
+      }
+
+      final referenceNumber = 'OPD-${DateTime.now().millisecondsSinceEpoch}';
+      final tokenNumber = 'T-${currentAvailableSlots.toString().padLeft(3, '0')}';
+
+      await FirebaseFirestore.instance.collection('appointments').add({
+        'patientId': currentUser.uid,
+        'patientName': _patientName,
+        'hospitalId': _hospitalId,
+        'hospitalName': _hospitalName,
+        'doctorId': widget.doctorId,
+        'doctorName': _doctorName,
+        'department': _department,
+        'sessionId': widget.sessionId,
+        'appointmentDate': widget.date,
+        'appointmentTime': widget.time,
+        'sessionType': 'General',
+        'tokenNumber': tokenNumber,
+        'status': 'confirmed',
+        'referenceNumber': referenceNumber,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      await sessionRef.update({
+        'availableSlots': FieldValue.increment(-1),
+        'isAvailable': (currentAvailableSlots - 1) > 0,
+      });
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Appointment confirmed successfully')),
+      );
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BookingConfirmedScreen(
+            patientName: _patientName,
+            date: widget.date,
+            time: widget.time,
+            tokenNumber: tokenNumber,
+            referenceNumber: referenceNumber,
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to confirm booking: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  Future<void> _discardBooking() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Discard Booking?'),
+        content: const Text('Your current booking details will be lost.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      Navigator.pop(context);
+    }
   }
 
   @override
@@ -115,51 +231,37 @@ class _ReviewConfirmBookingScreenState extends State<ReviewConfirmBookingScreen>
           children: [
             Card(
               elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Appointment Details',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Appointment Details',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                        ),
+                        TextButton.icon(
+                          onPressed: _navigateToSlotSelection,
+                          icon: const Icon(Icons.edit, size: 16, color: Colors.blue),
+                          label: const Text(
+                            'Change',
+                            style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    _DetailRow(
-                      label: 'Patient',
-                      value: '${_resolvedPatientName.isNotEmpty ? _resolvedPatientName : 'Patient'} (${widget.bookingFor})',
-                    ),
+                    const Divider(height: 20),
+                    _DetailRow(label: 'Patient Name', value: _patientName),
                     const SizedBox(height: 12),
-                    _DetailRow(
-                      label: 'Hospital',
-                      value: widget.hospitalName,
-                    ),
+                    _DetailRow(label: 'Date', value: widget.date),
                     const SizedBox(height: 12),
-                    _DetailRow(
-                      label: 'Department',
-                      value: widget.department,
-                    ),
+                    _DetailRow(label: 'Time', value: widget.time),
                     const SizedBox(height: 12),
-                    _DetailRow(
-                      label: 'Doctor',
-                      value: widget.doctorName,
-                    ),
-                    const SizedBox(height: 12),
-                    _DetailRow(
-                      label: 'Session ID',
-                      value: widget.sessionId,
-                    ),
-                    const SizedBox(height: 12),
-                    _DetailRow(
-                      label: 'Date & Time',
-                      value: '${_formatDate(widget.date)} @ ${widget.time} (Slot #${widget.slotNumber})',
-                    ),
+                    const _DetailRow(label: 'Token Number', value: 'Generated upon confirmation'),
                   ],
                 ),
               ),
@@ -167,9 +269,7 @@ class _ReviewConfirmBookingScreenState extends State<ReviewConfirmBookingScreen>
             const SizedBox(height: 20),
             Card(
               elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               child: CheckboxListTile(
                 value: _agreedToGuidelines,
                 onChanged: (value) {
@@ -190,55 +290,33 @@ class _ReviewConfirmBookingScreenState extends State<ReviewConfirmBookingScreen>
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _agreedToGuidelines
-                    ? () {
-                        final referenceNumber =
-                            'OPD-${DateTime.now().year}-${DateTime.now().millisecondsSinceEpoch % 100000}';
-
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => BookingConfirmedScreen(
-                              hospitalName: widget.hospitalName,
-                              department: widget.department,
-                              doctorName: widget.doctorName,
-                              date: widget.date,
-                              time: widget.time,
-                              tokenNumber: widget.slotNumber,
-                              referenceNumber: referenceNumber,
-                              patientName: _resolvedPatientName.isNotEmpty ? _resolvedPatientName : 'Patient',
-                              bookingFor: widget.bookingFor,
-                              sessionId: widget.sessionId,
-                            ),
-                          ),
-                        );
-                      }
-                    : null,
+                onPressed: _isSubmitting ? null : _confirmBooking,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: Colors.blue.shade200,
-                  disabledForegroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text('Confirm & Get Token'),
+                child: _isSubmitting
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Text('Confirm & Get Token'),
               ),
             ),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
-                onPressed: () {},
+                onPressed: _discardBooking,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.blue,
-                  side: const BorderSide(color: Colors.blue),
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red),
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: const Text('Discard Booking'),
               ),
@@ -254,65 +332,31 @@ class _ReviewConfirmBookingScreenState extends State<ReviewConfirmBookingScreen>
         onTap: (index) {
           switch (index) {
             case 0:
-              Navigator.push(
+              Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const PatientHomeScreen(),
-                ),
+                MaterialPageRoute(builder: (context) => const PatientHomeScreen()),
+                (route) => false,
               );
               break;
             case 1:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const DepartmentSelectScreen(),
-                ),
-              );
+            case 3:
+              _navigateToSlotSelection();
               break;
             case 2:
             case 4:
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const MyFamilyProfileScreen(),
-                ),
-              );
-              break;
-            case 3:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => DoctorAvailabilityScreen(
-                    hospitalId: widget.hospitalId,
-                    hospitalName: widget.hospitalName,
-                    department: widget.department,
-                  ),
-                ),
+                MaterialPageRoute(builder: (context) => const MyFamilyProfileScreen()),
               );
               break;
           }
         },
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Search',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today_outlined),
-            label: 'Appointments',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.queue_outlined),
-            label: 'Queue',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), label: 'Appointments'),
+          BottomNavigationBarItem(icon: Icon(Icons.queue_outlined), label: 'Queue'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
     );
@@ -333,30 +377,18 @@ class _DetailRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          flex: 3,
+        SizedBox(
+          width: 120,
           child: Text(
             label,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(color: Colors.black54, fontWeight: FontWeight.w600),
           ),
         ),
-        const SizedBox(width: 12),
         Expanded(
-          flex: 5,
           child: Text(
             value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.w700),
           ),
-        ),
-        TextButton(
-          onPressed: () {},
-          child: const Text('Change'),
         ),
       ],
     );

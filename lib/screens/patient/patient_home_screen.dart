@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import 'department_select.dart';
 import 'my_family_profile.dart';
 
 class PatientHomeScreen extends StatefulWidget {
@@ -110,6 +109,15 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     );
   }
 
+  void _openDirectBookingFlow() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const MyFamilyProfileScreen(),
+      ),
+    );
+  }
+
   void _handleBottomNavTap(int index) {
     setState(() {
       _selectedIndex = index;
@@ -119,13 +127,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
       case 0:
         break;
       case 1:
-        _navigateTo(const DepartmentSelectScreen());
-        break;
       case 2:
-        _navigateTo(const DepartmentSelectScreen());
-        break;
       case 3:
-        _navigateTo(const DepartmentSelectScreen());
+        _openDirectBookingFlow();
         break;
       case 4:
         _navigateTo(const MyFamilyProfileScreen());
@@ -140,6 +144,54 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
       return parts[0].substring(0, 1).toUpperCase();
     }
     return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1)).toUpperCase();
+  }
+
+  Future<void> _cancelAppointment(String appointmentId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Appointment?'),
+        content: const Text('Are you sure you want to cancel this appointment?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('No'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Yes, Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        final appointmentRef = _firestore.collection('appointments').doc(appointmentId);
+        final apptSnapshot = await appointmentRef.get();
+        if (apptSnapshot.exists) {
+          final data = apptSnapshot.data()!;
+          final sessionId = data['sessionId'];
+          if (sessionId != null) {
+            await _firestore.collection('sessions').doc(sessionId).update({
+              'availableSlots': FieldValue.increment(1),
+              'isAvailable': true,
+            });
+          }
+          await appointmentRef.delete();
+          await _loadData();
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Appointment cancelled successfully.')),
+          );
+        }
+      } catch (e) {
+         if (!mounted) return;
+         ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to cancel appointment: $e')),
+         );
+      }
+    }
   }
 
   Widget _buildProfileTab({
@@ -393,13 +445,24 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                           ],
                         ),
                         const SizedBox(height: 14),
-                        Text(
-                          '${_activeAppointment!['doctorName'] ?? 'Doctor'} (${_activeAppointment!['department'] ?? 'Department'})',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${_activeAppointment!['patientName'] ?? 'Patient'} - Token: ${_activeAppointment!['tokenNumber'] ?? 'N/A'}',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                               onPressed: () => _cancelAppointment(_activeAppointment!['id']),
+                               icon: const Icon(Icons.cancel, color: Colors.white),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 6),
                         Text(
@@ -455,7 +518,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () => _navigateTo(const MyFamilyProfileScreen()),
+                  onPressed: _openDirectBookingFlow,
                   icon: const Icon(Icons.add_circle_outline),
                   label: const Text('New OPD Appointment Booking'),
                   style: ElevatedButton.styleFrom(
@@ -487,13 +550,13 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                     icon: Icons.calendar_today,
                     title: 'My Bookings',
                     subtitle: 'View or edit sessions',
-                    onTap: () => _navigateTo(const DepartmentSelectScreen()),
+                    onTap: _openDirectBookingFlow,
                   ),
                   _QuickToolCard(
                     icon: Icons.people,
                     title: 'Queue Status',
                     subtitle: 'Check live counters',
-                    onTap: () => _navigateTo(const DepartmentSelectScreen()),
+                    onTap: _openDirectBookingFlow,
                   ),
                   _QuickToolCard(
                     icon: Icons.notifications,
