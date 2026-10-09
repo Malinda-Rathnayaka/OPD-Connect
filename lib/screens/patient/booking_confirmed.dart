@@ -1,13 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import 'my_family_profile.dart';
 import 'patient_home_screen.dart';
-import 'select_appointment_slot.dart';
 
-class BookingConfirmedScreen extends StatefulWidget {
+class BookingConfirmedScreen extends StatelessWidget {
   final String patientName;
   final String date;
   final String time;
@@ -23,52 +20,10 @@ class BookingConfirmedScreen extends StatefulWidget {
     required this.referenceNumber,
   });
 
-  @override
-  State<BookingConfirmedScreen> createState() => _BookingConfirmedScreenState();
-}
-
-class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
-  String _userPhone = 'Not available';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserPhone();
-  }
-
-  Future<void> _loadUserPhone() async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
-      setState(() {
-        _userPhone = 'Not available';
-      });
-      return;
-    }
-
-    try {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUser.uid)
-          .get();
-
-      final phone = userDoc.data()?['phone']?.toString().trim();
-      setState(() {
-        _userPhone = phone != null && phone.isNotEmpty ? phone : (currentUser.phoneNumber ?? 'Not available');
-      });
-    } catch (error) {
-      debugPrint('DEBUG: failed to load user phone: $error');
-      setState(() {
-        _userPhone = currentUser.phoneNumber ?? 'Not available';
-      });
-    }
-  }
-
-  void _openDirectBookingFlow() {
+  void _openDirectBookingFlow(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const SelectAppointmentSlotScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const MyFamilyProfileScreen()),
     );
   }
 
@@ -81,7 +36,9 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
             Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (context) => const PatientHomeScreen()),
+              MaterialPageRoute(
+                builder: (context) => const PatientHomeScreen(),
+              ),
               (route) => false,
             );
           },
@@ -105,12 +62,6 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
               'Booking Confirmed!',
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'SMS details sent to $_userPhone',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
-            ),
             const SizedBox(height: 24),
             const Align(
               alignment: Alignment.centerLeft,
@@ -128,20 +79,25 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                widget.referenceNumber,
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+                referenceNumber,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
             const SizedBox(height: 20),
             Card(
               elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
                     QrImageView(
-                      data: widget.referenceNumber,
+                      data: referenceNumber,
                       version: QrVersions.auto,
                       size: 200,
                       backgroundColor: Colors.white,
@@ -160,72 +116,33 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
             Row(
               children: [
                 Expanded(
-                  child: _InfoBox(
-                    label: 'Assigned Token',
-                    value: widget.tokenNumber,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _InfoBox(
-                    label: 'Appt Time',
-                    value: widget.time,
-                  ),
+                  child: _InfoBox(label: 'Patient', value: patientName),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            _InfoBox(
-              label: 'Patient',
-              value: widget.patientName,
-            ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Calendar integration coming soon.')),
-                      );
-                    },
-                    icon: const Icon(Icons.calendar_month_outlined),
-                    label: const Text('Add to Cal'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.blue,
-                      side: const BorderSide(color: Colors.blue),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
+                  child: _InfoBox(label: 'Token', value: tokenNumber),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Share feature coming soon.')),
-                      );
-                    },
-                    icon: const Icon(Icons.share_outlined),
-                    label: const Text('Share'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.blue,
-                      side: const BorderSide(color: Colors.blue),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
+                  child: _InfoBox(label: 'Time', value: time),
                 ),
               ],
             ),
+            const SizedBox(height: 20),
+            _InfoBox(label: 'Date', value: date),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (context) => const PatientHomeScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const PatientHomeScreen(),
+                    ),
                     (route) => false,
                   );
                 },
@@ -233,7 +150,9 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 child: const Text('Go to My Appointments'),
               ),
@@ -251,28 +170,41 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
             case 0:
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (context) => const PatientHomeScreen()),
+                MaterialPageRoute(
+                  builder: (context) => const PatientHomeScreen(),
+                ),
                 (route) => false,
               );
               break;
             case 1:
             case 3:
-              _openDirectBookingFlow();
+              _openDirectBookingFlow(context);
               break;
             case 2:
             case 4:
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const MyFamilyProfileScreen()),
+                MaterialPageRoute(
+                  builder: (context) => const MyFamilyProfileScreen(),
+                ),
               );
               break;
           }
         },
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            label: 'Home',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), label: 'Appointments'),
-          BottomNavigationBarItem(icon: Icon(Icons.queue_outlined), label: 'Queue'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today_outlined),
+            label: 'Appointments',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.queue_outlined),
+            label: 'Queue',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
@@ -284,10 +216,7 @@ class _InfoBox extends StatelessWidget {
   final String label;
   final String value;
 
-  const _InfoBox({
-    required this.label,
-    required this.value,
-  });
+  const _InfoBox({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -303,7 +232,11 @@ class _InfoBox extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black54),
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.black54,
+            ),
           ),
           const SizedBox(height: 8),
           Text(

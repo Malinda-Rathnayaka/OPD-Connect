@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import 'my_family_profile.dart';
 
@@ -20,7 +21,6 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   String _patientName = 'Patient';
   bool _isLoading = true;
   List<Map<String, dynamic>> _familyMembers = [];
-  Map<String, dynamic>? _activeAppointment;
 
   @override
   void initState() {
@@ -53,7 +53,10 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         }
       }
 
-      final patientDoc = await _firestore.collection('patients').doc(patientId).get();
+      final patientDoc = await _firestore
+          .collection('patients')
+          .doc(patientId)
+          .get();
       if (patientDoc.exists && patientDoc.data() != null) {
         final data = patientDoc.data()!;
         if (patientName == 'Patient' || patientName.trim().isEmpty) {
@@ -71,30 +74,23 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
 
       final validFamilyMembers = familySnapshot.docs
           .map((doc) => {'id': doc.id, ...doc.data()})
-          .where((member) =>
-              member['fullName'] != null &&
-              member['fullName'].toString().trim().isNotEmpty)
+          .where(
+            (member) =>
+                member['fullName'] != null &&
+                member['fullName'].toString().trim().isNotEmpty,
+          )
           .toList();
-
-      final appointmentSnapshot = await _firestore
-          .collection('appointments')
-          .where('patientId', isEqualTo: patientId)
-          .where('status', isEqualTo: 'confirmed')
-          .limit(1)
-          .get();
 
       setState(() {
         _selectedProfileIndex = 0;
         _patientName = patientName;
         _familyMembers = validFamilyMembers;
-        _activeAppointment = appointmentSnapshot.docs.isNotEmpty
-            ? {'id': appointmentSnapshot.docs.first.id, ...appointmentSnapshot.docs.first.data()}
-            : null;
         _isLoading = false;
       });
     } catch (_) {
       setState(() {
-        _patientName = _auth.currentUser?.displayName ??
+        _patientName =
+            _auth.currentUser?.displayName ??
             _auth.currentUser?.email?.split('@').first ??
             'Patient';
         _isLoading = false;
@@ -103,18 +99,257 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   }
 
   void _navigateTo(Widget screen) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => screen),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
   }
 
   void _openDirectBookingFlow() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const MyFamilyProfileScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const MyFamilyProfileScreen()),
+    );
+  }
+
+  DateTime? _parseAppointmentDate(dynamic value) {
+    if (value is Timestamp) return DateUtils.dateOnly(value.toDate());
+    if (value is DateTime) return DateUtils.dateOnly(value);
+    if (value is! String || value.trim().isEmpty) return null;
+
+    final text = value.trim();
+    final parsed = DateTime.tryParse(text);
+    if (parsed != null) return DateUtils.dateOnly(parsed);
+    for (final format in [
+      DateFormat('EEE, d MMM yyyy', 'en_US'),
+      DateFormat('EEE, d MMM', 'en_US'),
+    ]) {
+      try {
+        return DateUtils.dateOnly(format.parseStrict(text));
+      } on FormatException {
+        continue;
+      }
+    }
+    return null;
+  }
+
+  String _appointmentDateLabel(dynamic value) {
+    final date = _parseAppointmentDate(value);
+    if (date == null) return value?.toString() ?? 'Date unavailable';
+    return DateFormat('EEE, d MMM yyyy').format(date);
+  }
+
+  Widget _buildLiveAppointmentCards() {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) {
+      return const Text('Sign in to view your live appointment details.');
+    }
+
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: _firestore
+          .collection('appointments')
+          .where('patientId', isEqualTo: userId)
+          .where('status', isEqualTo: 'confirmed')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Text(
+            'Unable to load live appointment details: ${snapshot.error}',
+          );
+        }
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final today = DateUtils.dateOnly(DateTime.now());
+        final appointments =
+            snapshot.data?.docs.map((doc) => doc.data()).where((appointment) {
+              final date = _parseAppointmentDate(
+                appointment['appointmentDate'],
+              );
+              return date != null && !date.isBefore(today);
+            }).toList() ??
+            <Map<String, dynamic>>[];
+        appointments.sort((a, b) {
+          final dateA = _parseAppointmentDate(a['appointmentDate'])!;
+          final dateB = _parseAppointmentDate(b['appointmentDate'])!;
+          final dateOrder = dateA.compareTo(dateB);
+          return dateOrder != 0
+              ? dateOrder
+              : (a['appointmentTime']?.toString() ?? '').compareTo(
+                  b['appointmentTime']?.toString() ?? '',
+                );
+        });
+        final appointment = appointments.isEmpty ? null : appointments.first;
+        final appointmentDate = appointment == null
+            ? ''
+            : _appointmentDateLabel(appointment['appointmentDate']);
+        final appointmentTime =
+            appointment?['appointmentTime']?.toString() ?? '';
+        final tokenNumber = appointment?['tokenNumber']?.toString() ?? '';
+
+        return Column(
+          children: [
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              color: Colors.amber.shade100,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.access_time, color: Colors.brown),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'ACTIVE QUEUE TRACKER',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        if (tokenNumber.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.75),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Token $tokenNumber',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      appointment == null
+                          ? 'No active queue booking'
+                          : '$appointmentDate · $appointmentTime',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (appointment != null)
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                color: Colors.blue,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'UPCOMING APPOINTMENT',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.5,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.22),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'Confirmed',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        '$appointmentDate · $appointmentTime',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      if (tokenNumber.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          'Token $tokenNumber',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              )
+            else
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                color: Colors.grey.shade200,
+                child: const Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      Icon(Icons.event_busy, size: 32, color: Colors.grey),
+                      SizedBox(height: 10),
+                      Text(
+                        'No upcoming appointments',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 18,
+                          color: Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        'Tap the button below to book your first appointment',
+                        style: TextStyle(color: Colors.grey, fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 
@@ -143,55 +378,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     if (parts.length == 1) {
       return parts[0].substring(0, 1).toUpperCase();
     }
-    return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1)).toUpperCase();
-  }
-
-  Future<void> _cancelAppointment(String appointmentId) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cancel Appointment?'),
-        content: const Text('Are you sure you want to cancel this appointment?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('No'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Yes, Cancel'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      try {
-        final appointmentRef = _firestore.collection('appointments').doc(appointmentId);
-        final apptSnapshot = await appointmentRef.get();
-        if (apptSnapshot.exists) {
-          final data = apptSnapshot.data()!;
-          final sessionId = data['sessionId'];
-          if (sessionId != null) {
-            await _firestore.collection('sessions').doc(sessionId).update({
-              'availableSlots': FieldValue.increment(1),
-              'isAvailable': true,
-            });
-          }
-          await appointmentRef.delete();
-          await _loadData();
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Appointment cancelled successfully.')),
-          );
-        }
-      } catch (e) {
-         if (!mounted) return;
-         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to cancel appointment: $e')),
-         );
-      }
-    }
+    return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1))
+        .toUpperCase();
   }
 
   Widget _buildProfileTab({
@@ -294,10 +482,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     }
 
     return Theme(
-      data: ThemeData(
-        useMaterial3: true,
-        primarySwatch: Colors.blue,
-      ),
+      data: ThemeData(useMaterial3: true, primarySwatch: Colors.blue),
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.blue,
@@ -313,7 +498,10 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
               const SizedBox(height: 2),
               Text(
                 _patientName,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
@@ -348,172 +536,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                color: Colors.amber.shade100,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.access_time, color: Colors.brown),
-                          const SizedBox(width: 8),
-                          const Expanded(
-                            child: Text(
-                              'ACTIVE QUEUE TRACKER',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.75),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              '3 Patients Ahead',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      const Text(
-                        'Colombo General · Dental Clinic · Token #14',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (_activeAppointment != null)
-                Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  color: Colors.blue,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Expanded(
-                              child: Text(
-                                'UPCOMING APPOINTMENT',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.5,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.22),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Text(
-                                'Confirmed',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '${_activeAppointment!['patientName'] ?? 'Patient'} - Token: ${_activeAppointment!['tokenNumber'] ?? 'N/A'}',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                               onPressed: () => _cancelAppointment(_activeAppointment!['id']),
-                               icon: const Icon(Icons.cancel, color: Colors.white),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          _activeAppointment!['hospitalName'] ?? 'Hospital',
-                          style: const TextStyle(fontSize: 14, color: Colors.white),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '${_activeAppointment!['appointmentDate'] ?? ''} · ${_activeAppointment!['appointmentTime'] ?? ''}',
-                          style: const TextStyle(fontSize: 14, color: Colors.white),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  color: Colors.grey.shade200,
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.event_busy, size: 32, color: Colors.grey),
-                        const SizedBox(height: 10),
-                        const Text(
-                          'No upcoming appointments',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 18,
-                            color: Colors.black87,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          'Tap the button below to book your first appointment',
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 13,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+              _buildLiveAppointmentCards(),
               const SizedBox(height: 18),
               SizedBox(
                 width: double.infinity,
@@ -582,10 +605,19 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
           unselectedItemColor: Colors.grey,
           onTap: _handleBottomNavTap,
           items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              label: 'Home',
+            ),
             BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
-            BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), label: 'Appointments'),
-            BottomNavigationBarItem(icon: Icon(Icons.queue_outlined), label: 'Queue'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_today_outlined),
+              label: 'Appointments',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.queue_outlined),
+              label: 'Queue',
+            ),
             BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
           ],
         ),
@@ -637,7 +669,10 @@ class _QuickToolCard extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 title,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 4),
               Text(

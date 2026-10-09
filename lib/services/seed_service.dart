@@ -15,7 +15,32 @@ class SeedService {
       dotenv.env['ADMIN_PASSWORD'] ?? 'AdminPassword123!';
 
   static String _formatSessionDate(DateTime date) {
-    return DateFormat('EEE, d MMM', 'en_US').format(date);
+    return DateFormat('EEE, d MMM yyyy', 'en_US').format(date);
+  }
+
+  static DateTime? _readSessionDate(Map<String, dynamic> session) {
+    final value = session['date'];
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is! String) return null;
+    for (final format in [
+      DateFormat('yyyy-MM-dd'),
+      DateFormat('EEE, d MMM yyyy', 'en_US'),
+    ]) {
+      try {
+        return format.parseStrict(value);
+      } on FormatException {
+        continue;
+      }
+    }
+    return null;
+  }
+
+  static bool _isSameDay(DateTime? first, DateTime second) {
+    return first != null &&
+        first.year == second.year &&
+        first.month == second.month &&
+        first.day == second.day;
   }
 
   static Future<void> seedAdminAccount() async {
@@ -49,78 +74,85 @@ class SeedService {
 
   static Future<void> seedSessionsForDoctors() async {
     try {
-      debugPrint('DEBUG: seeding sessions for doctors');
+      final existingSessions = await _db.collection('sessions').get();
+      final existingById = {
+        for (final doc in existingSessions.docs) doc.id: doc.data(),
+      };
 
-      final doctorsSnapshot = await _db
-          .collection('doctors')
-          .where('hospitalId', isEqualTo: 'colombo-national')
-          .get();
-
-      if (doctorsSnapshot.docs.isEmpty) {
-        debugPrint('DEBUG: no doctors found for colombo-national');
-        return;
+      var batch = _db.batch();
+      var batchWrites = 0;
+      var sessionCount = 0;
+      Future<void> commitBatch() async {
+        if (batchWrites == 0) return;
+        await batch.commit();
+        batch = _db.batch();
+        batchWrites = 0;
       }
 
-      final batch = _db.batch();
-      for (int dayOffset = 0; dayOffset < 15; dayOffset++) {
-        final date = DateTime.now().add(Duration(days: dayOffset));
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      for (int dayOffset = 1; dayOffset <= 15; dayOffset++) {
+        final date = today.add(Duration(days: dayOffset));
+        final sessionDate = DateTime(date.year, date.month, date.day);
         final dateString = _formatSessionDate(date);
         final dayOfWeek = DateFormat('EEE', 'en_US').format(date);
 
-        for (final doctorDoc in doctorsSnapshot.docs) {
-          final doctorData = doctorDoc.data();
-          final doctorId = doctorDoc.id;
-          final doctorName = doctorData['fullName']?.toString() ?? 'Doctor';
-          final department = doctorData['department']?.toString() ?? 'General Medicine';
-          final hospitalId = doctorData['hospitalId']?.toString() ?? 'colombo-national';
-          final hospitalName = doctorData['hospitalName']?.toString() ?? 'Colombo National Hospital';
+        final sessions = [
+          ('morning', 'Morning', '09:00 AM', '12:00 AM'),
+          ('afternoon', 'Afternoon', '12:00 PM', '03:00 PM'),
+          ('evening', 'Evening', '03:00 PM', '06:00 PM'),
+        ];
 
-          final baseSlots = ((doctorDoc.id.length + dayOffset + (department.length % 3)) % 6);
-          final morningSlots = baseSlots;
-          final eveningSlots = ((baseSlots + 3) % 6);
-
-          final morningDocRef = _db.collection('sessions').doc();
-          batch.set(morningDocRef, {
-            'id': morningDocRef.id,
-            'hospitalId': hospitalId,
-            'hospitalName': hospitalName,
-            'doctorId': doctorId,
-            'doctorName': doctorName,
-            'department': department,
-            'date': dateString,
+        for (final session in sessions) {
+          final sessionRef = _db
+              .collection('sessions')
+              .doc(
+                'colombo-national_${DateFormat('yyyyMMdd').format(sessionDate)}_${session.$1}',
+              );
+          final sessionData = <String, dynamic>{
+            'id': sessionRef.id,
+            'scheduleScope': 'hospital',
+            'hospitalId': 'colombo-national',
+            'hospitalName': 'Colombo National Hospital',
+            'date': Timestamp.fromDate(sessionDate),
+            'dateLabel': dateString,
             'dayOfWeek': dayOfWeek,
-            'sessionType': 'Morning',
-            'startTime': '09:00 AM',
-            'endTime': '12:00 PM',
-            'totalSlots': 5,
-            'availableSlots': morningSlots,
-            'isAvailable': morningSlots > 0,
-          });
-
-          final eveningDocRef = _db.collection('sessions').doc();
-          batch.set(eveningDocRef, {
-            'id': eveningDocRef.id,
-            'hospitalId': hospitalId,
-            'hospitalName': hospitalName,
-            'doctorId': doctorId,
-            'doctorName': doctorName,
-            'department': department,
-            'date': dateString,
-            'dayOfWeek': dayOfWeek,
-            'sessionType': 'Evening',
-            'startTime': '02:00 PM',
-            'endTime': '05:00 PM',
-            'totalSlots': 5,
-            'availableSlots': eveningSlots,
-            'isAvailable': eveningSlots > 0,
-          });
+            'sessionTypeKey': session.$1,
+            'sessionType': session.$2,
+            'startTime': session.$3,
+            'endTime': session.$4,
+            'time': '${session.$3} - ${session.$4}',
+          };
+          if (!existingById.containsKey(sessionRef.id)) {
+            sessionData.addAll({
+              'totalSlots': 5,
+              'availableSlots': 5,
+              'isAvailable': true,
+            });
+          } else {
+            final existingData = existingById[sessionRef.id]!;
+            final metadataMatches = sessionData.entries.every(
+              (entry) =>
+                  entry.key == 'date' || existingData[entry.key] == entry.value,
+            );
+            final dateMatches = _isSameDay(
+              _readSessionDate(existingData),
+              sessionDate,
+            );
+            if (metadataMatches && dateMatches) continue;
+          }
+          batch.set(sessionRef, sessionData, SetOptions(merge: true));
+          batchWrites++;
+          sessionCount++;
+          if (batchWrites == 400) await commitBatch();
         }
       }
 
-      await batch.commit();
-      debugPrint('DEBUG: seeded 30 sessions per doctor for the next 15 days');
+      await commitBatch();
+      debugPrint('Created or updated $sessionCount shared OPD sessions.');
     } catch (error) {
-      debugPrint('DEBUG: error seeding sessions: $error');
+      debugPrint('Unable to seed sessions: $error');
+      rethrow;
     }
   }
 
@@ -160,7 +192,6 @@ class SeedService {
           'isOnDuty': true,
           'avgWaitTime': 15,
           'patientRating': 4.9,
-          'availableSlots': ['Mon, 22 Sep', 'Tue, 23 Sep'],
           'createdAt': createdAt,
         },
         {
@@ -172,7 +203,6 @@ class SeedService {
           'isOnDuty': true,
           'avgWaitTime': 10,
           'patientRating': 4.7,
-          'availableSlots': ['Mon, 22 Sep', 'Tue, 23 Sep'],
           'createdAt': createdAt,
         },
         {
@@ -184,7 +214,6 @@ class SeedService {
           'isOnDuty': true,
           'avgWaitTime': 20,
           'patientRating': 4.8,
-          'availableSlots': ['Mon, 22 Sep', 'Tue, 23 Sep'],
           'createdAt': createdAt,
         },
         {
@@ -196,7 +225,6 @@ class SeedService {
           'isOnDuty': true,
           'avgWaitTime': 12,
           'patientRating': 4.6,
-          'availableSlots': ['Mon, 22 Sep', 'Tue, 23 Sep'],
           'createdAt': createdAt,
         },
         {
@@ -208,7 +236,6 @@ class SeedService {
           'isOnDuty': true,
           'avgWaitTime': 25,
           'patientRating': 4.9,
-          'availableSlots': ['Mon, 22 Sep', 'Tue, 23 Sep'],
           'createdAt': createdAt,
         },
         {
@@ -220,35 +247,30 @@ class SeedService {
           'isOnDuty': true,
           'avgWaitTime': 18,
           'patientRating': 4.8,
-          'availableSlots': ['Mon, 22 Sep', 'Tue, 23 Sep'],
           'createdAt': createdAt,
         },
       ];
 
       final batch = firestore.batch();
 
-      batch.set(
-        firestore.collection('hospitals').doc(hospitalId),
-        {
-          'name': hospitalName,
-          'district': 'Colombo',
-          'city': 'Colombo',
-          'address': 'Colombo 10',
-          'distance': 2.3,
-          'isOpen': true,
-          'clinics': [
-            'General Medicine',
-            'Dental',
-            'Eye Clinic',
-            'ENT',
-            'Cardiology',
-            'Pediatrics',
-          ],
-          'phone': '+94 11 269 1111',
-          'nextSession': Timestamp.fromDate(nextSessionDate),
-        },
-        SetOptions(merge: true),
-      );
+      batch.set(firestore.collection('hospitals').doc(hospitalId), {
+        'name': hospitalName,
+        'district': 'Colombo',
+        'city': 'Colombo',
+        'address': 'Colombo 10',
+        'distance': 2.3,
+        'isOpen': true,
+        'clinics': [
+          'General Medicine',
+          'Dental',
+          'Eye Clinic',
+          'ENT',
+          'Cardiology',
+          'Pediatrics',
+        ],
+        'phone': '+94 11 269 1111',
+        'nextSession': Timestamp.fromDate(nextSessionDate),
+      }, SetOptions(merge: true));
 
       for (final doctor in doctors) {
         final doctorId = doctor['id'] as String;
@@ -260,7 +282,6 @@ class SeedService {
           'isOnDuty': doctor['isOnDuty'],
           'avgWaitTime': doctor['avgWaitTime'],
           'patientRating': doctor['patientRating'],
-          'availableSlots': doctor['availableSlots'],
           'createdAt': doctor['createdAt'],
         };
 
@@ -273,79 +294,8 @@ class SeedService {
 
       await batch.commit();
       debugPrint('Colombo National Hospital doctors seeded successfully');
-      await seedSimpleSessions();
     } catch (e) {
       debugPrint('Error seeding Colombo National Hospital data: $e');
-    }
-  }
-
-  static Future<void> seedSimpleSessions() async {
-    try {
-      // First, clear all existing sessions and appointments to avoid duplicates
-      final oldSessions = await _db.collection('sessions').get();
-      var batch = _db.batch();
-      for (var doc in oldSessions.docs) {
-        batch.delete(doc.reference);
-      }
-      await batch.commit();
-
-      final oldAppointments = await _db.collection('appointments').get();
-      batch = _db.batch();
-      for (var doc in oldAppointments.docs) {
-        batch.delete(doc.reference);
-      }
-      await batch.commit();
-
-      final doctorsSnapshot = await _db
-          .collection('doctors')
-          .where('hospitalId', isEqualTo: 'colombo-national')
-          .get();
-
-      if (doctorsSnapshot.docs.isEmpty) {
-        debugPrint('No doctors found for colombo-national');
-        return;
-      }
-
-      final times = ['09:00 AM', '12:00 PM', '03:00 PM'];
-      int sessionCount = 0;
-
-      for (int dayOffset = 0; dayOffset < 30; dayOffset++) {
-        final date = DateTime.now().add(Duration(days: dayOffset));
-        final dateStr = DateFormat('yyyy-MM-dd').format(date);
-        batch = _db.batch();
-
-        for (final doc in doctorsSnapshot.docs) {
-          final doctorId = doc.id;
-          for (int i = 0; i < times.length; i++) {
-            final timeStr = times[i];
-            final docId = '${doctorId}_${dateStr}_${timeStr.replaceAll(':', '').replaceAll(' ', '')}';
-            final sessionRef = _db.collection('sessions').doc(docId);
-            
-            // Generate some variation in available slots (0 to 5)
-            // Use doctor id length, day offset, and time index to create pseudo-random but deterministic slots
-            int availableSlots = ((doctorId.length + dayOffset * 3 + i * 7) % 6);
-
-            batch.set(
-              sessionRef,
-              {
-                'doctorId': doctorId,
-                'hospitalId': 'colombo-national',
-                'date': dateStr,
-                'time': timeStr,
-                'availableSlots': availableSlots,
-              },
-              SetOptions(merge: true),
-            );
-            sessionCount++;
-          }
-        }
-        await batch.commit();
-      }
-
-      debugPrint('Sessions seeded: $sessionCount sessions for ${doctorsSnapshot.docs.length} doctors');
-      print('Sessions seeded: $sessionCount sessions for ${doctorsSnapshot.docs.length} doctors');
-    } catch (e) {
-      debugPrint('Error seeding simple sessions: $e');
     }
   }
 
@@ -439,7 +389,9 @@ class SeedService {
             'Pediatrics',
           ],
           'phone': '+94 11 269 1111',
-          'nextSession': Timestamp.fromDate(DateTime.now().add(const Duration(days: 2))),
+          'nextSession': Timestamp.fromDate(
+            DateTime.now().add(const Duration(days: 2)),
+          ),
         },
       ];
 
@@ -490,11 +442,6 @@ class SeedService {
             'isOnDuty': true,
             'avgWaitTime': [15, 20, 10][doctorIndex % 3],
             'patientRating': [4.9, 4.7, 4.5][doctorIndex % 3],
-            'availableSlots': [
-              'Mon, 22 Sep',
-              'Tue, 23 Sep',
-              'Wed, 24 Sep',
-            ],
             'createdAt': now,
           };
 

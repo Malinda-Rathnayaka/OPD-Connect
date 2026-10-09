@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'select_appointment_slot.dart';
+
+import 'my_family_profile.dart';
 
 class DoctorAvailabilityScreen extends StatelessWidget {
   final String? hospitalId;
@@ -15,6 +16,6 @@ class DoctorAvailabilityScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SelectAppointmentSlotScreen();
+    return const MyFamilyProfileScreen();
   }
 }

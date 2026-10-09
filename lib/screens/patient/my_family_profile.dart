@@ -10,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../models/family_member_model.dart';
 import '../../models/patient_model.dart';
 import '../../services/patient_service.dart';
+import '../auth/login_screen.dart';
 import 'patient_home_screen.dart';
 import 'select_appointment_slot.dart';
 
@@ -32,12 +33,21 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
 
   String get _patientId => _auth.currentUser?.uid ?? 'guest-patient';
 
-  String get _displayName =>
-      _patient?.fullName.trim().isNotEmpty == true ? _patient!.fullName : (_auth.currentUser?.displayName ?? _auth.currentUser?.email?.split('@').first ?? 'Patient');
+  String get _displayName => _patient?.fullName.trim().isNotEmpty == true
+      ? _patient!.fullName
+      : (_auth.currentUser?.displayName ??
+            _auth.currentUser?.email?.split('@').first ??
+            'Patient');
 
-  String get _displayNic => _patient?.nic.trim().isNotEmpty == true ? _patient!.nic : '';
-  String get _displayPhone => _patient?.phone.trim().isNotEmpty == true ? _patient!.phone : (_auth.currentUser?.phoneNumber ?? '');
-  String get _displayLanguage => _patient?.preferredLanguage.trim().isNotEmpty == true ? _patient!.preferredLanguage : 'English';
+  String get _displayNic =>
+      _patient?.nic.trim().isNotEmpty == true ? _patient!.nic : '';
+  String get _displayPhone => _patient?.phone.trim().isNotEmpty == true
+      ? _patient!.phone
+      : (_auth.currentUser?.phoneNumber ?? '');
+  String get _displayLanguage =>
+      _patient?.preferredLanguage.trim().isNotEmpty == true
+      ? _patient!.preferredLanguage
+      : 'English';
   String get _profileImageUrl => _patient?.profileImageUrl ?? '';
 
   List<String> get _bookingOptions {
@@ -70,7 +80,9 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
 
       final patientData = PatientModel(
         id: userDoc.id,
-        fullName: patientName != null && patientName.isNotEmpty ? patientName : 'Patient',
+        fullName: patientName != null && patientName.isNotEmpty
+            ? patientName
+            : 'Patient',
         nic: patientNIC,
         phone: userData['phone'] ?? '',
         email: userData['email'] ?? '',
@@ -88,7 +100,10 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
     print('DEBUG: patients doc exists = ${patientDoc.exists}');
 
     if (patientDoc.exists && patientDoc.data() != null) {
-      final patientData = PatientModel.fromMap(patientDoc.data()!, patientDoc.id);
+      final patientData = PatientModel.fromMap(
+        patientDoc.data()!,
+        patientDoc.id,
+      );
       print('DEBUG: Loaded from patients - ${patientData.fullName}');
       return patientData;
     }
@@ -97,7 +112,10 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
     if (currentUser != null) {
       final fallbackPatient = PatientModel(
         id: patientId,
-        fullName: currentUser.displayName ?? currentUser.email?.split('@').first ?? 'Patient',
+        fullName:
+            currentUser.displayName ??
+            currentUser.email?.split('@').first ??
+            'Patient',
         nic: '',
         phone: currentUser.phoneNumber ?? '',
         email: currentUser.email ?? '',
@@ -105,7 +123,9 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
         profileImageUrl: '',
         createdAt: DateTime.now(),
       );
-      print('DEBUG: Loaded from FirebaseAuth fallback - ${fallbackPatient.fullName}');
+      print(
+        'DEBUG: Loaded from FirebaseAuth fallback - ${fallbackPatient.fullName}',
+      );
       return fallbackPatient;
     }
 
@@ -131,18 +151,22 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
           .toList();
 
       setState(() {
-        _patient = patient ?? PatientModel(
-          id: patientId,
-          fullName: 'Patient',
-          nic: '',
-          phone: '',
-          email: _auth.currentUser?.email ?? '',
-          preferredLanguage: 'English',
-          profileImageUrl: '',
-          createdAt: DateTime.now(),
-        );
+        _patient =
+            patient ??
+            PatientModel(
+              id: patientId,
+              fullName: 'Patient',
+              nic: '',
+              phone: '',
+              email: _auth.currentUser?.email ?? '',
+              preferredLanguage: 'English',
+              profileImageUrl: '',
+              createdAt: DateTime.now(),
+            );
         _familyMembers = familyMembers;
-        _selectedBookingTarget = (_selectedBookingTarget != null && _bookingOptions.contains(_selectedBookingTarget))
+        _selectedBookingTarget =
+            (_selectedBookingTarget != null &&
+                _bookingOptions.contains(_selectedBookingTarget))
             ? _selectedBookingTarget
             : 'Myself (${_displayName})';
         _isLoading = false;
@@ -153,7 +177,10 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
       setState(() {
         _patient = PatientModel(
           id: _patientId,
-          fullName: _auth.currentUser?.displayName ?? _auth.currentUser?.email?.split('@').first ?? 'Patient',
+          fullName:
+              _auth.currentUser?.displayName ??
+              _auth.currentUser?.email?.split('@').first ??
+              'Patient',
           nic: '',
           phone: _auth.currentUser?.phoneNumber ?? '',
           email: _auth.currentUser?.email ?? '',
@@ -193,27 +220,27 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
     );
 
     try {
-      final patientDoc = await _db.collection('patients').doc(_patientId).get();
-      if (patientDoc.exists) {
-        await _db.collection('patients').doc(_patientId).update(updatedPatient.toMap());
-      } else {
-        await _db.collection('patients').doc(_patientId).set(updatedPatient.toMap());
-      }
-
-      await _db.collection('users').doc(_patientId).set({
+      final batch = _db.batch();
+      batch.set(
+        _db.collection('patients').doc(_patientId),
+        updatedPatient.toMap(),
+        SetOptions(merge: true),
+      );
+      batch.set(_db.collection('users').doc(_patientId), {
         'name': fullName,
         'phone': phone,
         'email': email,
         'preferredLanguage': preferredLanguage,
         'profileImageUrl': profileImageUrl,
       }, SetOptions(merge: true));
+      await batch.commit();
+      await _auth.currentUser?.updateDisplayName(fullName);
 
       _patient = updatedPatient;
-      setState(() {});
+      if (mounted) setState(() {});
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Profile updated')));
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -286,7 +313,9 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
     final fullNameController = TextEditingController(text: _displayName);
     final nicController = TextEditingController(text: _displayNic);
     final phoneController = TextEditingController(text: _displayPhone);
-    final emailController = TextEditingController(text: _patient?.email ?? _auth.currentUser?.email ?? '');
+    final emailController = TextEditingController(
+      text: _patient?.email ?? _auth.currentUser?.email ?? '',
+    );
     final languageController = TextEditingController(text: _displayLanguage);
     final imageUrlController = TextEditingController(text: _profileImageUrl);
 
@@ -313,15 +342,20 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
                 ),
                 TextField(
                   controller: emailController,
+                  readOnly: true,
                   decoration: const InputDecoration(labelText: 'Email'),
                 ),
                 TextField(
                   controller: languageController,
-                  decoration: const InputDecoration(labelText: 'Preferred Language'),
+                  decoration: const InputDecoration(
+                    labelText: 'Preferred Language',
+                  ),
                 ),
                 TextField(
                   controller: imageUrlController,
-                  decoration: const InputDecoration(labelText: 'Profile Picture URL'),
+                  decoration: const InputDecoration(
+                    labelText: 'Profile Picture URL',
+                  ),
                 ),
               ],
             ),
@@ -333,12 +367,20 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
+                final fullName = fullNameController.text.trim();
+                if (fullName.isEmpty) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(content: Text('Full name cannot be empty.')),
+                  );
+                  return;
+                }
                 Navigator.pop(dialogContext);
                 await _savePatientProfile(
-                  fullName: fullNameController.text.trim(),
+                  fullName: fullName,
                   nic: nicController.text.trim(),
                   phone: phoneController.text.trim(),
-                  email: emailController.text.trim(),
+                  email:
+                      _auth.currentUser?.email ?? emailController.text.trim(),
                   preferredLanguage: languageController.text.trim(),
                   profileImageUrl: imageUrlController.text.trim(),
                 );
@@ -352,11 +394,19 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
   }
 
   Future<void> _showFamilyMemberDialog({FamilyMemberModel? existing}) async {
-    final fullNameController = TextEditingController(text: existing?.fullName ?? '');
-    final relationshipController = TextEditingController(text: existing?.relationship ?? '');
+    final fullNameController = TextEditingController(
+      text: existing?.fullName ?? '',
+    );
+    final relationshipController = TextEditingController(
+      text: existing?.relationship ?? '',
+    );
     final nicController = TextEditingController(text: existing?.nic ?? '');
-    final ageController = TextEditingController(text: existing?.age.toString() ?? '');
-    String genderValue = existing?.gender.isNotEmpty == true ? existing!.gender : 'Male';
+    final ageController = TextEditingController(
+      text: existing?.age.toString() ?? '',
+    );
+    String genderValue = existing?.gender.isNotEmpty == true
+        ? existing!.gender
+        : 'Male';
 
     await showDialog<void>(
       context: context,
@@ -364,7 +414,11 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text(existing == null ? 'Add New Family Member' : 'Edit Family Member'),
+              title: Text(
+                existing == null
+                    ? 'Add New Family Member'
+                    : 'Edit Family Member',
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -375,7 +429,9 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
                     ),
                     TextField(
                       controller: relationshipController,
-                      decoration: const InputDecoration(labelText: 'Relationship'),
+                      decoration: const InputDecoration(
+                        labelText: 'Relationship',
+                      ),
                     ),
                     TextField(
                       controller: nicController,
@@ -391,7 +447,10 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
                       decoration: const InputDecoration(labelText: 'Gender'),
                       items: const [
                         DropdownMenuItem(value: 'Male', child: Text('Male')),
-                        DropdownMenuItem(value: 'Female', child: Text('Female')),
+                        DropdownMenuItem(
+                          value: 'Female',
+                          child: Text('Female'),
+                        ),
                         DropdownMenuItem(value: 'Other', child: Text('Other')),
                       ],
                       onChanged: (value) {
@@ -414,7 +473,9 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
                   onPressed: () async {
                     Navigator.pop(dialogContext);
                     final member = FamilyMemberModel(
-                      id: existing?.id ?? _db.collection('family_members').doc().id,
+                      id:
+                          existing?.id ??
+                          _db.collection('family_members').doc().id,
                       patientId: _patientId,
                       fullName: fullNameController.text.trim(),
                       relationship: relationshipController.text.trim(),
@@ -426,22 +487,34 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
 
                     try {
                       if (existing == null) {
-                        await _db.collection('family_members').doc(member.id).set(member.toMap());
+                        await _db
+                            .collection('family_members')
+                            .doc(member.id)
+                            .set(member.toMap());
                       } else {
-                        await _db.collection('family_members').doc(member.id).update(member.toMap());
+                        await _db
+                            .collection('family_members')
+                            .doc(member.id)
+                            .update(member.toMap());
                       }
 
                       await _loadData();
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(existing == null ? 'Family member added successfully' : 'Family member updated successfully'),
+                          content: Text(
+                            existing == null
+                                ? 'Family member added successfully'
+                                : 'Family member updated successfully',
+                          ),
                         ),
                       );
                     } catch (error) {
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Unable to save family member: $error')),
+                        SnackBar(
+                          content: Text('Unable to save family member: $error'),
+                        ),
                       );
                     }
                   },
@@ -471,11 +544,168 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
     }
   }
 
+  Future<void> _logout() async {
+    try {
+      await _auth.signOut();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (_) => false,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Unable to log out: $error')));
+    }
+  }
+
+  Future<void> _deleteProfile() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('You are not signed in.')));
+      return;
+    }
+
+    final passwordController = TextEditingController();
+    final usesPassword = user.providerData.any(
+      (provider) => provider.providerId == 'password',
+    );
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete Profile and Account?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'This permanently deletes your account profile and family-member records. '
+              'Existing appointment records are retained.',
+            ),
+            if (usesPassword) ...[
+              const SizedBox(height: 16),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Confirm your password',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete permanently'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      passwordController.dispose();
+      return;
+    }
+    if (usesPassword && passwordController.text.isEmpty) {
+      passwordController.dispose();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Enter your password to confirm deletion.'),
+        ),
+      );
+      return;
+    }
+
+    try {
+      if (usesPassword) {
+        final email = user.email;
+        if (email == null || email.isEmpty) {
+          throw StateError(
+            'The signed-in account does not have an email address.',
+          );
+        }
+        await user.reauthenticateWithCredential(
+          EmailAuthProvider.credential(
+            email: email,
+            password: passwordController.text,
+          ),
+        );
+      }
+
+      final familyDocs = await _db
+          .collection('family_members')
+          .where('patientId', isEqualTo: user.uid)
+          .get();
+      final docsToDelete = <DocumentReference<Object?>>[
+        ...familyDocs.docs.map((doc) => doc.reference),
+        _db.collection('patients').doc(user.uid),
+        _db.collection('users').doc(user.uid),
+      ];
+      for (var start = 0; start < docsToDelete.length; start += 450) {
+        final batch = _db.batch();
+        for (final doc in docsToDelete.skip(start).take(450)) {
+          batch.delete(doc);
+        }
+        await batch.commit();
+      }
+
+      await user.delete();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (_) => false,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Unable to delete profile: $error. If asked, sign in again and retry.',
+          ),
+        ),
+      );
+    } finally {
+      passwordController.dispose();
+    }
+  }
+
   void _goToBookingFlow() {
+    final user = _auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please sign in before booking an appointment.'),
+        ),
+      );
+      return;
+    }
+
+    final selectedIndex = _bookingOptions.indexOf(_selectedBookingTarget ?? '');
+    final bookingForSelf = selectedIndex <= 0;
+    final bookingForId = bookingForSelf
+        ? user.uid
+        : _familyMembers[selectedIndex - 1].id;
+    final bookingForName = bookingForSelf
+        ? _displayName
+        : _familyMembers[selectedIndex - 1].fullName;
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const SelectAppointmentSlotScreen(),
+        builder: (context) => SelectAppointmentSlotScreen(
+          bookingForId: bookingForId,
+          bookingForName: bookingForName,
+        ),
       ),
     );
   }
@@ -489,23 +719,11 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         actions: [
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'edit') {
-                _showEditProfileDialog();
-              } else if (value == 'remove') {
-                _db.collection('patients').doc(_patientId).delete();
-              } else if (value == 'logout') {
-                _auth.signOut();
-                if (!mounted) return;
-                Navigator.of(context).popUntil((route) => route.isFirst);
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: 'edit', child: Text('Edit Profile')),
-              PopupMenuItem(value: 'remove', child: Text('Remove Profile')),
-              PopupMenuItem(value: 'logout', child: Text('Logout')),
-            ],
+          TextButton.icon(
+            onPressed: _logout,
+            icon: const Icon(Icons.logout),
+            label: const Text('Logout'),
+            style: TextButton.styleFrom(foregroundColor: Colors.white),
           ),
         ],
       ),
@@ -534,7 +752,11 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
                                   backgroundColor: Colors.blue.shade100,
                                   backgroundImage: _buildProfileImageProvider(),
                                   child: _buildProfileImageProvider() == null
-                                      ? const Icon(Icons.person, size: 36, color: Colors.blue)
+                                      ? const Icon(
+                                          Icons.person,
+                                          size: 36,
+                                          color: Colors.blue,
+                                        )
                                       : null,
                                 ),
                                 Positioned(
@@ -548,9 +770,16 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
                                       decoration: BoxDecoration(
                                         color: Colors.blue,
                                         shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white, width: 2),
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 2,
+                                        ),
                                       ),
-                                      child: const Icon(Icons.edit, size: 16, color: Colors.white),
+                                      child: const Icon(
+                                        Icons.edit,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -581,10 +810,37 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _showEditProfileDialog,
+                            icon: const Icon(Icons.edit_outlined),
+                            label: const Text('Edit Profile'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _deleteProfile,
+                            icon: const Icon(Icons.delete_outline),
+                            label: const Text('Delete Profile'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.red,
+                              side: const BorderSide(color: Colors.red),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 20),
                     const Text(
                       'Active Booking Target',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
@@ -596,10 +852,18 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                       ),
                       items: _bookingOptions
-                          .map((value) => DropdownMenuItem<String>(value: value, child: Text(value)))
+                          .map(
+                            (value) => DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            ),
+                          )
                           .toList(),
                       onChanged: (value) {
                         setState(() {
@@ -630,7 +894,10 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
                         const Expanded(
                           child: Text(
                             'Registered Family Members',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                         ElevatedButton.icon(
@@ -640,7 +907,10 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -678,12 +948,16 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
                                         CircleAvatar(
                                           radius: 24,
                                           backgroundColor: Colors.blue.shade100,
-                                          child: const Icon(Icons.family_restroom, color: Colors.blue),
+                                          child: const Icon(
+                                            Icons.family_restroom,
+                                            color: Colors.blue,
+                                          ),
                                         ),
                                         const SizedBox(width: 16),
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
                                               Text(
                                                 member.fullName,
@@ -693,7 +967,9 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
                                                 ),
                                               ),
                                               const SizedBox(height: 6),
-                                              Text('Relationship: ${member.relationship}'),
+                                              Text(
+                                                'Relationship: ${member.relationship}',
+                                              ),
                                               const SizedBox(height: 4),
                                               Text('NIC: ${member.nic}'),
                                               const SizedBox(height: 4),
@@ -706,14 +982,22 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
                                         PopupMenuButton<String>(
                                           onSelected: (value) {
                                             if (value == 'edit') {
-                                              _showFamilyMemberDialog(existing: member);
+                                              _showFamilyMemberDialog(
+                                                existing: member,
+                                              );
                                             } else if (value == 'delete') {
                                               _deleteFamilyMember(member);
                                             }
                                           },
                                           itemBuilder: (context) => const [
-                                            PopupMenuItem(value: 'edit', child: Text('Edit')),
-                                            PopupMenuItem(value: 'delete', child: Text('Remove')),
+                                            PopupMenuItem(
+                                              value: 'edit',
+                                              child: Text('Edit'),
+                                            ),
+                                            PopupMenuItem(
+                                              value: 'delete',
+                                              child: Text('Remove'),
+                                            ),
                                           ],
                                         ),
                                       ],
@@ -738,7 +1022,9 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
             case 0:
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const PatientHomeScreen()),
+                MaterialPageRoute(
+                  builder: (context) => const PatientHomeScreen(),
+                ),
               );
               break;
             case 1:
@@ -751,10 +1037,19 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
           }
         },
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            label: 'Home',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), label: 'Appointments'),
-          BottomNavigationBarItem(icon: Icon(Icons.queue_outlined), label: 'Queue'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today_outlined),
+            label: 'Appointments',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.queue_outlined),
+            label: 'Queue',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
