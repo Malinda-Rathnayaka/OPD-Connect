@@ -24,7 +24,9 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
 
   // ---- Modern theme tokens ----
   static const _bg = Color(0xFFF4F6FB);
-  static const _primary = Color(0xFF3B82F6); // <-- updated button / accent color
+  static const _primary = Color(
+    0xFF3B82F6,
+  ); // <-- updated button / accent color
   static const _primaryDark = Color(0xFF2563EB);
   static const _accent = Color(0xFF06B6D4);
   static const _ink = Color(0xFF0F172A);
@@ -136,6 +138,8 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
             const SizedBox(height: 20),
             _summaryCards(todayActive),
             const SizedBox(height: 28),
+            _todayAppointmentsCard(),
+            const SizedBox(height: 20),
             Card(
               elevation: 0,
               color: const Color(0xFFF5F3FF),
@@ -144,15 +148,15 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                   backgroundColor: Color(0xFF7C3AED),
                   child: Icon(Icons.event_available, color: Colors.white),
                 ),
-                title: const Text('Manage Availability & Leaves',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+                title: const Text(
+                  'Manage Availability & Leaves',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 subtitle: const Text('Submit and track leave requests'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const DoctorLeaveScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const DoctorLeaveScreen()),
                 ),
               ),
             ),
@@ -210,11 +214,75 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
             'No active session. Create one from Home.',
             Icons.queue_outlined,
           );
+
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: sessions.map(_openQueueCard).toList(),
         );
       },
+    ),
+  );
+
+  Widget _todayAppointmentsCard() => Card(
+    elevation: 0,
+    color: Colors.white,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: _service.getDoctorAppointments(_doctorId),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const Text('Unable to load appointments.');
+          }
+          final appointments =
+              (snapshot.data?.docs ?? []).where((doc) {
+                final data = doc.data();
+                return _appointmentDateKey(data['appointmentDate']) ==
+                        _today() &&
+                    (data['status']?.toString().toLowerCase() ?? '') !=
+                        'cancelled';
+              }).toList()..sort(
+                (a, b) => (a.data()['appointmentTime'] ?? '')
+                    .toString()
+                    .compareTo((b.data()['appointmentTime'] ?? '').toString()),
+              );
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Today's booked appointments",
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              if (appointments.isEmpty)
+                const Text(
+                  'No appointments for today. Start a session after patients book a slot.',
+                  style: TextStyle(color: _muted),
+                )
+              else
+                ...appointments
+                    .take(4)
+                    .map(
+                      (doc) => ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(
+                          Icons.event_available,
+                          color: _primary,
+                        ),
+                        title: Text(
+                          doc.data()['patientName']?.toString() ?? 'Patient',
+                        ),
+                        subtitle: Text(
+                          '${doc.data()['appointmentTime'] ?? 'Time not set'} · '
+                          'Token ${doc.data()['tokenNumber'] ?? 'Not assigned'}',
+                        ),
+                      ),
+                    ),
+            ],
+          );
+        },
+      ),
     ),
   );
 
@@ -272,10 +340,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                       style: const TextStyle(color: _muted),
                     ),
                   ),
-                  trailing: const Icon(
-                    Icons.chevron_right,
-                    color: _muted,
-                  ),
+                  trailing: const Icon(Icons.chevron_right, color: _muted),
                   onTap: () => _showRecords(
                     session.id,
                     data['timeSlot']?.toString() ?? 'Session',
@@ -327,7 +392,9 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Sign out?'),
-        content: const Text('You will need to sign in again to access the doctor dashboard.'),
+        content: const Text(
+          'You will need to sign in again to access the doctor dashboard.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -346,9 +413,9 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
       await AuthService().signOut();
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not sign out: $error')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not sign out: $error')));
       }
     }
   }
@@ -431,7 +498,12 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
         children: [
           _stat('Booked', 0, Icons.event_available_outlined, _primary),
           _stat('Seen', 0, Icons.check_circle_outline, const Color(0xFF10B981)),
-          _stat('Remaining', 0, Icons.hourglass_bottom, const Color(0xFFF59E0B)),
+          _stat(
+            'Remaining',
+            0,
+            Icons.hourglass_bottom,
+            const Color(0xFFF59E0B),
+          ),
         ],
       );
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -449,12 +521,24 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
             .length;
         return Row(
           children: [
-            _stat('Booked', docs.length, Icons.event_available_outlined,
-                _primary),
-            _stat('Seen', seen, Icons.check_circle_outline,
-                const Color(0xFF10B981)),
-            _stat('Remaining', remaining, Icons.hourglass_bottom,
-                const Color(0xFFF59E0B)),
+            _stat(
+              'Booked',
+              docs.length,
+              Icons.event_available_outlined,
+              _primary,
+            ),
+            _stat(
+              'Seen',
+              seen,
+              Icons.check_circle_outline,
+              const Color(0xFF10B981),
+            ),
+            _stat(
+              'Remaining',
+              remaining,
+              Icons.hourglass_bottom,
+              const Color(0xFFF59E0B),
+            ),
           ],
         );
       },
@@ -534,7 +618,10 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                       gradient: LinearGradient(
                         colors: isActive
                             ? [_primary, _primaryDark]
-                            : [const Color(0xFF94A3B8), const Color(0xFF64748B)],
+                            : [
+                                const Color(0xFF94A3B8),
+                                const Color(0xFF64748B),
+                              ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -565,9 +652,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                           children: [
                             _statusPill(
                               isActive ? 'Active' : 'Completed',
-                              isActive
-                                  ? const Color(0xFF10B981)
-                                  : _muted,
+                              isActive ? const Color(0xFF10B981) : _muted,
                             ),
                             const SizedBox(width: 8),
                             Text(
@@ -583,10 +668,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                         const SizedBox(height: 6),
                         Text(
                           'Seen: $seen  •  Remaining: $remaining',
-                          style: const TextStyle(
-                            color: _muted,
-                            fontSize: 12,
-                          ),
+                          style: const TextStyle(color: _muted, fontSize: 12),
                         ),
                       ],
                     ),
@@ -605,10 +687,9 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                         child: Text('Edit session / patients'),
                       ),
                       PopupMenuItem(
-                        value:
-                            data['status'] == 'IN_PROGRESS'
-                                ? 'complete'
-                                : 'reopen',
+                        value: data['status'] == 'IN_PROGRESS'
+                            ? 'complete'
+                            : 'reopen',
                         child: Text(
                           data['status'] == 'IN_PROGRESS'
                               ? 'Mark completed'
@@ -693,55 +774,43 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
     }
   }
 
-  Widget _openQueueCard(QueryDocumentSnapshot<Map<String, dynamic>> doc) =>
-      Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        decoration: _cardDecoration(),
-        child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 8,
-          ),
-          leading: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withOpacity(0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.play_circle_outline,
-              color: Color(0xFF10B981),
-            ),
-          ),
-          title: Text(
-            doc.data()['timeSlot']?.toString() ?? 'OPD Session',
-            style: const TextStyle(
-              fontWeight: FontWeight.w700,
-              color: _ink,
-            ),
-          ),
-          subtitle: Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              doc.data()['slotDate']?.toString() ?? '',
-              style: const TextStyle(color: _muted),
-            ),
-          ),
-          trailing: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: _primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.arrow_forward,
-              color: _primary,
-              size: 18,
-            ),
-          ),
-          onTap: () => _openLiveQueue(doc.id),
+  Widget _openQueueCard(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) => Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    decoration: _cardDecoration(),
+    child: ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF10B981).withOpacity(0.12),
+          borderRadius: BorderRadius.circular(12),
         ),
-      );
+        child: const Icon(Icons.play_circle_outline, color: Color(0xFF10B981)),
+      ),
+      title: Text(
+        doc.data()['timeSlot']?.toString() ?? 'OPD Session',
+        style: const TextStyle(fontWeight: FontWeight.w700, color: _ink),
+      ),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Text(
+          doc.data()['slotDate']?.toString() ?? '',
+          style: const TextStyle(color: _muted),
+        ),
+      ),
+      trailing: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: _primary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Icon(Icons.arrow_forward, color: _primary, size: 18),
+      ),
+      onTap: () => _openLiveQueue(doc.id),
+    ),
+  );
 
   Widget _message(String text, IconData icon) => Center(
     child: Padding(
@@ -774,6 +843,24 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
 
   String _today() => DateTime.now().toIso8601String().substring(0, 10);
 
+  String _appointmentDateKey(dynamic value) {
+    if (value is Timestamp || value is DateTime) {
+      final date = value is Timestamp ? value.toDate() : value as DateTime;
+      return date.toIso8601String().substring(0, 10);
+    }
+    final text = value?.toString().trim() ?? '';
+    final parsed = DateTime.tryParse(text);
+    if (parsed != null) return parsed.toIso8601String().substring(0, 10);
+    if (text.toLowerCase() == 'today') return _today();
+    if (text.toLowerCase() == 'tomorrow') {
+      return DateTime.now()
+          .add(const Duration(days: 1))
+          .toIso8601String()
+          .substring(0, 10);
+    }
+    return '';
+  }
+
   DateTime _sessionDate(QueryDocumentSnapshot<Map<String, dynamic>> doc) =>
       DateTime.tryParse(doc.data()['slotDate']?.toString() ?? '') ??
       DateTime.fromMillisecondsSinceEpoch(0);
@@ -785,13 +872,10 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
     if (doctor == null) return;
     setState(() => _isSavingSession = true);
     try {
-      final patients = await _service.fetchPatients();
       final existingQueue = session == null
           ? <QueryDocumentSnapshot<Map<String, dynamic>>>[]
           : (await _service.getSessionQueue(session.id).first).docs;
-      final patientById = {
-        for (final patient in patients) patient['id'].toString(): patient,
-      };
+      final patientById = <String, Map<String, dynamic>>{};
       for (final queueDoc in existingQueue) {
         final data = queueDoc.data();
         final id = data['patientId']?.toString();
@@ -821,7 +905,6 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
       String selectedDate = initialData?['slotDate']?.toString() ?? _today();
       final initialSlot = selectedSlot;
       final initialDate = selectedDate;
-      var patientsChanged = false;
       String filter = '';
       if (!mounted) return;
       await showDialog<void>(
@@ -855,23 +938,24 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                             '01:00 PM - 03:00 PM',
                             '03:30 PM - 05:30 PM',
                           ].contains(selectedSlot)
-                              ? selectedSlot
-                              : null,
+                          ? selectedSlot
+                          : null,
                       decoration: const InputDecoration(
                         labelText: 'Session time',
                       ),
-                      items: const [
-                        '09:00 AM - 12:00 PM',
-                        '01:00 PM - 03:00 PM',
-                        '03:30 PM - 05:30 PM',
-                      ]
-                          .map(
-                            (slot) => DropdownMenuItem(
-                              value: slot,
-                              child: Text(slot),
-                            ),
-                          )
-                          .toList(),
+                      items:
+                          const [
+                                '09:00 AM - 12:00 PM',
+                                '01:00 PM - 03:00 PM',
+                                '03:30 PM - 05:30 PM',
+                              ]
+                              .map(
+                                (slot) => DropdownMenuItem(
+                                  value: slot,
+                                  child: Text(slot),
+                                ),
+                              )
+                              .toList(),
                       onChanged: (value) {
                         if (value != null)
                           setDialogState(() => selectedSlot = value);
@@ -885,7 +969,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                             context: context,
                             initialDate:
                                 DateTime.tryParse(selectedDate) ??
-                                    DateTime.now(),
+                                DateTime.now(),
                             firstDate: DateTime(2020),
                             lastDate: DateTime(2100),
                           );
@@ -914,7 +998,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        'Selected patients: ${selected.length}',
+                        'Queue is populated from confirmed appointments; patient selection is read-only.',
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ),
@@ -938,14 +1022,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                                   subtitle: Text(
                                     '${patient['nic']} · ${patient['phone']}',
                                   ),
-                                  onChanged: (checked) => setDialogState(() {
-                                    patientsChanged = true;
-                                    if (checked == true) {
-                                      selected.add(id);
-                                    } else {
-                                      selected.remove(id);
-                                    }
-                                  }),
+                                  onChanged: null,
                                 );
                               },
                             ),
@@ -961,34 +1038,22 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                 FilledButton(
                   style: FilledButton.styleFrom(backgroundColor: _primary),
                   onPressed:
-                      (session == null && selected.isEmpty) ||
-                              (session != null &&
-                                  !patientsChanged &&
-                                  selectedSlot == initialSlot &&
-                                  selectedDate == initialDate)
-                          ? null
-                          : () async {
-                              final selectedPatients = patientsChanged
-                                  ? availablePatients
-                                      .where(
-                                        (p) => selected.contains(
-                                          p['id'].toString(),
-                                        ),
-                                      )
-                                      .toList()
-                                  : null;
-                              Navigator.pop(dialogContext);
-                              await _saveSession(
-                                session: session,
-                                doctorId: doctor.uid,
-                                doctorName: doctor.displayName ??
-                                    doctor.email ??
-                                    'Doctor',
-                                timeSlot: selectedSlot,
-                                slotDate: selectedDate,
-                                patients: selectedPatients,
-                              );
-                            },
+                      (session != null &&
+                          selectedSlot == initialSlot &&
+                          selectedDate == initialDate)
+                      ? null
+                      : () async {
+                          Navigator.pop(dialogContext);
+                          await _saveSession(
+                            session: session,
+                            doctorId: doctor.uid,
+                            doctorName:
+                                doctor.displayName ?? doctor.email ?? 'Doctor',
+                            timeSlot: selectedSlot,
+                            slotDate: selectedDate,
+                            patients: null,
+                          );
+                        },
                   child: Text(
                     session == null ? 'Create session' : 'Save changes',
                   ),
@@ -1018,7 +1083,10 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
   }) async {
     setState(() => _isSavingSession = true);
     try {
-      final leaveReason = await _service.getApprovedLeaveReason(doctorId, slotDate);
+      final leaveReason = await _service.getApprovedLeaveReason(
+        doctorId,
+        slotDate,
+      );
       if (leaveReason != null) {
         throw StateError(
           'You have an approved leave on this date (Reason: $leaveReason). '
@@ -1026,14 +1094,11 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
         );
       }
       if (session == null) {
-        if (patients == null)
-          throw ArgumentError('Select at least one patient.');
-        final id = await _service.startNewSession(
+        final id = await _service.startAppointmentSession(
           doctorId: doctorId,
           doctorName: doctorName,
           timeSlot: timeSlot,
           slotDate: slotDate,
-          patients: patients,
         );
         if (mounted) _openLiveQueue(id);
       } else {
@@ -1141,10 +1206,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                         const SizedBox(height: 8),
                         Text(
                           '${doc.data()['diagnosis'] ?? 'Treatment recorded'}\n${doc.data()['prescription'] ?? ''}',
-                          style: const TextStyle(
-                            color: _muted,
-                            height: 1.4,
-                          ),
+                          style: const TextStyle(color: _muted, height: 1.4),
                         ),
                       ],
                     ),
