@@ -23,12 +23,16 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if signedIn() && (userId == request.auth.uid || isDoctor());
+      allow read: if signedIn() && (userId == request.auth.uid || isDoctor() || isAdmin());
       allow update: if (signedIn()
           && userId == request.auth.uid
           && request.resource.data.role == resource.data.role
           && request.resource.data.isApproved == resource.data.isApproved
           && request.resource.data.isVerified == resource.data.isVerified)
+        || (isAdmin()
+          && resource.data.role == 'doctor'
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isApproved', 'isVerified']))
         || (isDoctor()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['history']));
       allow create: if signedIn()
@@ -36,6 +40,7 @@ service cloud.firestore {
         && request.resource.data.role in ['patient', 'doctor']
         && request.resource.data.isApproved == (request.resource.data.role == 'patient')
         && request.resource.data.isVerified == (request.resource.data.role == 'patient');
+      allow delete: if isAdmin();
     }
 
     match /appointments/{appointmentId} {
@@ -47,11 +52,15 @@ service cloud.firestore {
     }
 
     match /patients/{patientId} {
-      allow read: if signedIn() && patientId == request.auth.uid;
-      allow read: if isDoctor();
+      allow read: if (signedIn() && patientId == request.auth.uid) || isDoctor() || isAdmin();
+      allow create: if signedIn()
+        && patientId == request.auth.uid
+        && request.resource.data.role == 'patient';
       allow update: if (signedIn() && patientId == request.auth.uid)
+        || isAdmin()
         || (isDoctor()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['history']));
+      allow delete: if isAdmin();
     }
 
     match /sessions/{sessionId} {
@@ -87,8 +96,19 @@ service cloud.firestore {
     }
 
     match /doctors/{doctorId} {
-      allow read: if signedIn() && doctorId == request.auth.uid;
-      allow write: if signedIn() && doctorId == request.auth.uid;
+      allow read: if (signedIn() && doctorId == request.auth.uid) || isAdmin();
+      allow create: if signedIn()
+        && doctorId == request.auth.uid
+        && request.resource.data.role == 'doctor'
+        && request.resource.data.isApproved == false
+        && request.resource.data.isVerified == false;
+      allow update: if (isAdmin()
+          && request.resource.data.role == resource.data.role)
+        || (signedIn()
+          && doctorId == request.auth.uid
+          && request.resource.data.isApproved == resource.data.isApproved
+          && request.resource.data.isVerified == resource.data.isVerified);
+      allow delete: if isAdmin();
     }
 
     match /doctor_leaves/{leaveId} {

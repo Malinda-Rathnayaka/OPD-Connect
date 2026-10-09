@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../services/auth_service.dart';
 import '../../services/doctor_service.dart';
 import 'doctor_leave_screen.dart';
 import 'doctor_profile_screen.dart';
@@ -308,10 +309,49 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
           letterSpacing: -0.4,
         ),
       ),
-      actions: actions,
+      actions: [
+        ...?actions,
+        IconButton(
+          tooltip: 'Sign out',
+          onPressed: _confirmLogout,
+          icon: const Icon(Icons.logout_outlined),
+        ),
+        const SizedBox(width: 6),
+      ],
     ),
     body: child,
   );
+
+  Future<void> _confirmLogout() async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Sign out?'),
+        content: const Text('You will need to sign in again to access the doctor dashboard.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            icon: const Icon(Icons.logout),
+            label: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+    if (shouldLogout != true) return;
+    try {
+      await AuthService().signOut();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not sign out: $error')),
+        );
+      }
+    }
+  }
 
   Widget _welcomeCard() {
     final user = FirebaseAuth.instance.currentUser;

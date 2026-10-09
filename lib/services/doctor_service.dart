@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../models/doctor/doctor_leave_model.dart';
 
 class DoctorService {
@@ -82,6 +85,40 @@ class DoctorService {
       .doc(sessionId)
       .collection('completed_records')
       .snapshots();
+
+  Future<Map<String, dynamic>> getDoctorProfile(String doctorId) async {
+    final documents = await Future.wait([
+      _db.collection('users').doc(doctorId).get(),
+      _db.collection('doctors').doc(doctorId).get(),
+    ]);
+    final account = documents[0].data() ?? <String, dynamic>{};
+    final doctor = documents[1].data() ?? <String, dynamic>{};
+    final authUser = FirebaseAuth.instance.currentUser;
+    return {
+      'name': doctor['fullName'] ?? account['name'] ?? authUser?.displayName ?? '',
+      'email': account['email'] ?? authUser?.email ?? '',
+      'phone': doctor['phone'] ?? account['phone'] ?? '',
+      'specialization': doctor['specialization'] ?? account['specialization'] ?? '',
+      'roomNo': doctor['roomNo'] ?? account['roomNo'] ?? '',
+      'profileImageUrl': doctor['profileImageUrl'] ??
+          account['profileImageUrl'] ?? authUser?.photoURL,
+    };
+  }
+
+  Future<String> uploadDoctorProfileImage({
+    required String doctorId,
+    required Uint8List imageBytes,
+    required String contentType,
+  }) async {
+    final imageRef = FirebaseStorage.instance
+        .ref()
+        .child('doctor_profile_images/$doctorId/profile');
+    final result = await imageRef.putData(
+      imageBytes,
+      SettableMetadata(contentType: contentType),
+    );
+    return result.ref.getDownloadURL();
+  }
 
   /// Loads both supported patient locations, merging duplicate IDs in favor of
   /// the dedicated patients document while filling missing profile fields.
@@ -521,13 +558,25 @@ class DoctorService {
     required String specialization,
     required String phone,
     required String roomNo,
+    String? profileImageUrl,
   }) async {
-    await _db.collection('doctors').doc(doctorId).set({
+    final doctorData = <String, dynamic>{
       'fullName': name,
       'specialization': specialization,
       'phone': phone,
       'roomNo': roomNo,
       'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    };
+    if (profileImageUrl != null) doctorData['profileImageUrl'] = profileImageUrl;
+
+    await _db.collection('doctors').doc(doctorId).set(doctorData, SetOptions(merge: true));
+
+    final authUser = FirebaseAuth.instance.currentUser;
+    if (authUser != null && authUser.uid == doctorId) {
+      await authUser.updateDisplayName(name);
+      if (profileImageUrl != null) {
+        await authUser.updatePhotoURL(profileImageUrl);
+      }
+    }
   }
 }
