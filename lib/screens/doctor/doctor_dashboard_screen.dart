@@ -22,12 +22,11 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
 
   String get _doctorId => FirebaseAuth.instance.currentUser?.uid ?? '';
 
-  // ---- Modern theme tokens ----
+  // ---- Modern theme tokens (aligned with auth screens) ----
   static const _bg = Color(0xFFF4F6FB);
-  static const _primary = Color(
-    0xFF3B82F6,
-  ); // <-- updated button / accent color
-  static const _primaryDark = Color(0xFF2563EB);
+  static const _primary = Color(0xFF2563EB);
+  static const _primaryDark = Color(0xFF1E40AF);
+  static const _primaryLight = Color(0xFF3B82F6);
   static const _accent = Color(0xFF06B6D4);
   static const _ink = Color(0xFF0F172A);
   static const _muted = Color(0xFF64748B);
@@ -51,42 +50,47 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
           color: _surface,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 20,
-              offset: const Offset(0, -4),
+              color: const Color(0xFF0F172A).withOpacity(0.06),
+              blurRadius: 24,
+              offset: const Offset(0, -6),
             ),
           ],
         ),
-        child: NavigationBar(
-          backgroundColor: _surface,
-          elevation: 0,
-          height: 68,
-          indicatorColor: _primary.withOpacity(0.12),
-          selectedIndex: _selectedIndex,
-          onDestinationSelected: (index) =>
-              setState(() => _selectedIndex = index),
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home, color: _primary),
-              label: 'Home',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.queue_outlined),
-              selectedIcon: Icon(Icons.queue, color: _primary),
-              label: 'Live Queue',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.history_outlined),
-              selectedIcon: Icon(Icons.history, color: _primary),
-              label: 'Records',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person, color: _primary),
-              label: 'Profile',
-            ),
-          ],
+        child: SafeArea(
+          top: false,
+          child: NavigationBar(
+            backgroundColor: _surface,
+            surfaceTintColor: _surface,
+            elevation: 0,
+            height: 70,
+            indicatorColor: _primary.withOpacity(0.12),
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: (index) =>
+                setState(() => _selectedIndex = index),
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.home_outlined, size: 24),
+                selectedIcon: Icon(Icons.home_rounded, color: _primary, size: 24),
+                label: 'Home',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.queue_outlined, size: 24),
+                selectedIcon: Icon(Icons.queue_rounded, color: _primary, size: 24),
+                label: 'Live Queue',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.history_outlined, size: 24),
+                selectedIcon: Icon(Icons.history_rounded, color: _primary, size: 24),
+                label: 'Records',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.person_outline_rounded, size: 24),
+                selectedIcon: Icon(Icons.person_rounded, color: _primary, size: 24),
+                label: 'Profile',
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -99,16 +103,25 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
         padding: const EdgeInsets.only(right: 12),
         child: FilledButton.icon(
           style: FilledButton.styleFrom(
-            backgroundColor: _primary, // #3B82F6
+            backgroundColor: _primary,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(30),
             ),
+            elevation: 0,
+            shadowColor: Colors.transparent,
           ),
           onPressed: _isSavingSession ? null : () => _showSessionDialog(),
-          icon: const Icon(Icons.add, size: 18),
-          label: const Text('Create Slot'),
+          icon: const Icon(Icons.add_rounded, size: 18),
+          label: const Text(
+            'Create Slot',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
+              fontSize: 13.5,
+            ),
+          ),
         ),
       ),
     ],
@@ -132,57 +145,18 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
             )
             .toList();
         return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+          physics: const BouncingScrollPhysics(),
           children: [
             _welcomeCard(),
-            const SizedBox(height: 20),
+            const SizedBox(height: 22),
             _summaryCards(todayActive),
-            const SizedBox(height: 28),
+            const SizedBox(height: 26),
             _todayAppointmentsCard(),
-            const SizedBox(height: 20),
-            Card(
-              elevation: 0,
-              color: const Color(0xFFF5F3FF),
-              child: ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: Color(0xFF7C3AED),
-                  child: Icon(Icons.event_available, color: Colors.white),
-                ),
-                title: const Text(
-                  'Manage Availability & Leaves',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: const Text('Submit and track leave requests'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const DoctorLeaveScreen()),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Container(
-                  width: 4,
-                  height: 18,
-                  decoration: BoxDecoration(
-                    color: _primary,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                const Text(
-                  'Sessions',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: _ink,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-              ],
-            ),
+            const SizedBox(height: 22),
+            _leaveCard(),
+            const SizedBox(height: 26),
+            _sectionHeader('Sessions'),
             const SizedBox(height: 14),
             if (sessions.isEmpty)
               _message(
@@ -216,19 +190,18 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
           );
 
         return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+          physics: const BouncingScrollPhysics(),
           children: sessions.map(_openQueueCard).toList(),
         );
       },
     ),
   );
 
-  Widget _todayAppointmentsCard() => Card(
-    elevation: 0,
-    color: Colors.white,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+  Widget _todayAppointmentsCard() => Container(
+    decoration: _cardDecoration(),
     child: Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: _service.getDoctorAppointments(_doctorId),
         builder: (context, snapshot) {
@@ -250,40 +223,230 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "Today's booked appointments",
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 8),
-              if (appointments.isEmpty)
-                const Text(
-                  'No appointments for today. Start a session after patients book a slot.',
-                  style: TextStyle(color: _muted),
-                )
-              else
-                ...appointments
-                    .take(4)
-                    .map(
-                      (doc) => ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(
-                          Icons.event_available,
-                          color: _primary,
-                        ),
-                        title: Text(
-                          doc.data()['patientName']?.toString() ?? 'Patient',
-                        ),
-                        subtitle: Text(
-                          '${doc.data()['appointmentTime'] ?? 'Time not set'} · '
-                          'Token ${doc.data()['tokenNumber'] ?? 'Not assigned'}',
-                        ),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: _primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.event_available_rounded,
+                      color: _primary,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      "Today's booked appointments",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: _ink,
+                        letterSpacing: -0.2,
                       ),
                     ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (appointments.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: _bg,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        color: Colors.grey.shade500,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Text(
+                          'No appointments for today. Start a session after patients book a slot.',
+                          style: TextStyle(
+                            color: _muted,
+                            fontSize: 13,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ...appointments.take(4).map(
+                  (doc) => Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _bg,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: _primary.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.person_outline_rounded,
+                            color: _primary,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                doc.data()['patientName']?.toString() ??
+                                    'Patient',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: _ink,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                '${doc.data()['appointmentTime'] ?? 'Time not set'} · '
+                                'Token ${doc.data()['tokenNumber'] ?? 'Not assigned'}',
+                                style: const TextStyle(
+                                  color: _muted,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           );
         },
       ),
     ),
+  );
+
+  Widget _leaveCard() => Container(
+    decoration: BoxDecoration(
+      color: _surface,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: _border),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.04),
+          blurRadius: 16,
+          offset: const Offset(0, 6),
+        ),
+      ],
+    ),
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const DoctorLeaveScreen()),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF7C3AED), Color(0xFF9333EA)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.event_busy_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Manage Availability & Leaves',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14.5,
+                        color: _ink,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    SizedBox(height: 3),
+                    Text(
+                      'Submit and track leave requests',
+                      style: TextStyle(color: _muted, fontSize: 12.5),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: _bg,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.chevron_right_rounded,
+                  color: _muted,
+                  size: 20,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+
+  Widget _sectionHeader(String title) => Row(
+    children: [
+      Container(
+        width: 4,
+        height: 18,
+        decoration: BoxDecoration(
+          color: _primary,
+          borderRadius: BorderRadius.circular(4),
+        ),
+      ),
+      const SizedBox(width: 10),
+      Text(
+        title,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          color: _ink,
+          letterSpacing: -0.2,
+        ),
+      ),
+    ],
   );
 
   Widget _buildRecordedQueueTab() => _pageScaffold(
@@ -302,7 +465,8 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
         if (sessions.isEmpty)
           return _message('No recorded sessions yet.', Icons.history);
         return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+          physics: const BouncingScrollPhysics(),
           children: sessions.map((session) {
             final data = session.data();
             return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -310,40 +474,70 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
               builder: (context, records) => Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: _cardDecoration(),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  leading: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: _accent.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(12),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () => _showRecords(
+                      session.id,
+                      data['timeSlot']?.toString() ?? 'Session',
                     ),
-                    child: const Icon(
-                      Icons.folder_copy_outlined,
-                      color: _accent,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: _accent.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.folder_copy_outlined,
+                              color: _accent,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${data['slotDate'] ?? ''} · ${data['timeSlot'] ?? 'OPD Session'}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                    color: _ink,
+                                    letterSpacing: -0.2,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${records.data?.docs.length ?? 0} patients treated',
+                                  style: const TextStyle(
+                                    color: _muted,
+                                    fontSize: 12.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: _bg,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.chevron_right_rounded,
+                              color: _muted,
+                              size: 20,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  title: Text(
-                    '${data['slotDate'] ?? ''} · ${data['timeSlot'] ?? 'OPD Session'}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: _ink,
-                    ),
-                  ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      '${records.data?.docs.length ?? 0} patients treated',
-                      style: const TextStyle(color: _muted),
-                    ),
-                  ),
-                  trailing: const Icon(Icons.chevron_right, color: _muted),
-                  onTap: () => _showRecords(
-                    session.id,
-                    data['timeSlot']?.toString() ?? 'Session',
                   ),
                 ),
               ),
@@ -363,25 +557,44 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
     backgroundColor: _bg,
     appBar: AppBar(
       backgroundColor: _bg,
+      surfaceTintColor: _bg,
       elevation: 0,
       scrolledUnderElevation: 0,
+      titleSpacing: 20,
       title: Text(
         title,
         style: const TextStyle(
           color: _ink,
-          fontWeight: FontWeight.w700,
-          fontSize: 22,
-          letterSpacing: -0.4,
+          fontWeight: FontWeight.w800,
+          fontSize: 24,
+          letterSpacing: -0.6,
         ),
       ),
       actions: [
         ...?actions,
-        IconButton(
-          tooltip: 'Sign out',
-          onPressed: _confirmLogout,
-          icon: const Icon(Icons.logout_outlined),
+        Padding(
+          padding: const EdgeInsets.only(right: 12),
+          child: Material(
+            color: _surface,
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: _confirmLogout,
+              child: Container(
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: _border, width: 1),
+                ),
+                child: const Icon(
+                  Icons.logout_rounded,
+                  size: 18,
+                  color: _muted,
+                ),
+              ),
+            ),
+          ),
         ),
-        const SizedBox(width: 6),
       ],
     ),
     body: child,
@@ -391,9 +604,14 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Sign out?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Sign out?',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
         content: const Text(
           'You will need to sign in again to access the doctor dashboard.',
+          style: TextStyle(height: 1.4),
         ),
         actions: [
           TextButton(
@@ -401,8 +619,15 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
             child: const Text('Cancel'),
           ),
           FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: _primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            ),
             onPressed: () => Navigator.pop(dialogContext, true),
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout, size: 18),
             label: const Text('Sign out'),
           ),
         ],
@@ -426,16 +651,17 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [_primary, _primaryDark],
+          colors: [_primaryDark, _primary, _primaryLight],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
+          stops: [0.0, 0.55, 1.0],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: _primary.withOpacity(0.35),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
+            color: _primary.withOpacity(0.32),
+            blurRadius: 26,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
@@ -449,8 +675,9 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                   _greeting(),
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.85),
-                    fontSize: 14,
+                    fontSize: 13.5,
                     fontWeight: FontWeight.w500,
+                    letterSpacing: 0.2,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -459,9 +686,11 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 22,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     letterSpacing: -0.3,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -471,6 +700,10 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.15),
               shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withOpacity(0.25),
+                width: 1.5,
+              ),
             ),
             child: const Icon(
               Icons.medical_services_outlined,
@@ -501,7 +734,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
           _stat(
             'Remaining',
             0,
-            Icons.hourglass_bottom,
+            Icons.hourglass_bottom_rounded,
             const Color(0xFFF59E0B),
           ),
         ],
@@ -536,7 +769,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
             _stat(
               'Remaining',
               remaining,
-              Icons.hourglass_bottom,
+              Icons.hourglass_bottom_rounded,
               const Color(0xFFF59E0B),
             ),
           ],
@@ -548,12 +781,12 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
   Widget _stat(String label, int count, IconData icon, Color color) => Expanded(
     child: Container(
       margin: const EdgeInsets.symmetric(horizontal: 4),
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
       decoration: _cardDecoration(radius: 16),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
               color: color.withOpacity(0.12),
               borderRadius: BorderRadius.circular(10),
@@ -564,10 +797,10 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
           Text(
             '$count',
             style: const TextStyle(
-              fontSize: 22,
+              fontSize: 24,
               fontWeight: FontWeight.w800,
               color: _ink,
-              letterSpacing: -0.5,
+              letterSpacing: -0.6,
             ),
           ),
           const SizedBox(height: 2),
@@ -577,7 +810,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
               fontSize: 11,
               color: _muted,
               fontWeight: FontWeight.w600,
-              letterSpacing: 0.2,
+              letterSpacing: 0.3,
             ),
           ),
         ],
@@ -604,105 +837,132 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           decoration: _cardDecoration(),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(18),
-            onTap: () => _openLiveQueue(session.id),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: isActive
-                            ? [_primary, _primaryDark]
-                            : [
-                                const Color(0xFF94A3B8),
-                                const Color(0xFF64748B),
-                              ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: () => _openLiveQueue(session.id),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: isActive
+                              ? [_primary, _primaryDark]
+                              : [
+                                  const Color(0xFF94A3B8),
+                                  const Color(0xFF64748B),
+                                ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: isActive
+                            ? [
+                                BoxShadow(
+                                  color: _primary.withOpacity(0.3),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ]
+                            : [],
                       ),
-                      borderRadius: BorderRadius.circular(14),
+                      child: const Icon(
+                        Icons.calendar_month_outlined,
+                        color: Colors.white,
+                        size: 22,
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.calendar_month_outlined,
-                      color: Colors.white,
-                      size: 22,
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${data['slotDate'] ?? ''} · ${data['timeSlot'] ?? 'OPD Session'}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14.5,
+                              color: _ink,
+                              letterSpacing: -0.2,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              _statusPill(
+                                isActive ? 'Active' : 'Completed',
+                                isActive
+                                    ? const Color(0xFF10B981)
+                                    : _muted,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${docs.length} patients',
+                                style: const TextStyle(
+                                  color: _muted,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Seen: $seen  •  Remaining: $remaining',
+                            style: const TextStyle(color: _muted, fontSize: 12),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${data['slotDate'] ?? ''} · ${data['timeSlot'] ?? 'OPD Session'}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14.5,
-                            color: _ink,
-                            letterSpacing: -0.2,
+                    PopupMenuButton<String>(
+                      tooltip: 'Manage session',
+                      icon: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: _bg,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.more_vert_rounded,
+                          color: _muted,
+                          size: 18,
+                        ),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      onSelected: (action) =>
+                          _handleSessionAction(action, session),
+                      itemBuilder: (_) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Text('Edit session / patients'),
+                        ),
+                        PopupMenuItem(
+                          value: data['status'] == 'IN_PROGRESS'
+                              ? 'complete'
+                              : 'reopen',
+                          child: Text(
+                            data['status'] == 'IN_PROGRESS'
+                                ? 'Mark completed'
+                                : 'Reopen session',
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            _statusPill(
-                              isActive ? 'Active' : 'Completed',
-                              isActive ? const Color(0xFF10B981) : _muted,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '${docs.length} patients',
-                              style: const TextStyle(
-                                color: _muted,
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Seen: $seen  •  Remaining: $remaining',
-                          style: const TextStyle(color: _muted, fontSize: 12),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Text('Delete session'),
                         ),
                       ],
                     ),
-                  ),
-                  PopupMenuButton<String>(
-                    tooltip: 'Manage session',
-                    icon: const Icon(Icons.more_vert, color: _muted),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    onSelected: (action) =>
-                        _handleSessionAction(action, session),
-                    itemBuilder: (_) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Text('Edit session / patients'),
-                      ),
-                      PopupMenuItem(
-                        value: data['status'] == 'IN_PROGRESS'
-                            ? 'complete'
-                            : 'reopen',
-                        child: Text(
-                          data['status'] == 'IN_PROGRESS'
-                              ? 'Mark completed'
-                              : 'Reopen session',
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Text('Delete session'),
-                      ),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -712,7 +972,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
   }
 
   Widget _statusPill(String text, Color color) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
     decoration: BoxDecoration(
       color: color.withOpacity(0.12),
       borderRadius: BorderRadius.circular(20),
@@ -747,9 +1007,13 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(18),
             ),
-            title: const Text('Delete session?'),
+            title: const Text(
+              'Delete session?',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
             content: const Text(
               'This removes the session queue and its session records. Patient medical histories are retained.',
+              style: TextStyle(height: 1.4),
             ),
             actions: [
               TextButton(
@@ -757,7 +1021,14 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                 child: const Text('Cancel'),
               ),
               FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: _primary),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                ),
                 onPressed: () => Navigator.pop(dialogContext, true),
                 child: const Text('Delete'),
               ),
@@ -779,36 +1050,65 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
   ) => Container(
     margin: const EdgeInsets.only(bottom: 12),
     decoration: _cardDecoration(),
-    child: ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      leading: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: const Color(0xFF10B981).withOpacity(0.12),
-          borderRadius: BorderRadius.circular(12),
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () => _openLiveQueue(doc.id),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.play_circle_outline_rounded,
+                  color: Color(0xFF10B981),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      doc.data()['timeSlot']?.toString() ?? 'OPD Session',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: _ink,
+                        fontSize: 14.5,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      doc.data()['slotDate']?.toString() ?? '',
+                      style: const TextStyle(color: _muted, fontSize: 12.5),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.arrow_forward_rounded,
+                  color: _primary,
+                  size: 18,
+                ),
+              ),
+            ],
+          ),
         ),
-        child: const Icon(Icons.play_circle_outline, color: Color(0xFF10B981)),
       ),
-      title: Text(
-        doc.data()['timeSlot']?.toString() ?? 'OPD Session',
-        style: const TextStyle(fontWeight: FontWeight.w700, color: _ink),
-      ),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: 4),
-        child: Text(
-          doc.data()['slotDate']?.toString() ?? '',
-          style: const TextStyle(color: _muted),
-        ),
-      ),
-      trailing: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: _primary.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: const Icon(Icons.arrow_forward, color: _primary, size: 18),
-      ),
-      onTap: () => _openLiveQueue(doc.id),
     ),
   );
 
@@ -834,6 +1134,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
               color: _muted,
               fontSize: 14,
               fontWeight: FontWeight.w500,
+              height: 1.5,
             ),
           ),
         ],
@@ -1036,7 +1337,16 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                   child: const Text('Cancel'),
                 ),
                 FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: _primary),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 10,
+                    ),
+                  ),
                   onPressed:
                       (session != null &&
                           selectedSlot == initialSlot &&
@@ -1232,7 +1542,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
     border: Border.all(color: _border),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withOpacity(0.04),
+        color: const Color(0xFF0F172A).withOpacity(0.04),
         blurRadius: 16,
         offset: const Offset(0, 6),
       ),
