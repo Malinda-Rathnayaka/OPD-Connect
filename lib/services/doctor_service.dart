@@ -1,10 +1,12 @@
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+
 import '../models/doctor/doctor_leave_model.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../models/doctor_model.dart';
 
 class DoctorService {
@@ -12,7 +14,9 @@ class DoctorService {
 
   Future<void> createLeaveRequest(DoctorLeaveModel leave) async {
     if (leave.doctorId != FirebaseAuth.instance.currentUser?.uid) {
-      throw StateError('You can only create leave requests for your own account.');
+      throw StateError(
+        'You can only create leave requests for your own account.',
+      );
     }
     await _db.collection('doctor_leaves').doc(leave.id).set({
       ...leave.toFirestore(),
@@ -28,12 +32,12 @@ class DoctorService {
         .where('doctorId', isEqualTo: doctorId)
         .snapshots()
         .map((snapshot) {
-      final leaves = snapshot.docs
-          .map(DoctorLeaveModel.fromFirestore)
-          .toList();
-      leaves.sort((a, b) => b.date.compareTo(a.date));
-      return leaves;
-    });
+          final leaves = snapshot.docs
+              .map(DoctorLeaveModel.fromFirestore)
+              .toList();
+          leaves.sort((a, b) => b.date.compareTo(a.date));
+          return leaves;
+        });
   }
 
   Future<void> updateLeaveRequest(
@@ -80,6 +84,127 @@ class DoctorService {
   ) =>
       _db.collection('sessions').doc(sessionId).collection('queue').snapshots();
 
+  Future<List<Map<String, dynamic>>> getAppointmentsForSlot({
+    required String doctorId,
+    required String slotDate,
+    required String timeSlot,
+  }) async {
+    final snapshot = await _db
+        .collection('appointments')
+        .where('doctorId', isEqualTo: doctorId)
+        .get();
+    final range = _slotMinutes(timeSlot);
+    return snapshot.docs
+        .where((doc) {
+          final data = doc.data();
+          if ((data['status']?.toString().toLowerCase() ?? '') == 'cancelled') {
+            return false;
+          }
+          if (_dateKey(data['appointmentDate']) != slotDate) {
+            return false;
+          }
+          final appointmentMinutes = _timeMinutes(data['appointmentTime']);
+          return appointmentMinutes != null &&
+              appointmentMinutes >= range.$1 &&
+              appointmentMinutes < range.$2;
+        })
+        .map((doc) {
+          final data = doc.data();
+          return {
+            'id': data['patientId'] ?? '',
+            'name': data['patientName'] ?? 'Unknown Patient',
+            'nic': data['nic'] ?? '',
+            'phone': data['phone'] ?? '',
+            'email': data['email'] ?? '',
+            'appointmentId': doc.id,
+            'appointmentTime': data['appointmentTime'] ?? '',
+            'tokenNumber': data['tokenNumber'] ?? '',
+          };
+        })
+        .where((patient) => patient['id'].toString().isNotEmpty)
+        .toList()
+      ..sort(
+        (a, b) => (_timeMinutes(a['appointmentTime']) ?? 0).compareTo(
+          _timeMinutes(b['appointmentTime']) ?? 0,
+        ),
+      );
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getDoctorAppointments(
+    String doctorId,
+  ) => _db
+      .collection('appointments')
+      .where('doctorId', isEqualTo: doctorId)
+      .snapshots();
+
+  String _dateKey(dynamic value) {
+    if (value is Timestamp) {
+      return value.toDate().toIso8601String().substring(0, 10);
+    }
+    if (value is DateTime) {
+      return value.toIso8601String().substring(0, 10);
+    }
+    final text = value?.toString().trim() ?? '';
+    final parsed = DateTime.tryParse(text);
+    if (parsed != null) return parsed.toIso8601String().substring(0, 10);
+    final normalized = text.toLowerCase();
+    final now = DateTime.now();
+    if (normalized == 'today') return now.toIso8601String().substring(0, 10);
+    if (normalized == 'tomorrow') {
+      return now
+          .add(const Duration(days: 1))
+          .toIso8601String()
+          .substring(0, 10);
+    }
+    return '';
+  }
+
+  Future<String> startAppointmentSession({
+    required String doctorId,
+    required String doctorName,
+    required String timeSlot,
+    required String slotDate,
+  }) async {
+    final patients = await getAppointmentsForSlot(
+      doctorId: doctorId,
+      slotDate: slotDate,
+      timeSlot: timeSlot,
+    );
+    if (patients.isEmpty) {
+      throw StateError(
+        'There are no booked appointments for this date and time slot.',
+      );
+    }
+    return startNewSession(
+      doctorId: doctorId,
+      doctorName: doctorName,
+      timeSlot: timeSlot,
+      slotDate: slotDate,
+      patients: patients,
+    );
+  }
+
+  (int, int) _slotMinutes(String slot) {
+    final parts = slot.split(RegExp(r'\s*-\s*'));
+    final start = _timeMinutes(parts.first) ?? 0;
+    final end = parts.length > 1
+        ? (_timeMinutes(parts.last) ?? 24 * 60)
+        : 24 * 60;
+    return (start, end);
+  }
+
+  int? _timeMinutes(dynamic value) {
+    final match = RegExp(r'^\s*(\d{1,2}):(\d{2})\s*([AaPp][Mm])?\s*$')
+        .firstMatch(value?.toString() ?? '');
+    if (match == null) return null;
+    var hour = int.parse(match.group(1)!);
+    final minute = int.parse(match.group(2)!);
+    final period = match.group(3)?.toUpperCase();
+    if (period == 'PM' && hour < 12) hour += 12;
+    if (period == 'AM' && hour == 12) hour = 0;
+    return hour * 60 + minute;
+  }
+
   Stream<QuerySnapshot<Map<String, dynamic>>> getCompletedRecords(
     String sessionId,
   ) => _db
@@ -97,13 +222,17 @@ class DoctorService {
     final doctor = documents[1].data() ?? <String, dynamic>{};
     final authUser = FirebaseAuth.instance.currentUser;
     return {
-      'name': doctor['fullName'] ?? account['name'] ?? authUser?.displayName ?? '',
+      'name':
+          doctor['fullName'] ?? account['name'] ?? authUser?.displayName ?? '',
       'email': account['email'] ?? authUser?.email ?? '',
       'phone': doctor['phone'] ?? account['phone'] ?? '',
-      'specialization': doctor['specialization'] ?? account['specialization'] ?? '',
+      'specialization':
+          doctor['specialization'] ?? account['specialization'] ?? '',
       'roomNo': doctor['roomNo'] ?? account['roomNo'] ?? '',
-      'profileImageUrl': doctor['profileImageUrl'] ??
-          account['profileImageUrl'] ?? authUser?.photoURL,
+      'profileImageUrl':
+          doctor['profileImageUrl'] ??
+          account['profileImageUrl'] ??
+          authUser?.photoURL,
     };
   }
 
@@ -112,14 +241,44 @@ class DoctorService {
     required Uint8List imageBytes,
     required String contentType,
   }) async {
-    final imageRef = FirebaseStorage.instance
-        .ref()
-        .child('doctor_profile_images/$doctorId/profile');
-    final result = await imageRef.putData(
-      imageBytes,
-      SettableMetadata(contentType: contentType),
+    final imageRef = FirebaseStorage.instance.ref().child(
+      'doctor_profile_images/$doctorId/profile',
     );
-    return result.ref.getDownloadURL();
+    try {
+      final result = await imageRef.putData(
+        imageBytes,
+        SettableMetadata(contentType: contentType),
+      );
+      return await result.ref.getDownloadURL();
+    } on FirebaseException catch (error) {
+      if (error.code == 'object-not-found') {
+        throw StateError(
+          'Firebase Storage is not initialized for this project. '
+          'Open Firebase Console > Storage and click Get started, then try again.',
+        );
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> deleteDoctorProfileImage(String doctorId) async {
+    final imageRef = FirebaseStorage.instance.ref().child(
+      'doctor_profile_images/$doctorId/profile',
+    );
+    try {
+      await imageRef.delete();
+    } on FirebaseException catch (error) {
+      if (error.code != 'object-not-found') rethrow;
+    }
+    await _db.collection('doctors').doc(doctorId).set({
+      'profileImageUrl': FieldValue.delete(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    final authUser = FirebaseAuth.instance.currentUser;
+    if (authUser?.uid == doctorId) {
+      await authUser!.updatePhotoURL(null);
+    }
   }
 
   /// Loads both supported patient locations, merging duplicate IDs in favor of
@@ -211,8 +370,13 @@ class DoctorService {
     'nic': patient['nic'] ?? '',
     'phone': patient['phone'] ?? '',
     'email': patient['email'] ?? '',
-    'tokenNo': 'T-${(index + 1).toString().padLeft(3, '0')}',
-    'apptTime': '',
+    'appointmentId': patient['appointmentId'] ?? '',
+    'appointmentTime': patient['appointmentTime'] ?? '',
+    'tokenNumber': patient['tokenNumber'] ?? '',
+    'tokenNo': (patient['tokenNumber']?.toString().isNotEmpty ?? false)
+        ? patient['tokenNumber']
+        : 'T-${(index + 1).toString().padLeft(3, '0')}',
+    'apptTime': patient['appointmentTime'] ?? '',
     'status': status ?? (index == 0 ? 'IN_CONSULTATION' : 'ARRIVED'),
     'order': index + 1,
     'createdAt': FieldValue.serverTimestamp(),
@@ -561,6 +725,7 @@ class DoctorService {
     required String phone,
     required String roomNo,
     String? profileImageUrl,
+    bool clearProfileImage = false,
   }) async {
     final doctorData = <String, dynamic>{
       'fullName': name,
@@ -569,77 +734,91 @@ class DoctorService {
       'roomNo': roomNo,
       'updatedAt': FieldValue.serverTimestamp(),
     };
-    if (profileImageUrl != null) doctorData['profileImageUrl'] = profileImageUrl;
+    if (clearProfileImage) {
+      doctorData['profileImageUrl'] = FieldValue.delete();
+    } else if (profileImageUrl != null) {
+      doctorData['profileImageUrl'] = profileImageUrl;
+    }
 
-    await _db.collection('doctors').doc(doctorId).set(doctorData, SetOptions(merge: true));
+    await _db
+        .collection('doctors')
+        .doc(doctorId)
+        .set(doctorData, SetOptions(merge: true));
 
     final authUser = FirebaseAuth.instance.currentUser;
     if (authUser != null && authUser.uid == doctorId) {
       await authUser.updateDisplayName(name);
-      if (profileImageUrl != null) {
+      if (clearProfileImage) {
+        await authUser.updatePhotoURL(null);
+      } else if (profileImageUrl != null) {
         await authUser.updatePhotoURL(profileImageUrl);
       }
-  /// Get all doctors for a specific hospital.
-  Future<List<DoctorModel>> getDoctorsByHospital(String hospitalId) async {
-    try {
-      final snapshot = await _db
-          .collection('doctors')
-          .where('hospitalId', isEqualTo: hospitalId)
-          .get();
 
-      return snapshot.docs
-          .map((doc) => DoctorModel.fromMap(doc.data(), doc.id))
-          .toList();
-    } catch (error) {
-      rethrow;
-    }
-  }
+      /// Get all doctors for a specific hospital.
+      Future<List<DoctorModel>> getDoctorsByHospital(String hospitalId) async {
+        try {
+          final snapshot = await _db
+              .collection('doctors')
+              .where('hospitalId', isEqualTo: hospitalId)
+              .get();
 
-  /// Get all doctors in a specific department.
-  Future<List<DoctorModel>> getDoctorsByDepartment(String department) async {
-    try {
-      final snapshot = await _db
-          .collection('doctors')
-          .where('department', isEqualTo: department)
-          .get();
-
-      return snapshot.docs
-          .map((doc) => DoctorModel.fromMap(doc.data(), doc.id))
-          .toList();
-    } catch (error) {
-      rethrow;
-    }
-  }
-
-  /// Get a single doctor by Firestore document ID.
-  Future<DoctorModel?> getDoctor(String doctorId) async {
-    try {
-      final doc = await _db.collection('doctors').doc(doctorId).get();
-      if (doc.exists && doc.data() != null) {
-        return DoctorModel.fromMap(doc.data()!, doc.id);
-      }
-      return null;
-    } catch (error) {
-      rethrow;
-    }
-  }
-
-  /// Get the available slot labels stored for a doctor.
-  Future<List<String>> getAvailableSlots(String doctorId) async {
-    try {
-      final doc = await _db.collection('doctors').doc(doctorId).get();
-      if (!doc.exists || doc.data() == null) {
-        return <String>[];
+          return snapshot.docs
+              .map((doc) => DoctorModel.fromMap(doc.data(), doc.id))
+              .toList();
+        } catch (error) {
+          rethrow;
+        }
       }
 
-      final data = doc.data()!;
-      final slots = data['availableSlots'];
-      if (slots is List) {
-        return slots.map((slot) => slot.toString()).toList();
+      /// Get all doctors in a specific department.
+      Future<List<DoctorModel>> getDoctorsByDepartment(
+        String department,
+      ) async {
+        try {
+          final snapshot = await _db
+              .collection('doctors')
+              .where('department', isEqualTo: department)
+              .get();
+
+          return snapshot.docs
+              .map((doc) => DoctorModel.fromMap(doc.data(), doc.id))
+              .toList();
+        } catch (error) {
+          rethrow;
+        }
       }
-      return <String>[];
-    } catch (error) {
-      rethrow;
+
+      /// Get a single doctor by Firestore document ID.
+      Future<DoctorModel?> getDoctor(String doctorId) async {
+        try {
+          final doc = await _db.collection('doctors').doc(doctorId).get();
+          if (doc.exists && doc.data() != null) {
+            return DoctorModel.fromMap(doc.data()!, doc.id);
+          }
+          return null;
+        } catch (error) {
+          rethrow;
+        }
+      }
+
+      /// Get the available slot labels stored for a doctor.
+      Future<List<String>> getAvailableSlots(String doctorId) async {
+        try {
+          final doc = await _db.collection('doctors').doc(doctorId).get();
+          if (!doc.exists || doc.data() == null) {
+            return <String>[];
+          }
+
+          final data = doc.data()!;
+          final slots = data['availableSlots'];
+          if (slots is List) {
+            return slots.map((slot) => slot.toString()).toList();
+          }
+          return <String>[];
+        } catch (error) {
+          rethrow;
+        }
+      }
     }
   }
 }

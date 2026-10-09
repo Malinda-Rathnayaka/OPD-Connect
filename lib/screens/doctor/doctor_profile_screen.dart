@@ -27,9 +27,11 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
 
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _isEditing = false;
   String? _profileImageUrl;
   Uint8List? _pendingImage;
   String? _pendingImageType;
+  Map<String, String> _savedValues = {};
 
   String get _doctorId =>
       widget.doctorId ?? FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -60,6 +62,7 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
       _roomController.text = profile['roomNo']?.toString() ?? '';
       _emailController.text = profile['email']?.toString() ?? '';
       _profileImageUrl = profile['profileImageUrl']?.toString();
+      _saveCurrentValues();
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -69,6 +72,27 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _saveCurrentValues() {
+    _savedValues = {
+      'name': _nameController.text,
+      'specialization': _specController.text,
+      'phone': _phoneController.text,
+      'roomNo': _roomController.text,
+    };
+  }
+
+  void _discardChanges() {
+    _nameController.text = _savedValues['name'] ?? '';
+    _specController.text = _savedValues['specialization'] ?? '';
+    _phoneController.text = _savedValues['phone'] ?? '';
+    _roomController.text = _savedValues['roomNo'] ?? '';
+    setState(() {
+      _pendingImage = null;
+      _pendingImageType = null;
+      _isEditing = false;
+    });
   }
 
   Future<void> _chooseProfileImage() async {
@@ -91,12 +115,14 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
       }
       if (!mounted) return;
       final extension = image.name.split('.').last.toLowerCase();
-      final contentType = image.mimeType ?? switch (extension) {
-        'png' => 'image/png',
-        'webp' => 'image/webp',
-        'gif' => 'image/gif',
-        _ => 'image/jpeg',
-      };
+      final contentType =
+          image.mimeType ??
+          switch (extension) {
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+            'gif' => 'image/gif',
+            _ => 'image/jpeg',
+          };
       setState(() {
         _pendingImage = bytes;
         _pendingImageType = contentType;
@@ -112,9 +138,9 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
 
   Future<void> _saveProfile() async {
     if (_nameController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter the doctor’s name.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Enter the doctor’s name.')));
       return;
     }
     setState(() => _isSaving = true);
@@ -140,18 +166,68 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
         _profileImageUrl = imageUrl;
         _pendingImage = null;
         _pendingImageType = null;
+        _isEditing = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Doctor profile updated.')),
-      );
+      _saveCurrentValues();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Doctor profile updated.')));
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Could not save profile: $error. Check that Firebase Storage is enabled and permits this doctor’s profile image.',
+              error is StateError
+                  ? error.message
+                  : 'Could not save profile: $error',
             ),
+            duration: const Duration(seconds: 6),
           ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _removeProfileImage() async {
+    if (_profileImageUrl == null || _profileImageUrl!.isEmpty) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove profile photo?'),
+        content: const Text(
+          'This will permanently remove your doctor profile photo.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    setState(() => _isSaving = true);
+    try {
+      await _service.deleteDoctorProfileImage(_doctorId);
+      if (!mounted) return;
+      setState(() {
+        _profileImageUrl = null;
+        _pendingImage = null;
+        _pendingImageType = null;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profile photo removed.')));
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not remove profile photo: $error')),
         );
       }
     } finally {
@@ -164,7 +240,9 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Sign out?'),
-        content: const Text('You will need to sign in again to access the doctor dashboard.'),
+        content: const Text(
+          'You will need to sign in again to access the doctor dashboard.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -183,9 +261,9 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
       await AuthService().signOut();
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not sign out: $error')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not sign out: $error')));
       }
     }
   }
@@ -202,6 +280,16 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
           'Doctor Profile',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
+        actions: [
+          if (!_isEditing)
+            TextButton.icon(
+              onPressed: _isLoading
+                  ? null
+                  : () => setState(() => _isEditing = true),
+              icon: const Icon(Icons.edit_outlined),
+              label: const Text('Edit'),
+            ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -214,40 +302,75 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                   _buildProfilePhoto(),
                   const SizedBox(height: 24),
                   _buildReadOnlyEmail(),
-                  _buildInput('Doctor Full Name', _nameController,
-                      icon: Icons.person_outline),
-                  _buildInput('Specialization', _specController,
-                      icon: Icons.medical_services_outlined),
-                  _buildInput('Contact Phone', _phoneController,
-                      icon: Icons.phone_outlined,
-                      keyboardType: TextInputType.phone),
-                  _buildInput('Consultation Room Number', _roomController,
-                      icon: Icons.meeting_room_outlined),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 52,
-                    child: FilledButton.icon(
-                      onPressed: _isSaving ? null : _saveProfile,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF2563EB),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      icon: _isSaving
-                          ? const SizedBox.square(
-                              dimension: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.save_outlined),
-                      label: Text(_pendingImage == null
-                          ? 'Save Profile'
-                          : 'Upload Photo & Save Profile'),
-                    ),
+                  _buildInput(
+                    'Doctor Full Name',
+                    _nameController,
+                    icon: Icons.person_outline,
                   ),
+                  _buildInput(
+                    'Specialization',
+                    _specController,
+                    icon: Icons.medical_services_outlined,
+                  ),
+                  _buildInput(
+                    'Contact Phone',
+                    _phoneController,
+                    icon: Icons.phone_outlined,
+                    keyboardType: TextInputType.phone,
+                  ),
+                  _buildInput(
+                    'Consultation Room Number',
+                    _roomController,
+                    icon: Icons.meeting_room_outlined,
+                  ),
+                  if (_isEditing) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _isSaving ? null : _discardChanges,
+                            icon: const Icon(Icons.close),
+                            label: const Text('Discard'),
+                          ),
+                        ),
+                        if (_profileImageUrl != null &&
+                            _profileImageUrl!.isNotEmpty)
+                          TextButton.icon(
+                            onPressed: _isSaving || !_isEditing
+                                ? null
+                                : _removeProfileImage,
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.red.shade700,
+                            ),
+                            icon: const Icon(Icons.delete_outline),
+                            label: const Text('Remove profile photo'),
+                          ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: _isSaving ? null : _saveProfile,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFF2563EB),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            icon: _isSaving
+                                ? const SizedBox.square(
+                                    dimension: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.check),
+                            label: const Text('Save changes'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 20),
                   OutlinedButton.icon(
                     onPressed: _isSaving ? null : _confirmLogout,
@@ -288,52 +411,56 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
         ),
         const SizedBox(height: 8),
         TextButton.icon(
-          onPressed: _isSaving ? null : _chooseProfileImage,
+          onPressed: _isSaving || !_isEditing ? null : _chooseProfileImage,
           icon: const Icon(Icons.add_a_photo_outlined),
-          label: Text(_pendingImage == null ? 'Choose profile photo' : 'Change photo'),
+          label: Text(
+            _pendingImage == null ? 'Choose profile photo' : 'Change photo',
+          ),
         ),
         if (_pendingImage != null)
-          const Text('Photo selected. Save the profile to upload it.',
-              style: TextStyle(fontSize: 12, color: Colors.black54)),
+          const Text(
+            'Photo selected. Save the profile to upload it.',
+            style: TextStyle(fontSize: 12, color: Colors.black54),
+          ),
       ],
     );
   }
 
   Widget _buildReadOnlyEmail() => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: TextField(
-          controller: _emailController,
-          readOnly: true,
-          decoration: InputDecoration(
-            labelText: 'Account Email',
-            prefixIcon: const Icon(Icons.email_outlined),
-            filled: true,
-            fillColor: const Color(0xFFEFF4FA),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: 12),
+    child: TextField(
+      controller: _emailController,
+      readOnly: true,
+      decoration: InputDecoration(
+        labelText: 'Account Email',
+        prefixIcon: const Icon(Icons.email_outlined),
+        filled: true,
+        fillColor: const Color(0xFFEFF4FA),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    ),
+  );
 
   Widget _buildInput(
     String label,
     TextEditingController controller, {
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
-  }) =>
-      Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: TextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          textInputAction: TextInputAction.next,
-          scrollPadding: const EdgeInsets.only(bottom: 140),
-          decoration: InputDecoration(
-            labelText: label,
-            prefixIcon: Icon(icon),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        ),
-      );
+  }) => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: TextField(
+      controller: controller,
+      readOnly: !_isEditing,
+      keyboardType: keyboardType,
+      textInputAction: TextInputAction.next,
+      scrollPadding: const EdgeInsets.only(bottom: 140),
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon),
+        filled: true,
+        fillColor: _isEditing ? Colors.white : const Color(0xFFF1F5F9),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    ),
+  );
 }
