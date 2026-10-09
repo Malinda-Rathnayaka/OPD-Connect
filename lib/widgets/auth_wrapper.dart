@@ -5,6 +5,7 @@ import '../models/user_model.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/admin/admin_dashboard_screen.dart';
 import '../screens/doctor/doctor_dashboard_screen.dart';
+import '../screens/patient/patient_home_screen.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
@@ -71,7 +72,7 @@ class AuthWrapper extends StatelessWidget {
                 return const DoctorDashboardScreen(); // Doctor Portal Dashboard
               case 'patient':
               default:
-                return RoleHomeScreen(role: 'Patient Home (P-01)', user: user);
+                return const PatientHomeScreen();
             }
           },
         );
