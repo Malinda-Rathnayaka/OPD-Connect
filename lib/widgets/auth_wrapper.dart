@@ -4,6 +4,7 @@ import '../services/auth_service.dart';
 import '../models/user_model.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/admin/admin_dashboard_screen.dart';
+import '../screens/doctor/doctor_dashboard_screen.dart';
 import '../screens/patient/patient_home_screen.dart';
 
 class AuthWrapper extends StatelessWidget {
@@ -38,8 +39,7 @@ class AuthWrapper extends StatelessWidget {
             UserModel user = userSnapshot.data!;
 
             // ─── Doctor Approval Gate ──────────────────────
-            // If the doctor account has NOT been approved by admin,
-            // show a "pending approval" screen and block dashboard access.
+            // Doctor role එක සහ Admin approval නොමැති නම් Blocking screen එක pennවයි
             if (user.role == 'doctor' && !user.isApproved) {
               return _DoctorPendingApprovalScreen(authService: authService);
             }
@@ -69,7 +69,7 @@ class AuthWrapper extends StatelessWidget {
               case 'admin':
                 return AdminDashboardScreen(admin: user);
               case 'doctor':
-                return RoleHomeScreen(role: 'Doctor Dashboard (D-01)', user: user);
+                return const DoctorDashboardScreen(); // Doctor Portal Dashboard
               case 'patient':
               default:
                 return const PatientHomeScreen();
@@ -84,9 +84,6 @@ class AuthWrapper extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 // DOCTOR PENDING APPROVAL SCREEN
 // ─────────────────────────────────────────────────────────────
-// Shown when a doctor logs in but admin has not yet approved
-// their account. The doctor is signed out and redirected to the
-// login page with a clear message.
 class _DoctorPendingApprovalScreen extends StatelessWidget {
   final AuthService authService;
 
@@ -212,7 +209,7 @@ class _DoctorPendingApprovalScreen extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// PLACEHOLDER ROLE HOME SCREEN (patient / doctor)
+// PLACEHOLDER ROLE HOME SCREEN (Patient fallback)
 // ─────────────────────────────────────────────────────────────
 class RoleHomeScreen extends StatelessWidget {
   final String role;

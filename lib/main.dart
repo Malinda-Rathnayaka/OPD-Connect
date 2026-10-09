@@ -31,10 +31,12 @@ class OPDConnectApp extends StatelessWidget {
       title: 'OPD Connect',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF2563EB), // Primary Brand Blue
+        ),
         useMaterial3: true,
       ),
-      // Starts with SplashScreen onboarding flow
+      // Starts with SplashScreen onboarding flow on app launch
       home: const SplashScreen(),
 
       // Test 
