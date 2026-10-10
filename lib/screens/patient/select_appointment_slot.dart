@@ -49,17 +49,19 @@ class _SelectAppointmentSlotScreenState
 
   Widget _buildSessionCard(String sessionId, Map<String, dynamic> session) {
     final availableSlots = (session['availableSlots'] as num?)?.toInt() ?? 0;
-    final hasSlots = availableSlots > 0;
+    final isBookable = availableSlots > 0;
     final isSelected = _selectedSessionId == sessionId;
     final sessionType = session['sessionType']?.toString() ?? 'OPD';
     final startTime = session['startTime']?.toString() ?? '';
     final endTime = session['endTime']?.toString() ?? '';
-    final badgeColor = !hasSlots
+    final badgeColor = !isBookable
         ? Colors.red.shade100
         : availableSlots <= 2
         ? Colors.orange.shade100
         : Colors.green.shade100;
-    final badgeText = hasSlots ? '$availableSlots Slots left' : 'Fully Booked';
+    final badgeText = availableSlots > 0
+        ? '$availableSlots Slots left'
+        : 'Fully Booked';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -73,7 +75,7 @@ class _SelectAppointmentSlotScreenState
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: hasSlots
+        onTap: isBookable
             ? () => setState(() => _selectedSessionId = sessionId)
             : null,
         child: Padding(
@@ -84,7 +86,7 @@ class _SelectAppointmentSlotScreenState
                 isSelected
                     ? Icons.radio_button_checked
                     : Icons.radio_button_unchecked,
-                color: hasSlots
+                color: isBookable
                     ? (isSelected ? Colors.blue : Colors.grey)
                     : Colors.grey.shade400,
               ),
@@ -136,19 +138,14 @@ class _SelectAppointmentSlotScreenState
     );
   }
 
-  void _navigateToBooking(
-    String sessionId,
-    DateTime selectedDate,
-    String time,
-  ) {
+  void _navigateToBooking(String sessionId, String time, int availableSlots) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => ReviewConfirmBookingScreen(
           sessionId: sessionId,
           time: time,
-          appointmentDate: selectedDate,
-          bookingForId: widget.bookingForId,
+          availableSlots: availableSlots,
           bookingForName: widget.bookingForName,
         ),
       ),
@@ -158,7 +155,6 @@ class _SelectAppointmentSlotScreenState
   @override
   Widget build(BuildContext context) {
     final today = DateUtils.dateOnly(DateTime.now());
-    final firstFutureDay = today.add(const Duration(days: 1));
 
     return Theme(
       data: ThemeData(
@@ -197,7 +193,7 @@ class _SelectAppointmentSlotScreenState
             for (final doc in sessionDocs) {
               final data = doc.data();
               final sessionDate = _sessionDate(data);
-              if (sessionDate == null || !sessionDate.isAfter(today)) continue;
+              if (sessionDate == null || sessionDate.isBefore(today)) continue;
               final sessionTypeKey = data['sessionTypeKey']?.toString();
               if (sessionTypeKey == null ||
                   !const {
@@ -212,16 +208,13 @@ class _SelectAppointmentSlotScreenState
                   .putIfAbsent(sessionTypeKey, () => doc);
             }
 
-            final availableDates = sessionsByDate.keys.toList()..sort();
             final selectedDate =
                 _selectedDay != null &&
-                    sessionsByDate.containsKey(
-                      DateUtils.dateOnly(_selectedDay!),
-                    )
+                    !DateUtils.dateOnly(_selectedDay!).isBefore(today)
                 ? DateUtils.dateOnly(_selectedDay!)
-                : availableDates.isNotEmpty
-                ? availableDates.first
-                : firstFutureDay;
+                : sessionsByDate.isNotEmpty
+                ? (sessionsByDate.keys.toList()..sort()).first
+                : today;
             final sessionsForDate =
                 sessionsByDate[selectedDate]?.values.toList() ??
                 <QueryDocumentSnapshot<Map<String, dynamic>>>[];
@@ -251,15 +244,12 @@ class _SelectAppointmentSlotScreenState
               children: [
                 Card(
                   child: TableCalendar<void>(
-                    firstDay: firstFutureDay,
-                    lastDay: DateUtils.dateOnly(
-                      today.add(const Duration(days: 365)),
-                    ),
+                    firstDay: today,
+                    lastDay: DateTime(9999, 12, 31),
                     focusedDay: selectedDate,
                     selectedDayPredicate: (day) => isSameDay(day, selectedDate),
                     enabledDayPredicate: (day) =>
-                        DateUtils.dateOnly(day).isAfter(today) &&
-                        sessionsByDate.containsKey(DateUtils.dateOnly(day)),
+                        !DateUtils.dateOnly(day).isBefore(today),
                     onDaySelected: (selected, focused) {
                       setState(() {
                         _selectedDay = DateUtils.dateOnly(selected);
@@ -300,9 +290,7 @@ class _SelectAppointmentSlotScreenState
                 else if (sessionsForDate.isEmpty)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(
-                      child: Text('No sessions are available on this date.'),
-                    ),
+                    child: Center(child: Text('No sessions available')),
                   )
                 else
                   ...sessionsForDate.map(
@@ -315,8 +303,8 @@ class _SelectAppointmentSlotScreenState
                     onPressed: selectedSessionId != null && selectedSlots > 0
                         ? () => _navigateToBooking(
                             selectedSessionId,
-                            selectedDate,
                             selectedTime,
+                            selectedSlots,
                           )
                         : null,
                     style: ElevatedButton.styleFrom(
