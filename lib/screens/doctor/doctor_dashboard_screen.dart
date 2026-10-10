@@ -115,7 +115,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
           onPressed: _isSavingSession ? null : () => _showSessionDialog(),
           icon: const Icon(Icons.add_rounded, size: 18),
           label: const Text(
-            'Create Slot',
+            'Start Session',
             style: TextStyle(
               fontWeight: FontWeight.w600,
               letterSpacing: 0.2,
@@ -1190,7 +1190,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
           };
         }
       }
-      final availablePatients = patientById.values.toList()
+      var availablePatients = patientById.values.toList()
         ..sort(
           (a, b) => a['name'].toString().toLowerCase().compareTo(
             b['name'].toString().toLowerCase(),
@@ -1206,19 +1206,29 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
       String selectedDate = initialData?['slotDate']?.toString() ?? _today();
       final initialSlot = selectedSlot;
       final initialDate = selectedDate;
-      String filter = '';
+      final bookedPatients = await _service.getAppointmentsForSlot(
+        doctorId: doctor.uid,
+        slotDate: selectedDate,
+        timeSlot: selectedSlot,
+      );
+      final patientsById = <String, Map<String, dynamic>>{
+        for (final patient in availablePatients)
+          patient['id'].toString(): patient,
+      };
+      for (final patient in bookedPatients) {
+        patientsById[patient['id'].toString()] = patient;
+      }
+      availablePatients = patientsById.values.toList()
+        ..sort(
+          (a, b) => a['name'].toString().toLowerCase().compareTo(
+            b['name'].toString().toLowerCase(),
+          ),
+        );
       if (!mounted) return;
       await showDialog<void>(
         context: context,
         builder: (dialogContext) => StatefulBuilder(
           builder: (context, setDialogState) {
-            final filtered = availablePatients.where((patient) {
-              final query = filter.toLowerCase();
-              return query.isEmpty ||
-                  patient['name'].toString().toLowerCase().contains(query) ||
-                  patient['nic'].toString().toLowerCase().contains(query) ||
-                  patient['phone'].toString().toLowerCase().contains(query);
-            }).toList();
             return AlertDialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
@@ -1258,8 +1268,19 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                               )
                               .toList(),
                       onChanged: (value) {
-                        if (value != null)
-                          setDialogState(() => selectedSlot = value);
+                        if (value == null) return;
+                        setDialogState(() => selectedSlot = value);
+                        _service
+                            .getAppointmentsForSlot(
+                              doctorId: doctor.uid,
+                              slotDate: selectedDate,
+                              timeSlot: value,
+                            )
+                            .then(
+                              (patients) => setDialogState(
+                                () => availablePatients = patients,
+                              ),
+                            );
                       },
                     ),
                     Align(
@@ -1275,31 +1296,30 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                             lastDate: DateTime(2100),
                           );
                           if (picked != null) {
-                            setDialogState(
-                              () => selectedDate =
-                                  '${picked.year.toString().padLeft(4, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}',
-                            );
+                            final date =
+                                '${picked.year.toString().padLeft(4, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+                            setDialogState(() => selectedDate = date);
+                            _service
+                                .getAppointmentsForSlot(
+                                  doctorId: doctor.uid,
+                                  slotDate: date,
+                                  timeSlot: selectedSlot,
+                                )
+                                .then(
+                                  (patients) => setDialogState(
+                                    () => availablePatients = patients,
+                                  ),
+                                );
                           }
                         },
                         icon: const Icon(Icons.calendar_month),
                         label: Text('Date: $selectedDate'),
                       ),
                     ),
-                    TextField(
-                      scrollPadding: const EdgeInsets.only(bottom: 140),
-                      textInputAction: TextInputAction.search,
-                      decoration: const InputDecoration(
-                        labelText: 'Find patient',
-                        prefixIcon: Icon(Icons.search),
-                      ),
-                      onChanged: (value) =>
-                          setDialogState(() => filter = value.trim()),
-                    ),
-                    const SizedBox(height: 6),
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        'Queue is populated from confirmed appointments; patient selection is read-only.',
+                        '${availablePatients.length} booked patient${availablePatients.length == 1 ? '' : 's'} for this session',
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ),
@@ -1312,9 +1332,9 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                           : ListView.builder(
                               keyboardDismissBehavior:
                                   ScrollViewKeyboardDismissBehavior.onDrag,
-                              itemCount: filtered.length,
+                              itemCount: availablePatients.length,
                               itemBuilder: (context, index) {
-                                final patient = filtered[index];
+                                final patient = availablePatients[index];
                                 final id = patient['id'].toString();
                                 return CheckboxListTile(
                                   dense: true,
