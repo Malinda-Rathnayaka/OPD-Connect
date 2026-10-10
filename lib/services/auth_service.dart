@@ -14,26 +14,21 @@ class AuthService {
     required String password,
   }) async {
     final normalizedEmail = email.trim().toLowerCase();
-    User? currentUser = _auth.currentUser;
-
-    if (currentUser == null || currentUser.email?.toLowerCase() != normalizedEmail) {
-      try {
-        final credential = await _auth.createUserWithEmailAndPassword(
-          email: normalizedEmail,
-          password: password,
-        );
-        currentUser = credential.user;
-      } on FirebaseAuthException catch (error) {
-        if (error.code != 'email-already-in-use') rethrow;
-
-        final credential = await _auth.signInWithEmailAndPassword(
-          email: normalizedEmail,
-          password: password,
-        );
-        currentUser = credential.user;
-      }
+    if (normalizedEmail.isEmpty || password.isEmpty) {
+      throw FirebaseAuthException(code: 'invalid-registration-data');
     }
 
+    // Registration must not reuse a different signed-in account or silently
+    // sign in to an account that already exists.
+    if (_auth.currentUser != null) {
+      await _auth.signOut();
+    }
+
+    final credential = await _auth.createUserWithEmailAndPassword(
+      email: normalizedEmail,
+      password: password,
+    );
+    final currentUser = credential.user;
     if (currentUser == null) {
       throw FirebaseAuthException(code: 'user-not-created');
     }
@@ -64,25 +59,95 @@ class AuthService {
   }) async {
     final user = _auth.currentUser;
     if (user == null) throw FirebaseAuthException(code: 'no-current-user');
+    if (!{'patient', 'doctor'}.contains(role)) {
+      throw ArgumentError.value(role, 'role', 'Only patients and doctors can register here.');
+    }
 
-    await _db.collection('users').doc(user.uid).set({
-        'email': user.email ?? email,
-        'phone': phone,
-        'name': name,
-        'role': role,
-        'isVerified': role == 'patient', // Doctors require IT verification
-        'isApproved': role != 'doctor', // Doctors need admin approval before login
-        'createdAt': FieldValue.serverTimestamp(),
+    final emailAddress = user.email ?? email.trim().toLowerCase();
+    final isDoctor = role == 'doctor';
+    final now = FieldValue.serverTimestamp();
+    final batch = _db.batch();
+    final profile = <String, dynamic>{
+      'role': role,
+      'name': name,
+      'fullName': name,
+      'email': emailAddress,
+      'phone': phone,
+      'isVerified': !isDoctor,
+      'isApproved': !isDoctor,
+      'createdAt': now,
+    };
+
+    final userData = {
+      'email': user.email ?? email,
+      'phone': phone,
+      'name': name,
+      'role': role,
+      'isVerified': role == 'patient',
+      'isApproved': role != 'doctor',
+      'createdAt': FieldValue.serverTimestamp(),
+    };
+
+    await _db.collection('users').doc(user.uid).set(userData, SetOptions(merge: true));
+
+    await _db.collection('patients').doc(user.uid).set({
+      'fullName': name,
+      'nic': '',
+      'phone': phone,
+      'email': user.email ?? email,
+      'preferredLanguage': 'English',
+      'profileImageUrl': '',
+      'createdAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+    if (isDoctor) {
+      batch.set(_db.collection('doctors').doc(user.uid), {
+        ...profile,
+        'specialization': '',
+        'roomNo': '',
       });
+    } else {
+      batch.set(_db.collection('patients').doc(user.uid), {
+        ...profile,
+        'history': <dynamic>[],
+      });
+    }
+
+    // Keep only role and approval metadata here for login routing and the
+    // existing doctor approval gate. Personal profile data lives separately.
+    batch.set(_db.collection('users').doc(user.uid), {
+      'role': role,
+      'isVerified': !isDoctor,
+      'isApproved': !isDoctor,
+      'createdAt': now,
+    });
+    await batch.commit();
   }
 
-  /// Retrieve User Profile from Firestore
+  /// Load auth metadata and merge in the role-specific profile document.
   Future<UserModel?> getUserData(String uid) async {
-    final doc = await _db.collection('users').doc(uid).get();
-    if (doc.exists && doc.data() != null) {
-      return UserModel.fromMap(doc.data()!, uid);
-    }
-    return null;
+    final results = await Future.wait([
+      _db.collection('users').doc(uid).get(),
+      _db.collection('patients').doc(uid).get(),
+      _db.collection('doctors').doc(uid).get(),
+    ]);
+    final metadata = results[0].data();
+    final patient = results[1].data();
+    final doctor = results[2].data();
+    if (metadata == null && patient == null && doctor == null) return null;
+
+    final role = metadata?['role']?.toString() ??
+        (doctor != null ? 'doctor' : 'patient');
+    final profile = role == 'doctor' ? doctor : patient;
+    final authUser = _auth.currentUser;
+    final merged = <String, dynamic>{
+      ...?metadata,
+      ...?profile,
+      'role': role,
+      'email': profile?['email'] ?? metadata?['email'] ?? authUser?.email ?? '',
+      'isVerified': metadata?['isVerified'] ?? profile?['isVerified'] ?? true,
+      'isApproved': metadata?['isApproved'] ?? profile?['isApproved'] ?? role != 'doctor',
+    };
+    return UserModel.fromMap(merged, uid);
   }
 
   /// Login with Email & Password

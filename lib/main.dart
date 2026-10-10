@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 import 'firebase_options.dart';
 import 'services/seed_service.dart';
 import 'screens/auth/splash_screen.dart';
@@ -8,15 +9,14 @@ import 'screens/auth/splash_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load environment variables from .env file
   await dotenv.load(fileName: ".env");
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Auto-seed initial admin data using .env credentials
   await SeedService.seedAdminAccount();
+  await SeedService.seedColomboNationalHospital();
+  await SeedService.cleanUpOtherHospitals();
+  await SeedService.seedSessionsForDoctors();
 
   runApp(const OPDConnectApp());
 }
@@ -30,10 +30,12 @@ class OPDConnectApp extends StatelessWidget {
       title: 'OPD Connect',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF2563EB), // Primary Brand Blue
+        ),
         useMaterial3: true,
       ),
-      // Starts with SplashScreen onboarding flow
+      // Starts with SplashScreen onboarding flow on app launch
       home: const SplashScreen(),
     );
   }
