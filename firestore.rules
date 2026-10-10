@@ -35,6 +35,137 @@ service cloud.firestore {
     // Default fallback for any other collections
     match /{document=**} {
       allow read, write: if true;
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isDoctor() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'doctor'
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isApproved == true;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function ownsSession(sessionId) {
+      return isDoctor()
+        && get(/databases/$(database)/documents/sessions/$(sessionId)).data.doctorId == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn() && (userId == request.auth.uid || isDoctor() || isAdmin());
+      allow update: if (signedIn()
+          && userId == request.auth.uid
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.isApproved == resource.data.isApproved
+          && request.resource.data.isVerified == resource.data.isVerified)
+        || (isAdmin()
+          && resource.data.role == 'doctor'
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isApproved', 'isVerified']))
+        || (isDoctor()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['history']));
+      allow create: if signedIn()
+        && userId == request.auth.uid
+        && request.resource.data.role in ['patient', 'doctor']
+        && request.resource.data.isApproved == (request.resource.data.role == 'patient')
+        && request.resource.data.isVerified == (request.resource.data.role == 'patient');
+      allow delete: if isAdmin();
+    }
+
+    match /appointments/{appointmentId} {
+      allow read: if isDoctor() && resource.data.doctorId == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.patientId == request.auth.uid;
+      allow update: if signedIn()
+        && (resource.data.patientId == request.auth.uid
+            || (isDoctor() && resource.data.doctorId == request.auth.uid));
+    }
+
+    match /patients/{patientId} {
+      allow read: if (signedIn() && patientId == request.auth.uid) || isDoctor() || isAdmin();
+      allow create: if signedIn()
+        && patientId == request.auth.uid
+        && request.resource.data.role == 'patient';
+      allow update: if (signedIn() && patientId == request.auth.uid)
+        || isAdmin()
+        || (isDoctor()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['history']));
+      allow delete: if isAdmin();
+    }
+
+    match /sessions/{sessionId} {
+      allow read: if isDoctor() && resource.data.doctorId == request.auth.uid;
+      allow create: if isDoctor() && request.resource.data.doctorId == request.auth.uid;
+      allow update: if isDoctor() && resource.data.doctorId == request.auth.uid;
+      allow delete: if isDoctor() && resource.data.doctorId == request.auth.uid;
+
+      match /queue/{queueId} {
+        allow read, create, update, delete: if ownsSession(sessionId);
+      }
+
+      match /completed_records/{recordId} {
+        allow read, create, delete: if ownsSession(sessionId);
+      }
+    }
+
+    match /emergency_records/{recordId} {
+      allow read: if isDoctor() && resource.data.doctorId == request.auth.uid;
+      allow create: if isDoctor() && request.resource.data.doctorId == request.auth.uid;
+    }
+
+    match /consultations/{consultationId} {
+      allow read, create, update, delete: if isDoctor()
+        && (resource.data.doctorId == request.auth.uid
+            || request.resource.data.doctorId == request.auth.uid);
+    }
+
+    match /prescriptions/{prescriptionId} {
+      allow read, create, update, delete: if isDoctor()
+        && (resource.data.doctorId == request.auth.uid
+            || request.resource.data.doctorId == request.auth.uid);
+    }
+
+    match /doctors/{doctorId} {
+      allow read: if (signedIn() && doctorId == request.auth.uid) || isAdmin();
+      allow create: if signedIn()
+        && doctorId == request.auth.uid
+        && request.resource.data.role == 'doctor'
+        && request.resource.data.isApproved == false
+        && request.resource.data.isVerified == false;
+      allow update: if (isAdmin()
+          && request.resource.data.role == resource.data.role)
+        || (signedIn()
+          && doctorId == request.auth.uid
+          && request.resource.data.isApproved == resource.data.isApproved
+          && request.resource.data.isVerified == resource.data.isVerified);
+      allow delete: if isAdmin();
+    }
+
+    match /doctor_leaves/{leaveId} {
+      allow read: if isAdmin()
+        || (isDoctor() && resource.data.doctorId == request.auth.uid);
+      allow create: if isDoctor()
+        && request.resource.data.doctorId == request.auth.uid
+        && request.resource.data.status == 'PENDING';
+      allow update: if (isAdmin()
+          && resource.data.status == 'PENDING'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+          && request.resource.data.status in ['APPROVED', 'REJECTED'])
+        || (isDoctor()
+          && resource.data.doctorId == request.auth.uid
+          && resource.data.status == 'PENDING'
+          && request.resource.data.doctorId == request.auth.uid
+          && request.resource.data.status == 'PENDING'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['date', 'reason', 'notes', 'updatedAt']));
+      allow delete: if isDoctor()
+        && resource.data.doctorId == request.auth.uid
+        && resource.data.status == 'PENDING';
     }
   }
 }

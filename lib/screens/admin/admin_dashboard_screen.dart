@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+
 import '../../models/user_model.dart';
 import '../../services/admin_service.dart';
 import '../../services/auth_service.dart';
 import 'admin_user_list_screen.dart';
 import 'admin_pending_doctors_screen.dart';
+import 'admin_leave_approvals_screen.dart';
 
 /// Main Admin Dashboard with summary cards and quick-access navigation.
 class AdminDashboardScreen extends StatefulWidget {
@@ -32,6 +34,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       AdminUserListScreen(role: 'patient', admin: widget.admin),
       AdminUserListScreen(role: 'doctor', admin: widget.admin),
       AdminPendingDoctorsScreen(admin: widget.admin),
+      const AdminLeaveApprovalsScreen(),
     ];
 
     return Scaffold(
@@ -46,7 +49,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   // APP BAR
   // ────────────────────────────────────────────────────────
   PreferredSizeWidget _buildAppBar() {
-    final titles = ['Dashboard', 'Patients', 'Doctors', 'Pending Approvals'];
+    final titles = [
+      'Dashboard',
+      'Patients',
+      'Doctors',
+      'Pending Approvals',
+      'Leave Approvals',
+    ];
     return AppBar(
       backgroundColor: _primaryDark,
       foregroundColor: Colors.white,
@@ -59,16 +68,30 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               color: _accent.withOpacity(0.2),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.admin_panel_settings_rounded, size: 22, color: Colors.white),
+            child: const Icon(
+              Icons.admin_panel_settings_rounded,
+              size: 22,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(titles[_currentIndex],
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-              Text('OPD Connect Admin',
-                  style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.6))),
+              Text(
+                titles[_currentIndex],
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                'OPD Connect Admin',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.white.withOpacity(0.6),
+                ),
+              ),
             ],
           ),
         ],
@@ -95,8 +118,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         color: Colors.redAccent,
                         shape: BoxShape.circle,
                       ),
-                      child: Text('$count',
-                          style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        '$count',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
               ],
@@ -108,8 +137,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             radius: 16,
             backgroundColor: _accent,
             child: Text(
-              widget.admin.name.isNotEmpty ? widget.admin.name[0].toUpperCase() : 'A',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              widget.admin.name.isNotEmpty
+                  ? widget.admin.name[0].toUpperCase()
+                  : 'A',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           onSelected: (value) {
@@ -121,21 +155,33 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(widget.admin.name,
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
-                  Text(widget.admin.email.isNotEmpty ? widget.admin.email : widget.admin.emailOrPhone,
-                      style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(
+                    widget.admin.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    widget.admin.email.isNotEmpty
+                        ? widget.admin.email
+                        : widget.admin.emailOrPhone,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
                 ],
               ),
             ),
             const PopupMenuDivider(),
-            const PopupMenuItem(value: 'logout', child: Row(
-              children: [
-                Icon(Icons.logout, size: 18, color: Colors.redAccent),
-                SizedBox(width: 8),
-                Text('Sign Out', style: TextStyle(color: Colors.redAccent)),
-              ],
-            )),
+            const PopupMenuItem(
+              value: 'logout',
+              child: Row(
+                children: [
+                  Icon(Icons.logout, size: 18, color: Colors.redAccent),
+                  SizedBox(width: 8),
+                  Text('Sign Out', style: TextStyle(color: Colors.redAccent)),
+                ],
+              ),
+            ),
           ],
         ),
         const SizedBox(width: 8),
@@ -151,7 +197,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, -2)),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, -2),
+          ),
         ],
       ),
       child: BottomNavigationBar(
@@ -160,15 +210,34 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: _primary,
         unselectedItemColor: Colors.grey.shade500,
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+        selectedLabelStyle: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+        ),
         unselectedLabelStyle: const TextStyle(fontSize: 11),
         backgroundColor: Colors.white,
         elevation: 0,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard_rounded), label: 'Overview'),
-          BottomNavigationBarItem(icon: Icon(Icons.people_alt_rounded), label: 'Patients'),
-          BottomNavigationBarItem(icon: Icon(Icons.medical_services_rounded), label: 'Doctors'),
-          BottomNavigationBarItem(icon: Icon(Icons.pending_actions_rounded), label: 'Pending'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard_rounded),
+            label: 'Overview',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people_alt_rounded),
+            label: 'Patients',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.medical_services_rounded),
+            label: 'Doctors',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.pending_actions_rounded),
+            label: 'Pending',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.event_available_rounded),
+            label: 'Leaves',
+          ),
         ],
       ),
     );
@@ -201,7 +270,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               const SizedBox(height: 2),
               Text(
                 widget.admin.name,
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: _primaryDark),
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: _primaryDark,
+                ),
               ),
               const SizedBox(height: 24),
 
@@ -247,8 +320,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               const SizedBox(height: 28),
 
               // Quick actions
-              const Text('Quick Actions',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _primaryDark)),
+              const Text(
+                'Quick Actions',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: _primaryDark,
+                ),
+              ),
               const SizedBox(height: 14),
               _QuickActionTile(
                 icon: Icons.person_add_alt_1_rounded,
@@ -272,6 +351,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 title: 'Pending Doctor Approvals',
                 subtitle: 'Review and approve new doctor registrations',
                 onTap: () => setState(() => _currentIndex = 3),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                icon: Icons.event_available_rounded,
+                color: const Color(0xFF7C3AED),
+                title: 'Doctor Leave Approvals',
+                subtitle: 'Review and approve doctor leave requests',
+                onTap: () => setState(() => _currentIndex = 4),
               ),
             ],
           ),
@@ -418,15 +505,29 @@ class _QuickActionTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title,
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text(subtitle,
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey.shade400),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: Colors.grey.shade400,
+              ),
             ],
           ),
         ),
