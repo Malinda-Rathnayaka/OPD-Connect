@@ -6,12 +6,31 @@ class PatientService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   /// Get patient by Firestore document ID from the `patients` collection.
+  /// If the patient record is not yet created, fall back to the `users` collection.
   Future<PatientModel?> getPatient(String patientId) async {
     try {
       final doc = await _db.collection('patients').doc(patientId).get();
       if (doc.exists && doc.data() != null) {
         return PatientModel.fromMap(doc.data()!, doc.id);
       }
+
+      final userDoc = await _db.collection('users').doc(patientId).get();
+      if (userDoc.exists && userDoc.data() != null) {
+        final userData = userDoc.data()!;
+        return PatientModel(
+          id: patientId,
+          fullName: userData['name'] ?? userData['fullName'] ?? 'Patient',
+          nic: userData['nic'] ?? '',
+          phone: userData['phone'] ?? '',
+          email: userData['email'] ?? '',
+          preferredLanguage: userData['preferredLanguage'] ?? 'English',
+          profileImageUrl: userData['profileImageUrl'] ?? '',
+          createdAt: userData['createdAt'] is Timestamp
+              ? (userData['createdAt'] as Timestamp).toDate()
+              : null,
+        );
+      }
+
       return null;
     } catch (error) {
       rethrow;
@@ -31,6 +50,15 @@ class PatientService {
   Future<void> updatePatient(PatientModel patient) async {
     try {
       await _db.collection('patients').doc(patient.id).update(patient.toMap());
+    } catch (error) {
+      rethrow;
+    }
+  }
+
+  /// Delete a patient document by its Firestore document ID.
+  Future<void> deletePatient(String patientId) async {
+    try {
+      await _db.collection('patients').doc(patientId).delete();
     } catch (error) {
       rethrow;
     }

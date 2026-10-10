@@ -1,370 +1,338 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'patient_home_screen.dart';
-import 'find_opd_hospital.dart';
-import 'doctor_availability.dart';
-import 'my_family_profile.dart';
+import 'package:intl/intl.dart';
+import 'package:table_calendar/table_calendar.dart';
+
 import 'review_confirm_booking.dart';
 
 class SelectAppointmentSlotScreen extends StatefulWidget {
-  const SelectAppointmentSlotScreen({super.key});
+  final String bookingForId;
+  final String bookingForName;
+
+  const SelectAppointmentSlotScreen({
+    super.key,
+    required this.bookingForId,
+    required this.bookingForName,
+  });
 
   @override
-  State<SelectAppointmentSlotScreen> createState() => _SelectAppointmentSlotScreenState();
+  State<SelectAppointmentSlotScreen> createState() =>
+      _SelectAppointmentSlotScreenState();
 }
 
-class _SelectAppointmentSlotScreenState extends State<SelectAppointmentSlotScreen> {
-  final List<String> _dateLabels = const [
-    'Mon\n22',
-    'Tue\n23',
-    'Wed\n24',
-    'Thu\n25',
-    'Fri\n26',
-    'Sat\n27',
-    'Sun\n28',
-  ];
+class _SelectAppointmentSlotScreenState
+    extends State<SelectAppointmentSlotScreen> {
+  DateTime? _selectedDay;
+  String? _selectedSessionId;
 
-  final List<_AppointmentSlot> _slots = const [
-    _AppointmentSlot(time: '9:00 AM', slotNumber: '#14'),
-    _AppointmentSlot(time: '9:15 AM', slotNumber: '#15'),
-    _AppointmentSlot(time: '9:30 AM', slotNumber: '#16'),
-    _AppointmentSlot(time: '9:45 AM', slotNumber: '#17'),
-    _AppointmentSlot(time: '10:00 AM', slotNumber: '#18'),
-    _AppointmentSlot(time: '10:15 AM', slotNumber: '#19'),
-  ];
+  DateTime? _sessionDate(Map<String, dynamic> session) {
+    final value = session['date'];
+    if (value is Timestamp) return DateUtils.dateOnly(value.toDate());
+    if (value is DateTime) return DateUtils.dateOnly(value);
+    if (value is! String || value.trim().isEmpty) return null;
 
-  int _selectedDateIndex = 0;
-  bool _morningSessionSelected = true;
-  int _selectedSlotIndex = 0;
+    final text = value.trim();
+    for (final format in [
+      DateFormat('yyyy-MM-dd'),
+      DateFormat('EEE, d MMM yyyy', 'en_US'),
+      DateFormat('EEE, d MMM', 'en_US'),
+    ]) {
+      try {
+        final parsed = format.parseStrict(text);
+        return DateUtils.dateOnly(parsed);
+      } on FormatException {
+        continue;
+      }
+    }
+    return null;
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    final selectedSlot = _slots[_selectedSlotIndex];
+  Widget _buildSessionCard(String sessionId, Map<String, dynamic> session) {
+    final availableSlots = (session['availableSlots'] as num?)?.toInt() ?? 0;
+    final hasSlots = availableSlots > 0;
+    final isSelected = _selectedSessionId == sessionId;
+    final sessionType = session['sessionType']?.toString() ?? 'OPD';
+    final startTime = session['startTime']?.toString() ?? '';
+    final endTime = session['endTime']?.toString() ?? '';
+    final badgeColor = !hasSlots
+        ? Colors.red.shade100
+        : availableSlots <= 2
+        ? Colors.orange.shade100
+        : Colors.green.shade100;
+    final badgeText = hasSlots ? '$availableSlots Slots left' : 'Fully Booked';
 
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: true,
-        title: const Text('Select Appointment Slot'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: isSelected ? 4 : 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isSelected ? Colors.blue : Colors.transparent,
+          width: 2,
+        ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              height: 78,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: _dateLabels.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
-                itemBuilder: (context, index) {
-                  final isSelected = index == _selectedDateIndex;
-                  final dayParts = _dateLabels[index].split('\n');
-
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedDateIndex = index;
-                      });
-                    },
-                    child: Container(
-                      width: 72,
-                      decoration: BoxDecoration(
-                        color: isSelected ? Colors.blue : Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isSelected ? Colors.blue : Colors.grey.shade300,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            dayParts[0],
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.black87,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            dayParts[1],
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.black87,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: hasSlots
+            ? () => setState(() => _selectedSessionId = sessionId)
+            : null,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Icon(
+                isSelected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+                color: hasSlots
+                    ? (isSelected ? Colors.blue : Colors.grey)
+                    : Colors.grey.shade400,
               ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _SessionToggleButton(
-                    label: 'Morning Session',
-                    selected: _morningSessionSelected,
-                    onTap: () {
-                      setState(() {
-                        _morningSessionSelected = true;
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _SessionToggleButton(
-                    label: 'Evening Session',
-                    selected: !_morningSessionSelected,
-                    onTap: () {
-                      setState(() {
-                        _morningSessionSelected = false;
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Selected Date: Monday, 22 Sep',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
+              const SizedBox(width: 12),
+              Icon(
+                sessionType == 'Morning'
+                    ? Icons.wb_sunny
+                    : sessionType == 'Afternoon'
+                    ? Icons.wb_twilight
+                    : Icons.nightlight_round,
+                color: Colors.blue,
               ),
-            ),
-            const SizedBox(height: 12),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _slots.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 0.95,
-              ),
-              itemBuilder: (context, index) {
-                final slot = _slots[index];
-                final isSelected = index == _selectedSlotIndex;
-
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedSlotIndex = index;
-                    });
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected ? Colors.blue : Colors.grey.shade300,
-                        width: isSelected ? 2 : 1,
-                      ),
-                    ),
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          slot.time,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          slot.slotNumber,
-                          style: TextStyle(
-                            color: Colors.blue.shade700,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
+              const SizedBox(width: 12),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Selected Slot Details',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
                     Text(
-                      'Mon 22 Sep • Slot ${selectedSlot.slotNumber}',
+                      sessionType,
                       style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Dr. Perera • ${selectedSlot.time}',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black87,
-                      ),
-                    ),
+                    const SizedBox(height: 4),
+                    Text('$startTime - $endTime'),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ReviewConfirmBookingScreen(),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
                 ),
-                child: const Text('Continue'),
+                decoration: BoxDecoration(
+                  color: badgeColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  badgeText,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: 2,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const PatientHomeScreen(),
-                ),
-              );
-              break;
-            case 1:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const FindOpdHospitalScreen(),
-                ),
-              );
-              break;
-            case 2:
-            case 4:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const MyFamilyProfileScreen(),
-                ),
-              );
-              break;
-            case 3:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const DoctorAvailabilityScreen(),
-                ),
-              );
-              break;
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Search',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today_outlined),
-            label: 'Appointments',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.queue_outlined),
-            label: 'Queue',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
       ),
     );
   }
-}
 
-class _SessionToggleButton extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _SessionToggleButton({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
+  void _navigateToBooking(
+    String sessionId,
+    DateTime selectedDate,
+    String time,
+  ) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ReviewConfirmBookingScreen(
+          sessionId: sessionId,
+          time: time,
+          appointmentDate: selectedDate,
+          bookingForId: widget.bookingForId,
+          bookingForName: widget.bookingForName,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: OutlinedButton(
-        onPressed: onTap,
-        style: OutlinedButton.styleFrom(
-          backgroundColor: selected ? Colors.blue : Colors.white,
-          foregroundColor: selected ? Colors.white : Colors.blue,
-          side: BorderSide(color: selected ? Colors.blue : Colors.blue.shade200),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+    final today = DateUtils.dateOnly(DateTime.now());
+    final firstFutureDay = today.add(const Duration(days: 1));
+
+    return Theme(
+      data: ThemeData(
+        useMaterial3: true,
+        primaryColor: Colors.blue,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+      ),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Select Appointment Slot'),
+          backgroundColor: Colors.blue,
+          foregroundColor: Colors.white,
         ),
-        child: Text(label),
+        body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance
+              .collection('sessions')
+              .where('scheduleScope', isEqualTo: 'hospital')
+              .where('hospitalId', isEqualTo: 'colombo-national')
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(
+                child: Text('Unable to load sessions: ${snapshot.error}'),
+              );
+            }
+
+            final sessionDocs = snapshot.data?.docs ?? [];
+            final sessionsByDate =
+                <
+                  DateTime,
+                  Map<String, QueryDocumentSnapshot<Map<String, dynamic>>>
+                >{};
+            for (final doc in sessionDocs) {
+              final data = doc.data();
+              final sessionDate = _sessionDate(data);
+              if (sessionDate == null || !sessionDate.isAfter(today)) continue;
+              final sessionTypeKey = data['sessionTypeKey']?.toString();
+              if (sessionTypeKey == null ||
+                  !const {
+                    'morning',
+                    'afternoon',
+                    'evening',
+                  }.contains(sessionTypeKey)) {
+                continue;
+              }
+              sessionsByDate
+                  .putIfAbsent(sessionDate, () => {})
+                  .putIfAbsent(sessionTypeKey, () => doc);
+            }
+
+            final availableDates = sessionsByDate.keys.toList()..sort();
+            final selectedDate =
+                _selectedDay != null &&
+                    sessionsByDate.containsKey(
+                      DateUtils.dateOnly(_selectedDay!),
+                    )
+                ? DateUtils.dateOnly(_selectedDay!)
+                : availableDates.isNotEmpty
+                ? availableDates.first
+                : firstFutureDay;
+            final sessionsForDate =
+                sessionsByDate[selectedDate]?.values.toList() ??
+                <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+            const sessionOrder = {'morning': 0, 'afternoon': 1, 'evening': 2};
+            sessionsForDate.sort((a, b) {
+              final typeA = a.data()['sessionTypeKey']?.toString() ?? '';
+              final typeB = b.data()['sessionTypeKey']?.toString() ?? '';
+              return sessionOrder[typeA]!.compareTo(sessionOrder[typeB]!);
+            });
+            QueryDocumentSnapshot<Map<String, dynamic>>? selectedSession;
+            for (final doc in sessionsForDate) {
+              if (doc.id == _selectedSessionId) {
+                selectedSession = doc;
+                break;
+              }
+            }
+            final selectedSlots =
+                (selectedSession?.data()['availableSlots'] as num?)?.toInt() ??
+                0;
+            final selectedSessionId = selectedSession?.id;
+            final selectedTime =
+                selectedSession?.data()['time']?.toString() ??
+                '${selectedSession?.data()['startTime'] ?? ''} - ${selectedSession?.data()['endTime'] ?? ''}';
+
+            return ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                Card(
+                  child: TableCalendar<void>(
+                    firstDay: firstFutureDay,
+                    lastDay: DateUtils.dateOnly(
+                      today.add(const Duration(days: 365)),
+                    ),
+                    focusedDay: selectedDate,
+                    selectedDayPredicate: (day) => isSameDay(day, selectedDate),
+                    enabledDayPredicate: (day) =>
+                        DateUtils.dateOnly(day).isAfter(today) &&
+                        sessionsByDate.containsKey(DateUtils.dateOnly(day)),
+                    onDaySelected: (selected, focused) {
+                      setState(() {
+                        _selectedDay = DateUtils.dateOnly(selected);
+                        _selectedSessionId = null;
+                      });
+                    },
+                    calendarFormat: CalendarFormat.month,
+                    headerStyle: const HeaderStyle(
+                      formatButtonVisible: false,
+                      titleCentered: true,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Choose one OPD session for ${DateFormat('EEE, d MMM yyyy').format(selectedDate)}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (sessionDocs.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 28),
+                    child: Column(
+                      children: [
+                        Icon(Icons.event_busy, size: 64, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text('No sessions available'),
+                        Text(
+                          'Please try again later',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (sessionsForDate.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(
+                      child: Text('No sessions are available on this date.'),
+                    ),
+                  )
+                else
+                  ...sessionsForDate.map(
+                    (doc) => _buildSessionCard(doc.id, doc.data()),
+                  ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: selectedSessionId != null && selectedSlots > 0
+                        ? () => _navigateToBooking(
+                            selectedSessionId,
+                            selectedDate,
+                            selectedTime,
+                          )
+                        : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: Colors.grey.shade300,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                    ),
+                    child: const Text('Book Selected Session'),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
-}
-
-class _AppointmentSlot {
-  final String time;
-  final String slotNumber;
-
-  const _AppointmentSlot({
-    required this.time,
-    required this.slotNumber,
-  });
 }

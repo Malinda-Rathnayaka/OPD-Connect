@@ -78,6 +78,27 @@ class AuthService {
       'createdAt': now,
     };
 
+    final userData = {
+      'email': user.email ?? email,
+      'phone': phone,
+      'name': name,
+      'role': role,
+      'isVerified': role == 'patient',
+      'isApproved': role != 'doctor',
+      'createdAt': FieldValue.serverTimestamp(),
+    };
+
+    await _db.collection('users').doc(user.uid).set(userData, SetOptions(merge: true));
+
+    await _db.collection('patients').doc(user.uid).set({
+      'fullName': name,
+      'nic': '',
+      'phone': phone,
+      'email': user.email ?? email,
+      'preferredLanguage': 'English',
+      'profileImageUrl': '',
+      'createdAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
     if (isDoctor) {
       batch.set(_db.collection('doctors').doc(user.uid), {
         ...profile,
