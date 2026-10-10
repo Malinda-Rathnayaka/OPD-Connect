@@ -8,12 +8,14 @@ class ReviewConfirmBookingScreen extends StatefulWidget {
   final String sessionId;
   final String time;
   final int availableSlots;
+  final String bookingForName;
 
   const ReviewConfirmBookingScreen({
     super.key,
     required this.sessionId,
     required this.time,
     required this.availableSlots,
+    required this.bookingForName,
   });
 
   @override
@@ -61,16 +63,14 @@ class _ReviewConfirmBookingScreenState
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-        final name = userDoc.data()?['name']?.toString().trim();
         if (mounted) {
           setState(() {
-            _patientName = name == null || name.isEmpty ? 'Patient' : name;
+            final selectedName = widget.bookingForName.trim();
+            _patientName = selectedName.isEmpty ? 'Patient' : selectedName;
           });
         }
+      } else {
+        throw StateError('Please sign in before booking an appointment.');
       }
 
       final sessionDoc = await FirebaseFirestore.instance
@@ -162,7 +162,6 @@ class _ReviewConfirmBookingScreenState
     try {
       final firestore = FirebaseFirestore.instance;
       final sessionRef = firestore.collection('sessions').doc(widget.sessionId);
-      final userRef = firestore.collection('users').doc(user.uid);
       final appointmentRef = firestore.collection('appointments').doc();
       final referenceNumber = 'OPD-${DateTime.now().millisecondsSinceEpoch}';
 
@@ -172,13 +171,9 @@ class _ReviewConfirmBookingScreenState
           ) async {
             debugPrint('DEBUG: Transaction START');
             final sessionDoc = await transaction.get(sessionRef);
-            final userDoc = await transaction.get(userRef);
 
             if (!sessionDoc.exists) {
               throw StateError('Session does not exist');
-            }
-            if (!userDoc.exists) {
-              throw StateError('User profile does not exist');
             }
 
             final sessionData = sessionDoc.data()!;
@@ -189,10 +184,10 @@ class _ReviewConfirmBookingScreenState
               throw StateError('Session is fully booked');
             }
 
-            final patientName =
-                userDoc.data()?['name']?.toString().trim().isNotEmpty == true
-                ? userDoc.data()!['name'].toString().trim()
-                : 'Patient';
+            final patientName = widget.bookingForName.trim();
+            if (patientName.isEmpty) {
+              throw StateError('The selected patient name is unavailable.');
+            }
             final currentBookedCount =
                 (sessionData['bookedCount'] as num?)?.toInt() ??
                 (((sessionData['totalSlots'] as num?)?.toInt() ??
