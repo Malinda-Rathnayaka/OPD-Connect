@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'my_family_profile.dart';
+import 'patient_live_queue_screen.dart';
 
 class PatientHomeScreen extends StatefulWidget {
   const PatientHomeScreen({super.key});
@@ -363,8 +364,10 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         break;
       case 1:
       case 2:
-      case 3:
         _openDirectBookingFlow();
+        break;
+      case 3:
+        _navigateTo(PatientLiveQueueScreen());
         break;
       case 4:
         _navigateTo(const MyFamilyProfileScreen());
@@ -577,9 +580,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                   ),
                   _QuickToolCard(
                     icon: Icons.people,
-                    title: 'Queue Status',
-                    subtitle: 'Check live counters',
-                    onTap: _openDirectBookingFlow,
+                    title: 'Live Queue',
+                    subtitle: 'Track your doctor queue',
+                    onTap: () => _navigateTo(PatientLiveQueueScreen()),
                   ),
                   _QuickToolCard(
                     icon: Icons.notifications,

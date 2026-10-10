@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -27,7 +28,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
-  // Focus tracking for animated field borders
   String? _focusedField;
 
   @override
@@ -185,7 +185,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (!mounted) return;
 
-      // Show role-specific success message
       final isDoctor = _selectedRole == 'doctor';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -198,7 +197,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       );
 
-      // Show extra dialog for doctors
       if (isDoctor && mounted) {
         showDialog(
           context: context,
@@ -236,15 +234,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 width: double.infinity,
                 child: FilledButton(
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E40AF),
+                    backgroundColor: const Color(0xFF2563EB),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
                     ),
                   ),
                   onPressed: () {
-                    Navigator.pop(ctx); // Close dialog
-                    Navigator.pop(context); // Go back to Login
+                    Navigator.pop(ctx);
+                    Navigator.pop(context);
                   },
                   child: const Text('Go to Login'),
                 ),
@@ -253,7 +251,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         );
       } else {
-        Navigator.pop(context); // Return to Login Screen
+        Navigator.pop(context);
       }
     } catch (e) {
       if (!mounted) return;
@@ -293,7 +291,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  /// Reusable styled text field builder
+  // ─────────────────────────────────────────────────────────────
+  // Reusable widgets
+  // ─────────────────────────────────────────────────────────────
+
   Widget _buildField({
     required String id,
     required TextEditingController controller,
@@ -315,15 +316,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
         setState(() => _focusedField = hasFocus ? id : null);
       },
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 220),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: isFocused
               ? [
                   BoxShadow(
-                    color: const Color(0xFF2563EB).withOpacity(0.12),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
+                    color: const Color(0xFF2563EB).withOpacity(0.15),
+                    blurRadius: 20,
+                    offset: const Offset(0, 6),
                   ),
                 ]
               : [],
@@ -341,41 +342,50 @@ class _RegisterScreenState extends State<RegisterScreen> {
             fontWeight: FontWeight.w500,
             color: Color(0xFF0F172A),
           ),
+          cursorColor: const Color(0xFF2563EB),
           decoration: InputDecoration(
             labelText: label,
             hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+            hintStyle: TextStyle(
+                color: Colors.blueGrey.shade300, fontSize: 13.5),
             labelStyle: TextStyle(
-              color: isFocused ? const Color(0xFF2563EB) : Colors.grey.shade600,
+              color: isFocused
+                  ? const Color(0xFF2563EB)
+                  : Colors.blueGrey.shade500,
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
             floatingLabelStyle: const TextStyle(
               color: Color(0xFF2563EB),
-              fontSize: 14,
+              fontSize: 13.5,
               fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
             ),
             prefixIcon: Icon(
               icon,
-              color: isFocused ? const Color(0xFF2563EB) : Colors.grey.shade500,
-              size: 22,
+              color: isFocused
+                  ? const Color(0xFF2563EB)
+                  : Colors.blueGrey.shade400,
+              size: 21,
             ),
             suffixIcon: suffixIcon,
             filled: true,
-            fillColor: Colors.white,
+            fillColor: const Color(0xFFF8FAFC),
             contentPadding:
                 const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: Colors.grey.shade200),
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+              borderRadius: BorderRadius.circular(16),
+              borderSide:
+                  const BorderSide(color: Color(0xFFE2E8F0), width: 1.2),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.8),
+              borderRadius: BorderRadius.circular(16),
+              borderSide:
+                  const BorderSide(color: Color(0xFF2563EB), width: 1.6),
             ),
           ),
         ),
@@ -383,526 +393,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top Header Section with Gradient (matching login screen)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.only(
-                top: 16,
-                bottom: 28,
-                left: 24,
-                right: 24,
-              ),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF1E3A8A),
-                    Color(0xFF2563EB),
-                    Color(0xFF3B82F6),
-                  ],
-                  stops: [0.0, 0.55, 1.0],
-                ),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(36),
-                  bottomRight: Radius.circular(36),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x332563EB),
-                    blurRadius: 24,
-                    offset: Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  // Back button row
-                  Row(
-                    children: [
-                      Material(
-                        color: Colors.white.withOpacity(0.15),
-                        shape: const CircleBorder(),
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: () => Navigator.pop(context),
-                          child: const Padding(
-                            padding: EdgeInsets.all(10),
-                            child: Icon(
-                              Icons.arrow_back_ios_new_rounded,
-                              size: 18,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        _isOtpSent ? 'Verify Your Email' : 'Create Account',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 17,
-                          color: Colors.white,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                      const Spacer(),
-                      // Invisible placeholder to balance the row
-                      const SizedBox(width: 38),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.25),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.person_add_alt_1_rounded,
-                      size: 36,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    _isOtpSent
-                        ? 'Verify Your Email'
-                        : 'Join OPD Connect',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: 0.4,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _isOtpSent
-                        ? 'Confirm your email to complete registration'
-                        : 'Create your account to book appointments\nand track queues.',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.white.withOpacity(0.85),
-                      height: 1.4,
-                      letterSpacing: 0.2,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-
-            // Body Content
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (!_isOtpSent) ...[
-                      // Section: Personal Information
-                      _buildSectionHeader('Personal Information'),
-                      const SizedBox(height: 14),
-
-                      // First Name & Last Name
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildField(
-                              id: 'firstName',
-                              controller: _firstNameController,
-                              label: 'First Name',
-                              icon: Icons.person_outline_rounded,
-                              keyboardType: TextInputType.name,
-                              textInputAction: TextInputAction.next,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildField(
-                              id: 'lastName',
-                              controller: _lastNameController,
-                              label: 'Last Name',
-                              icon: Icons.person_outline_rounded,
-                              keyboardType: TextInputType.name,
-                              textInputAction: TextInputAction.next,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Email Address Field
-                      _buildField(
-                        id: 'email',
-                        controller: _emailController,
-                        label: 'Email Address',
-                        hint: 'e.g. user@gmail.com',
-                        icon: Icons.email_outlined,
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Mobile Phone Number Field
-                      _buildField(
-                        id: 'phone',
-                        controller: _phoneController,
-                        label: 'Mobile Number',
-                        hint: 'e.g. 0771234567',
-                        icon: Icons.phone_outlined,
-                        keyboardType: TextInputType.phone,
-                        textInputAction: TextInputAction.next,
-                      ),
-                      const SizedBox(height: 28),
-
-                      // Section: Security
-                      _buildSectionHeader('Security'),
-                      const SizedBox(height: 14),
-
-                      // Password Field
-                      _buildField(
-                        id: 'password',
-                        controller: _passwordController,
-                        label: 'Password',
-                        icon: Icons.lock_outline_rounded,
-                        obscureText: _obscurePassword,
-                        textInputAction: TextInputAction.next,
-                        suffixIcon: IconButton(
-                          splashRadius: 20,
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                            color: Colors.grey.shade500,
-                            size: 22,
-                          ),
-                          onPressed: () =>
-                              setState(() => _obscurePassword = !_obscurePassword),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Re-enter Password Field
-                      _buildField(
-                        id: 'confirmPassword',
-                        controller: _confirmPasswordController,
-                        label: 'Re-enter Password',
-                        icon: Icons.lock_reset_rounded,
-                        obscureText: _obscureConfirmPassword,
-                        textInputAction: TextInputAction.done,
-                        suffixIcon: IconButton(
-                          splashRadius: 20,
-                          icon: Icon(
-                            _obscureConfirmPassword
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                            color: Colors.grey.shade500,
-                            size: 22,
-                          ),
-                          onPressed: () => setState(
-                            () => _obscureConfirmPassword = !_obscureConfirmPassword,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 28),
-
-                      // Section: Account Type
-                      _buildSectionHeader('Register As'),
-                      const SizedBox(height: 14),
-
-                      // Role Selector
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border:
-                              Border.all(color: Colors.grey.shade200, width: 1.5),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Column(
-                          children: [
-                            _buildRoleTile(
-                              value: 'patient',
-                              title: 'Patient / Caregiver',
-                              subtitle: 'Book appointments & track queues',
-                              icon: Icons.person_rounded,
-                            ),
-                            Divider(height: 1, color: Colors.grey.shade200),
-                            _buildRoleTile(
-                              value: 'doctor',
-                              title: 'Doctor',
-                              subtitle: 'Requires IT Admin verification',
-                              icon: Icons.medical_services_rounded,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Terms & Conditions Checkbox
-                      Container(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: Checkbox(
-                                value: _acceptedTerms,
-                                activeColor: const Color(0xFF2563EB),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(5),
-                                ),
-                                side: BorderSide(
-                                  color: Colors.grey.shade400,
-                                  width: 1.5,
-                                ),
-                                onChanged: (val) =>
-                                    setState(() => _acceptedTerms = val ?? false),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: _showTermsDialog,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(top: 2),
-                                  child: RichText(
-                                    text: TextSpan(
-                                      text: 'I agree to the ',
-                                      style: TextStyle(
-                                        color: Colors.grey.shade700,
-                                        fontSize: 13.5,
-                                        height: 1.4,
-                                      ),
-                                      children: [
-                                        TextSpan(
-                                          text: 'Terms & Conditions',
-                                          style: const TextStyle(
-                                            color: Color(0xFF2563EB),
-                                            fontWeight: FontWeight.w700,
-                                            decoration: TextDecoration.underline,
-                                            decorationColor: Color(0xFF2563EB),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 28),
-
-                      // Next Button
-                      _isLoading
-                          ? const Center(child: CircularProgressIndicator())
-                          : SizedBox(
-                              height: 54,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF2563EB),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(30),
-                                  ),
-                                  elevation: 0,
-                                  shadowColor: Colors.transparent,
-                                ),
-                                onPressed: _handleRegistrationNext,
-                                child: const Text(
-                                  'Next',
-                                  style: TextStyle(
-                                    fontSize: 16.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
-                                    letterSpacing: 0.6,
-                                  ),
-                                ),
-                              ),
-                            ),
-                      const SizedBox(height: 20),
-                    ] else ...[
-                      // Email Verification View
-                      const SizedBox(height: 20),
-                      Center(
-                        child: Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEFF6FF),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF2563EB).withOpacity(0.15),
-                                blurRadius: 24,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.mark_email_read_outlined,
-                            size: 60,
-                            color: Color(0xFF2563EB),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 28),
-                      const Text(
-                        'Check Your Email',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF0F172A),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'We sent a verification link to:',
-                        style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEFF6FF),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: const Color(0xFF2563EB).withOpacity(0.2),
-                          ),
-                        ),
-                        child: Text(
-                          _emailController.text.trim(),
-                          style: const TextStyle(
-                            color: Color(0xFF1E40AF),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          border:
-                              Border.all(color: Colors.grey.shade200, width: 1.5),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              Icons.info_outline_rounded,
-                              color: Colors.blue.shade400,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            const Expanded(
-                              child: Text(
-                                'Tap the link in that email, then return here and confirm your email address.',
-                                style: TextStyle(
-                                  fontSize: 13.5,
-                                  height: 1.5,
-                                  color: Color(0xFF334155),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 30),
-                      _isLoading
-                          ? const Center(child: CircularProgressIndicator())
-                          : SizedBox(
-                              height: 54,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF2563EB),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(30),
-                                  ),
-                                  elevation: 0,
-                                  shadowColor: Colors.transparent,
-                                ),
-                                onPressed: _verifyEmailOtp,
-                                child: const Text(
-                                  'I Have Verified My Email',
-                                  style: TextStyle(
-                                    fontSize: 16.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
-                                    letterSpacing: 0.6,
-                                  ),
-                                ),
-                              ),
-                            ),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: () async {
-                          try {
-                            await _authService.resendEmailVerification();
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Verification email sent again.'),
-                              ),
-                            );
-                          } catch (e) {
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Could not resend email: ${e.toString()}',
-                                ),
-                              ),
-                            );
-                          }
-                        },
-                        child: const Text(
-                          'Resend Verification Email',
-                          style: TextStyle(
-                            color: Color(0xFF2563EB),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Section header widget
   Widget _buildSectionHeader(String title) {
     return Row(
       children: [
@@ -928,7 +418,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  /// Role selection tile
   Widget _buildRoleTile({
     required String value,
     required String title,
@@ -938,16 +427,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final isSelected = _selectedRole == value;
 
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(14),
       onTap: () => setState(() => _selectedRole = value),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 220),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
           color: isSelected
               ? const Color(0xFF2563EB).withOpacity(0.06)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
         ),
         child: Row(
           children: [
@@ -956,7 +445,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               decoration: BoxDecoration(
                 color: isSelected
                     ? const Color(0xFF2563EB).withOpacity(0.12)
-                    : Colors.grey.shade100,
+                    : const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -964,7 +453,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 size: 20,
                 color: isSelected
                     ? const Color(0xFF2563EB)
-                    : Colors.grey.shade600,
+                    : Colors.blueGrey.shade500,
               ),
             ),
             const SizedBox(width: 14),
@@ -987,7 +476,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     subtitle,
                     style: TextStyle(
                       fontSize: 12.5,
-                      color: Colors.grey.shade600,
+                      color: Colors.blueGrey.shade400,
                     ),
                   ),
                 ],
@@ -1002,6 +491,646 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _glow({required Color color, required double radius}) {
+    return Container(
+      width: radius,
+      height: radius,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [color, color.withOpacity(0.0)],
+          stops: const [0.0, 1.0],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGlowButton({
+    required String label,
+    required VoidCallback onTap,
+    IconData? icon,
+  }) {
+    return SizedBox(
+      height: 56,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            height: 56,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF2563EB).withOpacity(0.45),
+                  blurRadius: 28,
+                  spreadRadius: 1,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2563EB),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+              elevation: 0,
+              shadowColor: Colors.transparent,
+            ),
+            onPressed: onTap,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.6,
+                  ),
+                ),
+                if (icon != null) ...[
+                  const SizedBox(width: 8),
+                  Icon(icon, size: 20),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Build
+  // ─────────────────────────────────────────────────────────────
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: Stack(
+        children: [
+          // 1. Soft light background gradient
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFFEFF6FF),
+                  Color(0xFFF8FAFC),
+                  Color(0xFFFFFFFF),
+                ],
+                stops: [0.0, 0.5, 1.0],
+              ),
+            ),
+          ),
+
+          // 2. Subtle blue glows
+          Positioned(
+            top: -140,
+            left: -120,
+            child: _glow(
+                color: const Color(0xFF93C5FD).withOpacity(0.45), radius: 260),
+          ),
+          Positioned(
+            top: 100,
+            right: -160,
+            child: _glow(
+                color: const Color(0xFFBFDBFE).withOpacity(0.55), radius: 240),
+          ),
+          Positioned(
+            bottom: -180,
+            left: -100,
+            child: _glow(
+                color: const Color(0xFFDBEAFE).withOpacity(0.7), radius: 280),
+          ),
+
+          // 3. Content
+          SafeArea(
+            child: Column(
+              children: [
+                // Header
+                _buildHeader(),
+
+                // Body
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24.0, vertical: 24.0),
+                    child: _isOtpSent
+                        ? _buildVerificationView()
+                        : _buildRegistrationForm(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+      child: Column(
+        children: [
+          // Top row
+          Row(
+            children: [
+              Material(
+                color: Colors.white,
+                shape: const CircleBorder(),
+                elevation: 2,
+                shadowColor: const Color(0xFF2563EB).withOpacity(0.2),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () => Navigator.pop(context),
+                  child: const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      size: 16,
+                      color: Color(0xFF2563EB),
+                    ),
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Text(
+                _isOtpSent ? 'Verify Email' : 'Create Account',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                  color: Color(0xFF0F172A),
+                  letterSpacing: 0.2,
+                ),
+              ),
+              const Spacer(),
+              const SizedBox(width: 40),
+            ],
+          ),
+          const SizedBox(height: 22),
+
+          // Brand badge
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(
+                colors: [Color(0xFF2563EB), Color(0xFF3B82F6)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF2563EB).withOpacity(0.35),
+                  blurRadius: 24,
+                  spreadRadius: 1,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: ClipOval(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.18),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.35),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Icon(
+                    _isOtpSent
+                        ? Icons.mark_email_read_outlined
+                        : Icons.person_add_alt_1_rounded,
+                    size: 34,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Title
+          ShaderMask(
+            shaderCallback: (rect) => const LinearGradient(
+              colors: [Color(0xFF0F172A), Color(0xFF2563EB)],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ).createShader(rect),
+            child: Text(
+              _isOtpSent ? 'Check Your Email' : 'Join OPD Connect',
+              style: const TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                letterSpacing: 0.2,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _isOtpSent
+                ? 'Confirm your email to complete registration'
+                : 'Create your account to book appointments\nand track queues.',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.blueGrey.shade500,
+              height: 1.45,
+              letterSpacing: 0.2,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRegistrationForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Personal Information
+        _buildSectionHeader('Personal Information'),
+        const SizedBox(height: 14),
+
+        Row(
+          children: [
+            Expanded(
+              child: _buildField(
+                id: 'firstName',
+                controller: _firstNameController,
+                label: 'First Name',
+                icon: Icons.person_outline_rounded,
+                keyboardType: TextInputType.name,
+                textInputAction: TextInputAction.next,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildField(
+                id: 'lastName',
+                controller: _lastNameController,
+                label: 'Last Name',
+                icon: Icons.person_outline_rounded,
+                keyboardType: TextInputType.name,
+                textInputAction: TextInputAction.next,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        _buildField(
+          id: 'email',
+          controller: _emailController,
+          label: 'Email Address',
+          hint: 'e.g. user@gmail.com',
+          icon: Icons.email_outlined,
+          keyboardType: TextInputType.emailAddress,
+          textInputAction: TextInputAction.next,
+        ),
+        const SizedBox(height: 16),
+
+        _buildField(
+          id: 'phone',
+          controller: _phoneController,
+          label: 'Mobile Number',
+          hint: 'e.g. 0771234567',
+          icon: Icons.phone_outlined,
+          keyboardType: TextInputType.phone,
+          textInputAction: TextInputAction.next,
+        ),
+        const SizedBox(height: 28),
+
+        // Security
+        _buildSectionHeader('Security'),
+        const SizedBox(height: 14),
+
+        _buildField(
+          id: 'password',
+          controller: _passwordController,
+          label: 'Password',
+          icon: Icons.lock_outline_rounded,
+          obscureText: _obscurePassword,
+          textInputAction: TextInputAction.next,
+          suffixIcon: IconButton(
+            splashRadius: 20,
+            icon: Icon(
+              _obscurePassword
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
+              color: Colors.blueGrey.shade400,
+              size: 22,
+            ),
+            onPressed: () =>
+                setState(() => _obscurePassword = !_obscurePassword),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        _buildField(
+          id: 'confirmPassword',
+          controller: _confirmPasswordController,
+          label: 'Re-enter Password',
+          icon: Icons.lock_reset_rounded,
+          obscureText: _obscureConfirmPassword,
+          textInputAction: TextInputAction.done,
+          suffixIcon: IconButton(
+            splashRadius: 20,
+            icon: Icon(
+              _obscureConfirmPassword
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
+              color: Colors.blueGrey.shade400,
+              size: 22,
+            ),
+            onPressed: () => setState(
+                () => _obscureConfirmPassword = !_obscureConfirmPassword),
+          ),
+        ),
+        const SizedBox(height: 28),
+
+        // Account Type
+        _buildSectionHeader('Register As'),
+        const SizedBox(height: 14),
+
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF2563EB).withOpacity(0.05),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              _buildRoleTile(
+                value: 'patient',
+                title: 'Patient / Caregiver',
+                subtitle: 'Book appointments & track queues',
+                icon: Icons.person_rounded,
+              ),
+              Divider(height: 1, color: const Color(0xFFE2E8F0)),
+              _buildRoleTile(
+                value: 'doctor',
+                title: 'Doctor',
+                subtitle: 'Requires IT Admin verification',
+                icon: Icons.medical_services_rounded,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // Terms
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: Checkbox(
+                  value: _acceptedTerms,
+                  activeColor: const Color(0xFF2563EB),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  side: BorderSide(
+                    color: Colors.blueGrey.shade300,
+                    width: 1.5,
+                  ),
+                  onChanged: (val) =>
+                      setState(() => _acceptedTerms = val ?? false),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GestureDetector(
+                  onTap: _showTermsDialog,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: RichText(
+                      text: TextSpan(
+                        text: 'I agree to the ',
+                        style: TextStyle(
+                          color: Colors.blueGrey.shade600,
+                          fontSize: 13.5,
+                          height: 1.4,
+                        ),
+                        children: const [
+                          TextSpan(
+                            text: 'Terms & Conditions',
+                            style: TextStyle(
+                              color: Color(0xFF2563EB),
+                              fontWeight: FontWeight.w700,
+                              decoration: TextDecoration.underline,
+                              decorationColor: Color(0xFF2563EB),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 28),
+
+        // Next button
+        _isLoading
+            ? const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Center(
+                  child:
+                      CircularProgressIndicator(color: Color(0xFF2563EB)),
+                ),
+              )
+            : _buildGlowButton(
+                label: 'Next',
+                onTap: _handleRegistrationNext,
+                icon: Icons.arrow_forward_rounded,
+              ),
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+
+  Widget _buildVerificationView() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 12),
+        Center(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF2563EB).withOpacity(0.15),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.mark_email_read_outlined,
+              size: 60,
+              color: Color(0xFF2563EB),
+            ),
+          ),
+        ),
+        const SizedBox(height: 28),
+        const Text(
+          'Check Your Email',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF0F172A),
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'We sent a verification link to:',
+          style: TextStyle(color: Colors.blueGrey.shade500, fontSize: 14),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 10),
+        Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEFF6FF),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: const Color(0xFF2563EB).withOpacity(0.2),
+            ),
+          ),
+          child: Text(
+            _emailController.text.trim(),
+            style: const TextStyle(
+              color: Color(0xFF1E40AF),
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF2563EB).withOpacity(0.05),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEFF6FF),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.info_outline_rounded,
+                  color: Color(0xFF2563EB),
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Tap the link in that email, then return here and confirm your email address.',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    height: 1.5,
+                    color: Color(0xFF334155),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 30),
+        _isLoading
+            ? const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Center(
+                  child:
+                      CircularProgressIndicator(color: Color(0xFF2563EB)),
+                ),
+              )
+            : _buildGlowButton(
+                label: 'I Have Verified My Email',
+                onTap: _verifyEmailOtp,
+                icon: Icons.verified_rounded,
+              ),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: () async {
+            try {
+              await _authService.resendEmailVerification();
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Verification email sent again.'),
+                ),
+              );
+            } catch (e) {
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Could not resend email: ${e.toString()}'),
+                ),
+              );
+            }
+          },
+          child: const Text(
+            'Resend Verification Email',
+            style: TextStyle(
+              color: Color(0xFF2563EB),
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
