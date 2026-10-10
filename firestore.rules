@@ -1,4 +1,40 @@
 rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Doctors collection
+    match /doctors/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Sessions collection
+    match /sessions/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Appointments collection
+    match /appointments/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Patients collection
+    match /patients/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Users collection
+    match /users/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Family members collection
+    match /family_members/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Default fallback for any other collections
+    match /{document=**} {
+      allow read, write: if true;
 
 service cloud.firestore {
   match /databases/{database}/documents {

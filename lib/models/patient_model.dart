@@ -7,6 +7,7 @@ class PatientModel {
   final String phone;
   final String email;
   final String preferredLanguage;
+  final String profileImageUrl;
   final DateTime? createdAt;
 
   PatientModel({
@@ -16,6 +17,7 @@ class PatientModel {
     required this.phone,
     required this.email,
     this.preferredLanguage = 'English',
+    this.profileImageUrl = '',
     this.createdAt,
   });
 
@@ -29,6 +31,7 @@ class PatientModel {
       phone: map['phone'] ?? '',
       email: map['email'] ?? '',
       preferredLanguage: map['preferredLanguage'] ?? 'English',
+        profileImageUrl: map['profileImageUrl'] ?? '',
       createdAt: createdAtValue is Timestamp
           ? createdAtValue.toDate()
           : createdAtValue is DateTime
@@ -44,6 +47,7 @@ class PatientModel {
       'phone': phone,
       'email': email,
       'preferredLanguage': preferredLanguage,
+      'profileImageUrl': profileImageUrl,
       'createdAt': Timestamp.fromDate(createdAt ?? DateTime.now()),
     };
   }
@@ -55,6 +59,7 @@ class PatientModel {
     String? phone,
     String? email,
     String? preferredLanguage,
+    String? profileImageUrl,
     DateTime? createdAt,
   }) {
     return PatientModel(
@@ -64,12 +69,13 @@ class PatientModel {
       phone: phone ?? this.phone,
       email: email ?? this.email,
       preferredLanguage: preferredLanguage ?? this.preferredLanguage,
+      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       createdAt: createdAt ?? this.createdAt,
     );
   }
 
   @override
   String toString() {
-    return 'PatientModel(id: $id, fullName: $fullName, nic: $nic, phone: $phone, email: $email, preferredLanguage: $preferredLanguage, createdAt: $createdAt)';
+    return 'PatientModel(id: $id, fullName: $fullName, nic: $nic, phone: $phone, email: $email, preferredLanguage: $preferredLanguage, profileImageUrl: $profileImageUrl, createdAt: $createdAt)';
   }
 }
