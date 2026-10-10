@@ -136,20 +136,14 @@ class _SelectAppointmentSlotScreenState
     );
   }
 
-  void _navigateToBooking(
-    String sessionId,
-    DateTime selectedDate,
-    String time,
-  ) {
+  void _navigateToBooking(String sessionId, String time, int availableSlots) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => ReviewConfirmBookingScreen(
           sessionId: sessionId,
           time: time,
-          appointmentDate: selectedDate,
-          bookingForId: widget.bookingForId,
-          bookingForName: widget.bookingForName,
+          availableSlots: availableSlots,
         ),
       ),
     );
@@ -315,8 +309,8 @@ class _SelectAppointmentSlotScreenState
                     onPressed: selectedSessionId != null && selectedSlots > 0
                         ? () => _navigateToBooking(
                             selectedSessionId,
-                            selectedDate,
                             selectedTime,
+                            selectedSlots,
                           )
                         : null,
                     style: ElevatedButton.styleFrom(

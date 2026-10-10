@@ -1,26 +1,19 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import 'booking_confirmed.dart';
-import 'my_family_profile.dart';
-import 'patient_home_screen.dart';
 
 class ReviewConfirmBookingScreen extends StatefulWidget {
   final String sessionId;
   final String time;
-  final DateTime appointmentDate;
-  final String bookingForId;
-  final String bookingForName;
+  final int availableSlots;
 
   const ReviewConfirmBookingScreen({
     super.key,
     required this.sessionId,
     required this.time,
-    required this.appointmentDate,
-    required this.bookingForId,
-    required this.bookingForName,
+    required this.availableSlots,
   });
 
   @override
@@ -30,243 +23,254 @@ class ReviewConfirmBookingScreen extends StatefulWidget {
 
 class _ReviewConfirmBookingScreenState
     extends State<ReviewConfirmBookingScreen> {
-  bool _agreedToGuidelines = false;
-  bool _isSubmitting = false;
-  bool _isLoadingBookingData = true;
-  String? _bookingDataError;
-  String _patientName = '';
-  String _accountName = '';
-  int _currentAvailableSlots = 0;
-  int _totalSlots = 0;
+  String? _patientName;
+  String? _date;
+  late int _availableSlots;
+  bool _isLoading = false;
+  bool _isConfirmed = false;
+  bool _isLoadingData = true;
+  String? _loadError;
 
   @override
   void initState() {
     super.initState();
-    _loadBookingData();
+    _availableSlots = widget.availableSlots;
+    _loadData();
   }
 
-  DateTime? _parseSessionDate(dynamic value) {
+  String get _tokenNumber => 'T-${_availableSlots.toString().padLeft(3, '0')}';
+
+  DateTime? _readDate(dynamic value) {
     if (value is Timestamp) return DateUtils.dateOnly(value.toDate());
     if (value is DateTime) return DateUtils.dateOnly(value);
-    if (value is! String || value.trim().isEmpty) return null;
-    final parsed = DateTime.tryParse(value.trim());
-    if (parsed != null) return DateUtils.dateOnly(parsed);
-    for (final format in [
-      DateFormat('EEE, d MMM yyyy', 'en_US'),
-      DateFormat('EEE, d MMM', 'en_US'),
-    ]) {
-      try {
-        return DateUtils.dateOnly(format.parseStrict(value.trim()));
-      } on FormatException {
-        continue;
-      }
+    if (value is String) {
+      final parsed = DateTime.tryParse(value);
+      if (parsed != null) return DateUtils.dateOnly(parsed);
     }
     return null;
   }
 
-  Future<void> _loadBookingData() async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
-      setState(() {
-        _bookingDataError = 'Please sign in before booking an appointment.';
-        _isLoadingBookingData = false;
-      });
-      return;
-    }
+  String _dateLabel(DateTime date) {
+    final year = date.year.toString().padLeft(4, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
+  }
+
+  Future<void> _loadData() async {
     try {
-      final firestore = FirebaseFirestore.instance;
-      final userDoc = await firestore
-          .collection('users')
-          .doc(currentUser.uid)
-          .get();
-      final accountName = userDoc.data()?['name']?.toString().trim() ?? '';
-      if (!userDoc.exists || accountName.isEmpty) {
-        throw StateError(
-          'Your account name is missing from your user profile.',
-        );
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        final name = userDoc.data()?['name']?.toString().trim();
+        if (mounted) {
+          setState(() {
+            _patientName = name == null || name.isEmpty ? 'Patient' : name;
+          });
+        }
       }
 
-      final sessionDoc = await firestore
+      final sessionDoc = await FirebaseFirestore.instance
           .collection('sessions')
           .doc(widget.sessionId)
           .get();
-      if (!sessionDoc.exists) {
-        throw StateError('The selected session is no longer available.');
+      if (sessionDoc.exists) {
+        final data = sessionDoc.data()!;
+        final appointmentDate = _readDate(data['date']);
+        final available = (data['availableSlots'] as num?)?.toInt();
+        if (mounted) {
+          setState(() {
+            _date = appointmentDate == null
+                ? 'N/A'
+                : _dateLabel(appointmentDate);
+            _availableSlots = available ?? widget.availableSlots;
+          });
+        }
+      } else {
+        throw StateError('Session does not exist.');
       }
-      final sessionData = sessionDoc.data() ?? {};
-      final available = (sessionData['availableSlots'] as num?)?.toInt() ?? 0;
-      if (available <= 0) {
-        throw StateError(
-          'This session is fully booked. Please choose another session.',
-        );
-      }
-      final storedDate = _parseSessionDate(sessionData['date']);
-      if (storedDate == null ||
-          !DateUtils.isSameDay(storedDate, widget.appointmentDate) ||
-          !storedDate.isAfter(DateUtils.dateOnly(DateTime.now()))) {
-        throw StateError(
-          'The selected session date has changed. Please choose a session again.',
-        );
-      }
-
-      final patientName = widget.bookingForId == currentUser.uid
-          ? accountName
-          : widget.bookingForName.trim();
-      if (patientName.isEmpty) {
-        throw StateError('The selected patient name is unavailable.');
-      }
-      final totalSlots =
-          (sessionData['totalSlots'] as num?)?.toInt() ?? available;
-      if (!mounted) return;
-      setState(() {
-        _accountName = accountName;
-        _patientName = patientName;
-        _currentAvailableSlots = available;
-        _totalSlots = totalSlots;
-        _isLoadingBookingData = false;
-      });
     } catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _bookingDataError = error.toString().replaceFirst('Bad state: ', '');
-        _isLoadingBookingData = false;
-      });
-    }
-  }
-
-  String get _tokenNumber {
-    final nextToken = (_totalSlots - _currentAvailableSlots + 1).clamp(1, 999);
-    return 'T-${nextToken.toString().padLeft(3, '0')}';
-  }
-
-  void _navigateToSlotSelection() {
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
+      debugPrint('ERROR loading booking data: $error');
+      if (mounted) {
+        setState(() {
+          _loadError = 'Unable to load booking details: $error';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingData = false);
+      }
     }
   }
 
   Future<void> _confirmBooking() async {
-    if (!_agreedToGuidelines) {
+    debugPrint('========================================');
+    debugPrint('DEBUG: === BOOKING STARTED ===');
+    debugPrint('========================================');
+
+    if (!_isConfirmed) {
+      debugPrint('ERROR: Checkbox not checked');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please agree to the guidelines'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_availableSlots <= 0) {
+      debugPrint('ERROR: No slots available');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Session is fully booked'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please sign in before booking an appointment'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final parsedDate = _date == null ? null : _readDate(_date);
+    if (parsedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Please agree to the OPD guidelines before continuing.',
+            'The appointment date is unavailable. Please try again.',
           ),
+          backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please sign in before booking an appointment.'),
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isSubmitting = true);
+    setState(() => _isLoading = true);
 
     try {
       final firestore = FirebaseFirestore.instance;
       final sessionRef = firestore.collection('sessions').doc(widget.sessionId);
-      final userRef = firestore.collection('users').doc(currentUser.uid);
+      final userRef = firestore.collection('users').doc(user.uid);
       final appointmentRef = firestore.collection('appointments').doc();
-      late String tokenNumber;
-      final bookingDate = DateUtils.dateOnly(widget.appointmentDate);
+      final referenceNumber = 'OPD-${DateTime.now().millisecondsSinceEpoch}';
 
-      await firestore.runTransaction((transaction) async {
-        final userSnapshot = await transaction.get(userRef);
-        final sessionSnapshot = await transaction.get(sessionRef);
-        if (!userSnapshot.exists || !sessionSnapshot.exists) {
-          throw StateError('The selected booking data is no longer available.');
-        }
+      final bookingResult = await firestore
+          .runTransaction<({String patientName, String tokenNumber})>((
+            transaction,
+          ) async {
+            debugPrint('DEBUG: Transaction START');
+            final sessionDoc = await transaction.get(sessionRef);
+            final userDoc = await transaction.get(userRef);
 
-        final accountName =
-            userSnapshot.data()?['name']?.toString().trim() ?? '';
-        if (accountName.isEmpty || accountName != _accountName) {
-          throw StateError(
-            'Your account name could not be verified. Please reload and try again.',
-          );
-        }
+            if (!sessionDoc.exists) {
+              throw StateError('Session does not exist');
+            }
+            if (!userDoc.exists) {
+              throw StateError('User profile does not exist');
+            }
 
-        final sessionData = sessionSnapshot.data() ?? {};
-        final sessionDate = _parseSessionDate(sessionData['date']);
-        if (sessionDate == null ||
-            !DateUtils.isSameDay(sessionDate, bookingDate) ||
-            !sessionDate.isAfter(DateUtils.dateOnly(DateTime.now()))) {
-          throw StateError(
-            'This session date is no longer available. Please choose another session.',
-          );
-        }
-        final currentAvailableSlots =
-            (sessionData['availableSlots'] as num?)?.toInt() ?? 0;
-        if (currentAvailableSlots <= 0) {
-          throw StateError(
-            'This session is fully booked. Please choose another session.',
-          );
-        }
-        final totalSlots =
-            (sessionData['totalSlots'] as num?)?.toInt() ??
-            currentAvailableSlots;
-        final tokenIndex = (totalSlots - currentAvailableSlots + 1).clamp(
-          1,
-          999,
-        );
-        tokenNumber = 'T-${tokenIndex.toString().padLeft(3, '0')}';
+            final sessionData = sessionDoc.data()!;
+            final rawSlots = sessionData['availableSlots'];
+            final currentSlots = rawSlots is num ? rawSlots.toInt() : 0;
+            debugPrint('DEBUG: Current slots = $currentSlots');
+            if (currentSlots <= 0) {
+              throw StateError('Session is fully booked');
+            }
 
-        transaction.set(appointmentRef, {
-          'patientId': currentUser.uid,
-          'patientName': _patientName,
-          'bookedForId': widget.bookingForId,
-          'bookedForName': _patientName,
-          'bookedById': currentUser.uid,
-          'bookedByName': accountName,
-          'sessionId': widget.sessionId,
-          'appointmentDate': Timestamp.fromDate(bookingDate),
-          'appointmentTime': widget.time,
-          'tokenNumber': tokenNumber,
-          'referenceNumber': appointmentRef.id,
-          'status': 'confirmed',
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-        transaction.update(sessionRef, {
-          'availableSlots': currentAvailableSlots - 1,
-          'totalSlots': totalSlots,
-          'isAvailable': currentAvailableSlots - 1 > 0,
-        });
-      });
+            final patientName =
+                userDoc.data()?['name']?.toString().trim().isNotEmpty == true
+                ? userDoc.data()!['name'].toString().trim()
+                : 'Patient';
+            final currentBookedCount =
+                (sessionData['bookedCount'] as num?)?.toInt() ??
+                (((sessionData['totalSlots'] as num?)?.toInt() ??
+                            currentSlots) -
+                        currentSlots)
+                    .clamp(0, 999);
+            final tokenNumber = 'T-${currentSlots.toString().padLeft(3, '0')}';
+            final newSlots = currentSlots - 1;
+
+            debugPrint('DEBUG: Token = $tokenNumber');
+            debugPrint('DEBUG: Reference = $referenceNumber');
+            transaction.update(sessionRef, {
+              'availableSlots': newSlots,
+              'bookedCount': currentBookedCount + 1,
+              'status': newSlots == 0 ? 'full' : 'available',
+              'isAvailable': newSlots > 0,
+            });
+            debugPrint('DEBUG: Slots decremented to $newSlots');
+            debugPrint('DEBUG: Appointment ID = ${appointmentRef.id}');
+            transaction.set(appointmentRef, {
+              'patientId': user.uid,
+              'patientName': patientName,
+              'sessionId': widget.sessionId,
+              'appointmentDate': Timestamp.fromDate(parsedDate),
+              'appointmentTime': widget.time,
+              'tokenNumber': tokenNumber,
+              'status': 'confirmed',
+              'referenceNumber': referenceNumber,
+              'createdAt': FieldValue.serverTimestamp(),
+            });
+            debugPrint('DEBUG: Appointment set');
+
+            return (patientName: patientName, tokenNumber: tokenNumber);
+          });
+
+      debugPrint('DEBUG: Transaction COMMITTED');
+      debugPrint('DEBUG: Token = ${bookingResult.tokenNumber}');
+      debugPrint('DEBUG: Reference = $referenceNumber');
 
       if (!mounted) return;
+      setState(() => _isLoading = false);
 
-      Navigator.push(
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (context) => BookingConfirmedScreen(
-            patientName: _patientName,
-            date: DateFormat('EEE, d MMM yyyy').format(bookingDate),
+            patientName: bookingResult.patientName,
+            date: _date ?? '',
             time: widget.time,
-            tokenNumber: tokenNumber,
-            referenceNumber: appointmentRef.id,
+            tokenNumber: bookingResult.tokenNumber,
+            referenceNumber: referenceNumber,
           ),
         ),
       );
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to confirm booking: $error')),
-      );
-    } finally {
+    } catch (error, stackTrace) {
+      debugPrint('BOOKING ERROR: $error');
+      debugPrint('Stack: $stackTrace');
       if (mounted) {
-        setState(() => _isSubmitting = false);
+        setState(() => _isLoading = false);
+        await showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Booking Failed'),
+            content: Text(error.toString()),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
       }
     }
   }
 
   Future<void> _discardBooking() async {
-    final confirmed = await showDialog<bool>(
+    final discard = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Discard Booking?'),
@@ -283,259 +287,120 @@ class _ReviewConfirmBookingScreenState
         ],
       ),
     );
+    if (discard == true && mounted) Navigator.pop(context);
+  }
 
-    if (confirmed == true && mounted) {
-      Navigator.pop(context);
-    }
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 125,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.black54,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: true,
         title: const Text('Review & Confirm Booking'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
       ),
-      body: _isLoadingBookingData
+      body: _isLoadingData
           ? const Center(child: CircularProgressIndicator())
-          : _bookingDataError != null
+          : _loadError != null
           ? Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      color: Colors.red,
-                      size: 42,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(_bookingDataError!, textAlign: TextAlign.center),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: _navigateToSlotSelection,
-                      child: const Text('Choose another session'),
-                    ),
-                  ],
-                ),
+                child: Text(_loadError!, textAlign: TextAlign.center),
               ),
             )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Appointment Details',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              TextButton.icon(
-                                onPressed: _navigateToSlotSelection,
-                                icon: const Icon(
-                                  Icons.edit,
-                                  size: 16,
-                                  color: Colors.blue,
-                                ),
-                                label: const Text(
-                                  'Change',
-                                  style: TextStyle(
-                                    color: Colors.blue,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Divider(height: 20),
-                          _DetailRow(label: 'Patient', value: _patientName),
-                          const SizedBox(height: 12),
-                          _DetailRow(
-                            label: 'Date',
-                            value: DateFormat('EEE, d MMM yyyy')
-                                .format(widget.appointmentDate),
-                          ),
-                          const SizedBox(height: 12),
-                          _DetailRow(label: 'Time', value: widget.time),
-                          const SizedBox(height: 12),
-                          _DetailRow(
-                            label: 'Token Number',
-                            value: _tokenNumber,
-                          ),
+                          _detailRow('Patient Name', _patientName ?? 'Patient'),
+                          const Divider(),
+                          _detailRow('Date', _date ?? 'N/A'),
+                          const Divider(),
+                          _detailRow('Time', widget.time),
+                          const Divider(),
+                          _detailRow('Token Number', _tokenNumber),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
                     child: CheckboxListTile(
-                      value: _agreedToGuidelines,
-                      onChanged: (value) {
-                        setState(() {
-                          _agreedToGuidelines = value ?? false;
-                        });
-                      },
-                      activeColor: Colors.blue,
-                      contentPadding: const EdgeInsets.all(16),
+                      value: _isConfirmed,
+                      onChanged: _isLoading
+                          ? null
+                          : (value) =>
+                                setState(() => _isConfirmed = value ?? false),
                       controlAffinity: ListTileControlAffinity.leading,
                       title: const Text(
                         'I agree to the National Hospital OPD guidelines and consent to receive digital queue token updates.',
-                        style: TextStyle(fontSize: 14),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed:
-                          _isSubmitting ||
-                              _isLoadingBookingData ||
-                              _bookingDataError != null
-                          ? null
-                          : _confirmBooking,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor: Colors.blue.shade200,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: _isSubmitting
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text('Confirm & Get Token'),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _isLoading ? null : _confirmBooking,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text('Confirm & Get Token'),
                   ),
                   const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: _discardBooking,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        side: const BorderSide(color: Colors.red),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text('Discard Booking'),
+                  OutlinedButton(
+                    onPressed: _isLoading ? null : _discardBooking,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
+                    child: const Text('Discard Booking'),
                   ),
                 ],
               ),
             ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: 2,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const PatientHomeScreen(),
-                ),
-                (route) => false,
-              );
-              break;
-            case 1:
-            case 3:
-              _navigateToSlotSelection();
-              break;
-            case 2:
-            case 4:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const MyFamilyProfileScreen(),
-                ),
-              );
-              break;
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today_outlined),
-            label: 'Appointments',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.queue_outlined),
-            label: 'Queue',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _DetailRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 120,
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: Colors.black54,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-        ),
-      ],
     );
   }
 }
