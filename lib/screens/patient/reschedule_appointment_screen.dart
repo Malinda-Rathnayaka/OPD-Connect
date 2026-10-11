@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // ⚠️ pubspec.yaml එකට intl package එක add කරන්න ඕන
+import 'package:intl/intl.dart';
 
 class RescheduleAppointmentScreen extends StatefulWidget {
   final String doctorName;
   final String department;
+  final String hospital;
   final String token;
   final String dateTime;
   final bool isReschedule;
@@ -12,6 +13,7 @@ class RescheduleAppointmentScreen extends StatefulWidget {
     super.key,
     required this.doctorName,
     required this.department,
+    required this.hospital,
     required this.token,
     required this.dateTime,
     this.isReschedule = true,
@@ -25,113 +27,62 @@ class RescheduleAppointmentScreen extends StatefulWidget {
 class _RescheduleAppointmentScreenState
     extends State<RescheduleAppointmentScreen> {
   // ===== FORM STATE =====
-  late String _selectedHospital;
-  late String _selectedDepartment;
-  late String _selectedDoctor;
-  late DateTime _selectedDate; // DateTime විදියට
-  late String _selectedTimeSlot;
+  late DateTime _selectedDate;
+  late String _selectedSession;
 
-  // ===== DROPDOWN DATA =====
-  final List<String> _hospitals = [
-    'Colombo General Hospital',
-    'Sri Jayawardenepura General Hospital',
-    'North Colombo Teaching Hospital',
-    'National Hospital of Sri Lanka',
-  ];
+  // ===== SESSIONS =====
+  final List<String> _sessions = ['Morning', 'Afternoon', 'Evening'];
 
-  final List<String> _departments = [
-    'General Medicine',
-    'Dental Clinic',
-    'Eye Clinic',
-    'ENT Clinic',
-    'Cardiology',
-    'Pediatrics',
-  ];
-
-  final Map<String, List<String>> _doctorsByDepartment = {
-    'General Medicine': [
-      'Dr. Kamal Perera',
-      'Dr. Nishantha Silva',
-      'Dr. Anura Wijesinghe',
-    ],
-    'Dental Clinic': [
-      'Dr. Nishantha Silva',
-      'Dr. Sithara Perera',
-    ],
-    'Eye Clinic': [
-      'Dr. Anura Wijesinghe',
-      'Dr. Mohamed Rizan',
-    ],
-    'ENT Clinic': [
-      'Dr. Fatima Nafeesa',
-      'Dr. Gayan Alwis',
-    ],
-    'Cardiology': [
-      'Dr. Nimal Sirisena',
-      'Dr. Ruwan Senanayake',
-    ],
-    'Pediatrics': [
-      'Dr. Ayesha Fernando',
-      'Dr. Nadisha Perera',
-    ],
+  final Map<String, IconData> _sessionIcons = {
+    'Morning': Icons.wb_sunny_outlined,
+    'Afternoon': Icons.wb_twilight,
+    'Evening': Icons.nights_stay_outlined,
   };
 
-  final List<String> _timeSlots = [
-    '09:00 AM',
-    '09:30 AM',
-    '10:00 AM',
-    '10:30 AM',
-    '11:00 AM',
-    '11:30 AM',
-    '02:00 PM',
-    '02:30 PM',
-    '03:00 PM',
-  ];
+  final Map<String, Color> _sessionColors = {
+    'Morning': const Color(0xFFF59E0B),
+    'Afternoon': const Color(0xFF3B82F6),
+    'Evening': const Color(0xFF8B5CF6),
+  };
 
-  // Disabled slots (demo)
-  final Set<String> _unavailableSlots = {'10:00 AM', '02:30 PM'};
+  final Map<String, String> _sessionTimeRanges = {
+    'Morning': '08:00 AM - 11:30 AM',
+    'Afternoon': '12:00 PM - 03:00 PM',
+    'Evening': '03:30 PM - 06:00 PM',
+  };
+
+  final Map<String, String> _sessionDescriptions = {
+    'Morning': 'Early appointments starting at 8 AM',
+    'Afternoon': 'Mid-day appointments starting at 12 PM',
+    'Evening': 'Late appointments starting at 3:30 PM',
+  };
 
   @override
   void initState() {
     super.initState();
 
-    // ===== CURRENT APPOINTMENT DATA PARSE කරන්න =====
-    // widget.dateTime එකෙන් date සහ time අයින් කරන්න
-    // උදා: "Today, 10:30 AM" හෝ "Wed, 24 Sep • 2:00 PM"
-
-    // 1. Default values — current appointment එකෙන්
-    _selectedHospital = _hospitals[0]; // CGH
-
-    // Department එක `widget.department` එකෙන් ගන්න
-    // උදා: "General Medicine • CGH Room 4" → "General Medicine"
-    String deptFromWidget = widget.department.split('•')[0].trim();
-    _selectedDepartment = _departments.contains(deptFromWidget)
-        ? deptFromWidget
-        : _departments[0];
-
-    // Doctor එක `widget.doctorName` එකෙන්
-    _selectedDoctor = widget.doctorName;
-
-    // 2. Date & Time parse කරන්න
-    // Default වශයෙන් අද දවස
     _selectedDate = DateTime.now();
 
-    // Time slot එක extract කරන්න
-    // උදා: "Today, 10:30 AM" → "10:30 AM"
-    String timeFromWidget = '09:00 AM';
-    if (widget.dateTime.contains('AM') || widget.dateTime.contains('PM')) {
-      final parts = widget.dateTime.split(RegExp(r'[•,]'));
-      for (var part in parts) {
-        final trimmed = part.trim();
-        if (trimmed.contains('AM') || trimmed.contains('PM')) {
-          timeFromWidget = trimmed;
-          break;
+    // Default session
+    _selectedSession = 'Morning';
+
+    // ===== Current appointment එකෙන් session එක guess කරන්න =====
+    if (widget.dateTime.contains('AM')) {
+      _selectedSession = 'Morning';
+    } else if (widget.dateTime.contains('PM')) {
+      // PM time එක බලලා Afternoon ද Evening ද කියලා තීරණය කරන්න
+      final match = RegExp(r'(\d+):').firstMatch(widget.dateTime);
+      if (match != null) {
+        final hour = int.tryParse(match.group(1) ?? '') ?? 0;
+        if (hour >= 12 && hour < 3) {
+          _selectedSession = 'Afternoon';
+        } else {
+          _selectedSession = 'Evening';
         }
+      } else {
+        _selectedSession = 'Afternoon';
       }
     }
-    _selectedTimeSlot = _timeSlots.contains(timeFromWidget)
-        ? timeFromWidget
-        : _timeSlots[0];
   }
 
   @override
@@ -222,12 +173,38 @@ class _RescheduleAppointmentScreenState
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      widget.department,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade600,
-                      ),
+                    Row(
+                      children: [
+                        const Icon(Icons.medical_services_outlined,
+                            size: 14, color: Colors.grey),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            widget.department,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.local_hospital_outlined,
+                            size: 14, color: Colors.grey),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            widget.hospital,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -252,7 +229,7 @@ class _RescheduleAppointmentScreenState
 
               // ===== FORM HEADER =====
               const Text(
-                'Update Appointment Details',
+                'Change Date & Session',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -261,63 +238,60 @@ class _RescheduleAppointmentScreenState
               ),
               const SizedBox(height: 4),
               Text(
-                'Change any field below to update your booking',
+                'Select a new date and session for your appointment.',
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey.shade600,
+                  height: 1.5,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
-              // ===== 1. HOSPITAL DROPDOWN =====
-              _fieldLabel('Hospital'),
-              const SizedBox(height: 8),
-              _dropdownField<String>(
-                value: _selectedHospital,
-                items: _hospitals,
-                icon: Icons.local_hospital_outlined,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedHospital = value!;
-                  });
-                },
+              // ===== FIXED DETAILS CARD =====
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'APPOINTMENT DETAILS',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _readOnlyRow(
+                      icon: Icons.local_hospital_outlined,
+                      label: 'Hospital',
+                      value: widget.hospital,
+                    ),
+                    const SizedBox(height: 12),
+                    _readOnlyRow(
+                      icon: Icons.medical_services_outlined,
+                      label: 'Department',
+                      value: widget.department,
+                    ),
+                    const SizedBox(height: 12),
+                    _readOnlyRow(
+                      icon: Icons.person_outline,
+                      label: 'Doctor',
+                      value: widget.doctorName,
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 24),
 
-              // ===== 2. DEPARTMENT DROPDOWN =====
-              _fieldLabel('Department'),
-              const SizedBox(height: 8),
-              _dropdownField<String>(
-                value: _selectedDepartment,
-                items: _departments,
-                icon: Icons.medical_services_outlined,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedDepartment = value!;
-                    _selectedDoctor =
-                        _doctorsByDepartment[_selectedDepartment]![0];
-                  });
-                },
-              ),
-              const SizedBox(height: 18),
-
-              // ===== 3. DOCTOR DROPDOWN =====
-              _fieldLabel('Doctor'),
-              const SizedBox(height: 8),
-              _dropdownField<String>(
-                value: _selectedDoctor,
-                items: _doctorsByDepartment[_selectedDepartment]!,
-                icon: Icons.person_outline,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedDoctor = value!;
-                  });
-                },
-              ),
-              const SizedBox(height: 18),
-
-              // ===== 4. DATE PICKER (Calendar) =====
-              _fieldLabel('Select Date'),
+              // ===== DATE PICKER =====
+              _fieldLabel('Select New Date'),
               const SizedBox(height: 8),
               GestureDetector(
                 onTap: () => _pickDate(context),
@@ -364,27 +338,29 @@ class _RescheduleAppointmentScreenState
                   ),
                 ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 24),
 
-              // ===== 5. TIME SLOT GRID =====
-              _fieldLabel('Select Time Slot'),
-              const SizedBox(height: 8),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  childAspectRatio: 1.7,
+              // ===== SESSION SELECTOR =====
+              _fieldLabel('Select Session'),
+              const SizedBox(height: 4),
+              Text(
+                'Choose one of the three available OPD sessions',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
                 ),
-                itemCount: _timeSlots.length,
-                itemBuilder: (context, index) {
-                  return _slotCard(index);
-                },
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 14),
+
+              // ===== SESSION CARDS =====
+              ..._sessions.map((session) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _sessionCard(session),
+                );
+              }).toList(),
+
+              const SizedBox(height: 12),
 
               // ===== INFO CARD =====
               Container(
@@ -418,13 +394,13 @@ class _RescheduleAppointmentScreenState
               ),
               const SizedBox(height: 24),
 
-              // ===== SUMMARY CARD =====
+              // ===== NEW SLOT SUMMARY =====
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: const Color(0xFFDBEAFE)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -434,24 +410,26 @@ class _RescheduleAppointmentScreenState
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: Colors.grey,
+                        color: Color(0xFF3B82F6),
                         letterSpacing: 0.8,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _summaryRow(Icons.local_hospital_outlined, 'Hospital',
-                        _selectedHospital),
-                    _summaryRow(Icons.medical_services_outlined, 'Department',
-                        _selectedDepartment),
-                    _summaryRow(Icons.person_outline, 'Doctor',
-                        _selectedDoctor),
                     _summaryRow(
                       Icons.calendar_today,
                       'Date',
                       DateFormat('EEE, d MMM yyyy').format(_selectedDate),
                     ),
                     _summaryRow(
-                        Icons.access_time, 'Time', _selectedTimeSlot),
+                      Icons.wb_twilight,
+                      'Session',
+                      _selectedSession,
+                    ),
+                    _summaryRow(
+                      Icons.access_time,
+                      'Time Range',
+                      _sessionTimeRanges[_selectedSession] ?? '',
+                    ),
                   ],
                 ),
               ),
@@ -528,23 +506,229 @@ class _RescheduleAppointmentScreenState
     );
   }
 
+  // ===== Session Card =====
+  Widget _sessionCard(String session) {
+    final isSelected = _selectedSession == session;
+    final sessionColor = _sessionColors[session] ?? Colors.blue;
+    final sessionIcon = _sessionIcons[session] ?? Icons.access_time;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedSession = session;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? sessionColor.withOpacity(0.08) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? sessionColor : Colors.grey.shade200,
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: sessionColor.withOpacity(0.15),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.04),
+                    blurRadius: 6,
+                    spreadRadius: 1,
+                  ),
+                ],
+        ),
+        child: Row(
+          children: [
+            // Icon
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? sessionColor
+                    : sessionColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                sessionIcon,
+                color: isSelected ? Colors.white : sessionColor,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 14),
+
+            // Text
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    session,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected
+                          ? sessionColor
+                          : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.access_time,
+                        size: 12,
+                        color: isSelected
+                            ? sessionColor
+                            : Colors.grey.shade600,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _sessionTimeRanges[session] ?? '',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected
+                              ? sessionColor
+                              : Colors.grey.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _sessionDescriptions[session] ?? '',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade500,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Checkmark
+            if (isSelected)
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: sessionColor,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check,
+                  color: Colors.white,
+                  size: 16,
+                ),
+              )
+            else
+              Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.grey.shade300,
+                    width: 1.5,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ===== Read-Only Row =====
+  Widget _readOnlyRow({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEFF6FF),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: const Color(0xFF3B82F6), size: 18),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.lock_outline, size: 10, color: Colors.grey),
+              SizedBox(width: 4),
+              Text(
+                'Fixed',
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   // ===== CALENDAR PICKER =====
   Future<void> _pickDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
-      firstDate: DateTime.now(), // අද ඉඳන්
-      lastDate: DateTime.now().add(const Duration(days: 90)), // මාස 3ක්
-      helpText: 'Select Appointment Date',
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 90)),
+      helpText: 'Select New Appointment Date',
       cancelText: 'Cancel',
       confirmText: 'Select',
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFF3B82F6), // Header background
-              onPrimary: Colors.white, // Header text
-              onSurface: Colors.black87, // Body text
+              primary: Color(0xFF3B82F6),
+              onPrimary: Colors.white,
+              onSurface: Colors.black87,
             ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
@@ -576,94 +760,6 @@ class _RescheduleAppointmentScreenState
     );
   }
 
-  // ===== Dropdown Field =====
-  Widget _dropdownField<T>({
-    required T value,
-    required List<T> items,
-    required IconData icon,
-    required ValueChanged<T?> onChanged,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<T>(
-          value: items.contains(value) ? value : null,
-          isExpanded: true,
-          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
-          style: const TextStyle(
-            fontSize: 14,
-            color: Colors.black87,
-            fontWeight: FontWeight.w500,
-          ),
-          items: items.map((item) {
-            return DropdownMenuItem<T>(
-              value: item,
-              child: Row(
-                children: [
-                  Icon(icon, size: 18, color: const Color(0xFF3B82F6)),
-                  const SizedBox(width: 10),
-                  Expanded(child: Text(item.toString())),
-                ],
-              ),
-            );
-          }).toList(),
-          onChanged: onChanged,
-        ),
-      ),
-    );
-  }
-
-  // ===== Slot Card =====
-  Widget _slotCard(int index) {
-    final slot = _timeSlots[index];
-    final isAvailable = !_unavailableSlots.contains(slot);
-    final isSelected = _selectedTimeSlot == slot && isAvailable;
-
-    return GestureDetector(
-      onTap: isAvailable
-          ? () {
-              setState(() {
-                _selectedTimeSlot = slot;
-              });
-            }
-          : null,
-      child: Container(
-        decoration: BoxDecoration(
-          color: !isAvailable
-              ? Colors.grey.shade100
-              : (isSelected ? const Color(0xFF3B82F6) : Colors.white),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: !isAvailable
-                ? Colors.grey.shade200
-                : (isSelected
-                    ? const Color(0xFF3B82F6)
-                    : Colors.grey.shade300),
-          ),
-        ),
-        child: Center(
-          child: Text(
-            slot,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: !isAvailable
-                  ? Colors.grey.shade400
-                  : (isSelected ? Colors.white : Colors.black87),
-              decoration:
-                  !isAvailable ? TextDecoration.lineThrough : null,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   // ===== Summary Row =====
   Widget _summaryRow(IconData icon, String label, String value) {
     return Padding(
@@ -674,7 +770,7 @@ class _RescheduleAppointmentScreenState
           Icon(icon, size: 16, color: const Color(0xFF3B82F6)),
           const SizedBox(width: 10),
           SizedBox(
-            width: 80,
+            width: 90,
             child: Text(
               label,
               style: TextStyle(
@@ -701,11 +797,14 @@ class _RescheduleAppointmentScreenState
   // ===== Confirmation Dialog =====
   void _showConfirmationDialog(BuildContext context) {
     final action = widget.isReschedule ? 'reschedule' : 'modify';
+    final sessionColor = _sessionColors[_selectedSession] ?? Colors.blue;
+    final sessionIcon = _sessionIcons[_selectedSession] ?? Icons.access_time;
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           widget.isReschedule ? 'Confirm Reschedule' : 'Confirm Changes',
           style: const TextStyle(fontWeight: FontWeight.bold),
@@ -729,22 +828,38 @@ class _RescheduleAppointmentScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'New Details:',
+                    'Appointment:',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: FontWeight.bold,
                       color: Colors.grey,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  _dialogRow('🏥', _selectedHospital),
-                  _dialogRow('🩺', _selectedDepartment),
-                  _dialogRow('👨‍⚕️', _selectedDoctor),
+                  const SizedBox(height: 6),
+                  _dialogRow('👨‍⚕️', widget.doctorName),
+                  _dialogRow('🏥', widget.hospital),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'New Slot:',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF3B82F6),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
                   _dialogRow(
                     '📅',
                     DateFormat('EEE, d MMM yyyy').format(_selectedDate),
                   ),
-                  _dialogRow('🕐', _selectedTimeSlot),
+                  _dialogRow(
+                    _sessionEmoji(_selectedSession),
+                    _selectedSession,
+                  ),
+                  _dialogRow(
+                    '🕐',
+                    _sessionTimeRanges[_selectedSession] ?? '',
+                  ),
                 ],
               ),
             ),
@@ -757,7 +872,7 @@ class _RescheduleAppointmentScreenState
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3B82F6),
+              backgroundColor: sessionColor,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -787,6 +902,20 @@ class _RescheduleAppointmentScreenState
         ],
       ),
     );
+  }
+
+  // ===== Session Emoji =====
+  String _sessionEmoji(String session) {
+    switch (session) {
+      case 'Morning':
+        return '🌅';
+      case 'Afternoon':
+        return '☀️';
+      case 'Evening':
+        return '🌙';
+      default:
+        return '⏰';
+    }
   }
 
   // ===== Dialog Row =====

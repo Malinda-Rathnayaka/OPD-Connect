@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 class VisitSummaryScreen extends StatelessWidget {
   final String doctorName;
   final String department;
+  final String hospital;
   final String token;
   final String dateTime;
 
@@ -16,6 +17,7 @@ class VisitSummaryScreen extends StatelessWidget {
     super.key,
     required this.doctorName,
     required this.department,
+    required this.hospital,
     required this.token,
     required this.dateTime,
   });
@@ -117,7 +119,24 @@ class VisitSummaryScreen extends StatelessWidget {
                         color: Colors.white70,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.local_hospital_outlined,
+                            size: 14, color: Colors.white70),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            hospital,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
                         const Icon(Icons.calendar_today,
@@ -176,11 +195,14 @@ class VisitSummaryScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _medicationRow('Amoxicillin', '500mg • 3 times daily', '7 days'),
+                    _medicationRow(
+                        'Amoxicillin', '500mg • 3 times daily', '7 days'),
                     const Divider(height: 20),
-                    _medicationRow('Paracetamol', '500mg • as needed', '3 days'),
+                    _medicationRow(
+                        'Paracetamol', '500mg • as needed', '3 days'),
                     const Divider(height: 20),
-                    _medicationRow('Benzydamine gargle', '15ml • 3 times daily', '5 days'),
+                    _medicationRow('Benzydamine gargle',
+                        '15ml • 3 times daily', '5 days'),
                   ],
                 ),
               ),
@@ -271,6 +293,7 @@ class VisitSummaryScreen extends StatelessWidget {
                         builder: (_) => RescheduleAppointmentScreen(
                           doctorName: doctorName,
                           department: department,
+                          hospital: hospital,
                           token: 'New',
                           dateTime: 'Not scheduled',
                           isReschedule: false,
@@ -278,7 +301,8 @@ class VisitSummaryScreen extends StatelessWidget {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.refresh, color: Colors.white, size: 20),
+                  icon: const Icon(Icons.refresh,
+                      color: Colors.white, size: 20),
                   label: const Text(
                     'Book This Doctor Again',
                     style: TextStyle(
@@ -304,10 +328,8 @@ class VisitSummaryScreen extends StatelessWidget {
                 height: 52,
                 child: OutlinedButton.icon(
                   onPressed: () async {
-                    // PDF generate කරන්න
                     final pdfBytes = await _generatePdf();
 
-                    // PDF share / save කරන්න
                     await Printing.sharePdf(
                       bytes: pdfBytes,
                       filename:
@@ -354,7 +376,7 @@ class VisitSummaryScreen extends StatelessWidget {
     );
   }
 
-  // ===== PDF GENERATE කරන FUNCTION එක =====
+  // ===== PDF GENERATE =====
   Future<Uint8List> _generatePdf() async {
     final pdf = pw.Document();
 
@@ -369,7 +391,6 @@ class VisitSummaryScreen extends StatelessWidget {
         margin: const pw.EdgeInsets.all(32),
         build: (pw.Context context) {
           return [
-            // ===== HEADER =====
             pw.Container(
               padding: const pw.EdgeInsets.all(20),
               decoration: pw.BoxDecoration(
@@ -434,6 +455,14 @@ class VisitSummaryScreen extends StatelessWidget {
                       color: PdfColors.white,
                     ),
                   ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    hospital,
+                    style: const pw.TextStyle(
+                      fontSize: 11,
+                      color: PdfColors.white,
+                    ),
+                  ),
                   pw.SizedBox(height: 10),
                   pw.Row(
                     children: [
@@ -459,7 +488,6 @@ class VisitSummaryScreen extends StatelessWidget {
             ),
             pw.SizedBox(height: 20),
 
-            // ===== DIAGNOSIS =====
             _pdfSection(
               title: 'Diagnosis',
               child: pw.Column(
@@ -482,7 +510,6 @@ class VisitSummaryScreen extends StatelessWidget {
             ),
             pw.SizedBox(height: 14),
 
-            // ===== PRESCRIPTION =====
             _pdfSection(
               title: 'Prescription',
               child: pw.Column(
@@ -500,7 +527,6 @@ class VisitSummaryScreen extends StatelessWidget {
             ),
             pw.SizedBox(height: 14),
 
-            // ===== DOCTOR'S NOTES =====
             _pdfSection(
               title: "Doctor's Notes",
               child: pw.Container(
@@ -522,7 +548,6 @@ class VisitSummaryScreen extends StatelessWidget {
             ),
             pw.SizedBox(height: 14),
 
-            // ===== FOLLOW-UP =====
             _pdfSection(
               title: 'Follow-up',
               child: pw.Row(
@@ -546,7 +571,6 @@ class VisitSummaryScreen extends StatelessWidget {
             ),
             pw.SizedBox(height: 20),
 
-            // ===== FOOTER =====
             pw.Divider(),
             pw.SizedBox(height: 6),
             pw.Center(
@@ -577,7 +601,6 @@ class VisitSummaryScreen extends StatelessWidget {
     return pdf.save();
   }
 
-  // ===== PDF Section Helper =====
   pw.Widget _pdfSection({
     required String title,
     required pw.Widget child,
@@ -606,7 +629,6 @@ class VisitSummaryScreen extends StatelessWidget {
     );
   }
 
-  // ===== PDF Medication Row =====
   pw.Widget _pdfMedicationRow(
       String name, String dosage, String duration) {
     return pw.Row(
@@ -633,7 +655,8 @@ class VisitSummaryScreen extends StatelessWidget {
           ],
         ),
         pw.Container(
-          padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          padding:
+              const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: pw.BoxDecoration(
             color: PdfColor.fromInt(0xFFDBEAFE),
             borderRadius: pw.BorderRadius.circular(20),
@@ -651,7 +674,6 @@ class VisitSummaryScreen extends StatelessWidget {
     );
   }
 
-  // ===== Section Card Helper =====
   Widget _sectionCard({
     required IconData icon,
     required Color iconColor,
@@ -703,7 +725,6 @@ class VisitSummaryScreen extends StatelessWidget {
     );
   }
 
-  // ===== Medication Row =====
   Widget _medicationRow(String name, String dosage, String duration) {
     return Row(
       children: [

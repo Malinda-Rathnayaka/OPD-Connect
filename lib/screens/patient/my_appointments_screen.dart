@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'live_queue_tracker_screen.dart';
 import 'cancel_appointment_screen.dart';
 import 'reschedule_appointment_screen.dart';
-import 'visit_summary_screen.dart'; // ← අලුතින් add කරපු එක
+import 'visit_summary_screen.dart';
 
 class MyAppointmentsScreen extends StatefulWidget {
   const MyAppointmentsScreen({super.key});
@@ -14,10 +14,12 @@ class MyAppointmentsScreen extends StatefulWidget {
 class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
   int _selectedTab = 0;
 
+  // ===== UPCOMING APPOINTMENTS =====
   final List<Map<String, dynamic>> _upcomingAppointments = [
     {
       'doctorName': 'Dr. Kamal Perera',
       'department': 'General Medicine • CGH Room 4',
+      'hospital': 'Colombo General Hospital',
       'token': 'T-014',
       'dateTime': 'Today, 10:30 AM',
       'badgeText': '3 Patients Ahead',
@@ -29,6 +31,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
     {
       'doctorName': 'Dr. Nishantha Silva',
       'department': 'Dental Clinic • Sri Jayawardenepura',
+      'hospital': 'Sri Jayawardenepura General Hospital',
       'token': 'T-029',
       'dateTime': 'Wed, 24 Sep • 2:00 PM',
       'badgeText': null,
@@ -39,10 +42,12 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
     },
   ];
 
+  // ===== PAST VISITS =====
   final List<Map<String, dynamic>> _pastAppointments = [
     {
       'doctorName': 'Dr. Kamal Perera',
       'department': 'General Medicine • CGH Room 4',
+      'hospital': 'Colombo General Hospital',
       'token': 'T-008',
       'dateTime': 'Mon, 15 Sep • 9:00 AM',
       'badgeText': 'Completed',
@@ -54,6 +59,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
     {
       'doctorName': 'Dr. Anura Wijesinghe',
       'department': 'Eye Clinic • Colombo General',
+      'hospital': 'Colombo General Hospital',
       'token': 'T-022',
       'dateTime': 'Fri, 5 Sep • 11:00 AM',
       'badgeText': 'Completed',
@@ -65,6 +71,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
     {
       'doctorName': 'Dr. Nimal Sirisena',
       'department': 'Cardiology • CGH Room 2',
+      'hospital': 'Colombo General Hospital',
       'token': 'T-005',
       'dateTime': 'Tue, 26 Aug • 10:00 AM',
       'badgeText': 'Completed',
@@ -118,15 +125,19 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                 ),
                 child: Row(
                   children: [
-                    _tabButton('Upcoming (${_upcomingAppointments.length})', 0),
-                    _tabButton('Past Visits (${_pastAppointments.length})', 1),
+                    _tabButton(
+                        'Upcoming (${_upcomingAppointments.length})', 0),
+                    _tabButton(
+                        'Past Visits (${_pastAppointments.length})', 1),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
 
               Text(
-                _selectedTab == 0 ? "TODAY'S & FUTURE SESSIONS" : 'PAST VISITS',
+                _selectedTab == 0
+                    ? "TODAY'S & FUTURE SESSIONS"
+                    : 'PAST VISITS',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
@@ -146,6 +157,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                       context: context,
                       doctorName: appointment['doctorName'],
                       department: appointment['department'],
+                      hospital: appointment['hospital'],
                       token: appointment['token'],
                       dateTime: appointment['dateTime'],
                       badgeText: appointment['badgeText'],
@@ -253,6 +265,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
     required BuildContext context,
     required String doctorName,
     required String department,
+    required String hospital,
     required String token,
     required String dateTime,
     String? badgeText,
@@ -295,7 +308,8 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: const Color(0xFFDBEAFE),
                   borderRadius: BorderRadius.circular(20),
@@ -319,6 +333,23 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
               color: Colors.grey.shade600,
             ),
           ),
+          const SizedBox(height: 2),
+          Row(
+            children: [
+              Icon(Icons.local_hospital_outlined,
+                  size: 12, color: Colors.grey.shade500),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  hospital,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
 
           Row(
@@ -336,7 +367,8 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
               const Spacer(),
               if (badgeText != null && badgeColor != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: badgeColor.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(20),
@@ -367,6 +399,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                           builder: (_) => RescheduleAppointmentScreen(
                             doctorName: doctorName,
                             department: department,
+                            hospital: hospital,
                             token: token,
                             dateTime: dateTime,
                             isReschedule: true,
@@ -386,13 +419,13 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                         ),
                       );
                     } else if (secondaryButton == 'Book Again') {
-                      // ===== Book Again — New Booking (Modify mode) =====
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => RescheduleAppointmentScreen(
                             doctorName: doctorName,
                             department: department,
+                            hospital: hospital,
                             token: 'New',
                             dateTime: 'Not scheduled',
                             isReschedule: false,
@@ -438,6 +471,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                           builder: (_) => RescheduleAppointmentScreen(
                             doctorName: doctorName,
                             department: department,
+                            hospital: hospital,
                             token: token,
                             dateTime: dateTime,
                             isReschedule: false,
@@ -445,13 +479,13 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                         ),
                       );
                     } else if (primaryButton == 'View Summary') {
-                      // ===== View Summary =====
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => VisitSummaryScreen(
                             doctorName: doctorName,
                             department: department,
+                            hospital: hospital,
                             token: token,
                             dateTime: dateTime,
                           ),

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+import '../../services/patient_service.dart';
 
 class DepartmentStatusScreen extends StatefulWidget {
   const DepartmentStatusScreen({super.key});
@@ -9,133 +12,216 @@ class DepartmentStatusScreen extends StatefulWidget {
 }
 
 class _DepartmentStatusScreenState extends State<DepartmentStatusScreen> {
-  // ===== DEPARTMENTS DATA (Read + Create + Update + Delete) =====
-  final List<Map<String, dynamic>> _departments = [
-    {
-      'id': '1',
-      'name': 'General Medicine',
-      'queued': 24,
-      'waitTime': 12,
-      'status': 'LOW',
-    },
-    {
-      'id': '2',
-      'name': 'Dental Clinic',
-      'queued': 18,
-      'waitTime': 35,
-      'status': 'MODERATE',
-    },
-    {
-      'id': '3',
-      'name': 'Eye Clinic',
-      'queued': 45,
-      'waitTime': 52,
-      'status': 'BUSY',
-    },
-    {
-      'id': '4',
-      'name': 'Pediatrics',
-      'queued': 14,
-      'waitTime': 18,
-      'status': 'LOW',
-    },
-    {
-      'id': '5',
-      'name': 'Cardiology Unit',
-      'queued': 32,
-      'waitTime': 40,
-      'status': 'MODERATE',
-    },
-  ];
+  final PatientService _service = PatientService();
 
-  // ===== Status එකට අදාල වර්ණය =====
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'BUSY':
-        return const Color(0xFFEF4444); // රතු
-      case 'MODERATE':
-        return const Color(0xFFF59E0B); // කහ
-      case 'LOW':
-      default:
-        return const Color(0xFF3B82F6); // නිල්
-    }
+  // ============================================================
+  //  JOIN QUEUE DIALOG
+  // ============================================================
+  Future<void> _joinQueue() async {
+    final patientNameCtrl = TextEditingController();
+    String selectedDepartment = 'General Medicine';
+    String selectedHospital = 'Colombo General Hospital';
+    bool isLoading = false;
+
+    final departments = [
+      'General Medicine',
+      'Dental Clinic',
+      'Eye Clinic',
+      'ENT Clinic',
+      'Cardiology',
+      'Pediatrics',
+    ];
+
+    final hospitals = [
+      'Colombo General Hospital',
+      'Sri Jayawardenepura General Hospital',
+      'North Colombo Teaching Hospital',
+      'National Hospital of Sri Lanka',
+    ];
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20)),
+          title: const Text(
+            'Join OPD Queue',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Patient Name',
+                    style: TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: patientNameCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'e.g. Kamal Perera',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Text('Hospital',
+                    style: TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: selectedHospital,
+                      isExpanded: true,
+                      items: hospitals
+                          .map((h) => DropdownMenuItem(
+                                value: h,
+                                child: Text(h),
+                              ))
+                          .toList(),
+                      onChanged: (v) => setDialogState(
+                          () => selectedHospital = v!),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Text('Department',
+                    style: TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: selectedDepartment,
+                      isExpanded: true,
+                      items: departments
+                          .map((d) => DropdownMenuItem(
+                                value: d,
+                                child: Text(d),
+                              ))
+                          .toList(),
+                      onChanged: (v) => setDialogState(
+                          () => selectedDepartment = v!),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isLoading ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF3B82F6),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      if (patientNameCtrl.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          const SnackBar(
+                              content:
+                                  Text('Please enter patient name')),
+                        );
+                        return;
+                      }
+
+                      setDialogState(() => isLoading = true);
+
+                      try {
+                        await _service.joinQueue(
+                          patientName: patientNameCtrl.text.trim(),
+                          department: selectedDepartment,
+                          hospital: selectedHospital,
+                        );
+
+                        if (!mounted) return;
+                        Navigator.pop(ctx);
+
+                        ScaffoldMessenger.of(this.context).showSnackBar(
+                          const SnackBar(
+                            content: Text('You joined the queue!'),
+                            backgroundColor: Color(0xFF10B981),
+                          ),
+                        );
+                      } catch (e) {
+                        setDialogState(() => isLoading = false);
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          SnackBar(
+                            content: Text('Error: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
+              child: isLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Text(
+                      'Join Queue',
+                      style: TextStyle(color: Colors.white),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   // ============================================================
-  //  CRUD OPERATIONS
+  //  LEAVE QUEUE
   // ============================================================
-
-  // ===== CREATE — අලුත් department එකක් =====
-  Future<void> _addDepartment() async {
-    final result = await _showDepartmentForm(
-      title: 'Add Department',
-      buttonText: 'Add',
-    );
-
-    if (result != null) {
-      setState(() {
-        _departments.add({
-          'id': DateTime.now().millisecondsSinceEpoch.toString(),
-          'name': result['name'],
-          'queued': result['queued'],
-          'waitTime': result['waitTime'],
-          'status': result['status'],
-        });
-      });
-
-      _showSnackBar('Department added successfully', const Color(0xFF10B981));
-    }
-  }
-
-  // ===== UPDATE — දැනට තියෙන department එකක් =====
-  Future<void> _editDepartment(int index) async {
-    final dept = _departments[index];
-
-    final result = await _showDepartmentForm(
-      title: 'Edit Department',
-      buttonText: 'Update',
-      initialName: dept['name'],
-      initialQueued: dept['queued'].toString(),
-      initialWaitTime: dept['waitTime'].toString(),
-      initialStatus: dept['status'],
-    );
-
-    if (result != null) {
-      setState(() {
-        _departments[index] = {
-          'id': dept['id'],
-          'name': result['name'],
-          'queued': result['queued'],
-          'waitTime': result['waitTime'],
-          'status': result['status'],
-        };
-      });
-
-      _showSnackBar('Department updated successfully', const Color(0xFF3B82F6));
-    }
-  }
-
-  // ===== DELETE — department එකක් අයින් කරන්න =====
-  Future<void> _deleteDepartment(int index) async {
-    final dept = _departments[index];
-
+  Future<void> _leaveQueue(String entryId, String tokenNumber) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
-          'Delete Department',
+          'Leave Queue',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Are you sure you want to delete "${dept['name']}"?\n\n'
-          'This action cannot be undone.',
+          'Are you sure you want to leave the queue?\n\n'
+          'Your token $tokenNumber will be cancelled and you will '
+          'lose your position.',
           style: const TextStyle(height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: const Text('No, Stay'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -146,7 +232,7 @@ class _DepartmentStatusScreenState extends State<DepartmentStatusScreen> {
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text(
-              'Delete',
+              'Yes, Leave',
               style: TextStyle(color: Colors.white),
             ),
           ),
@@ -155,239 +241,28 @@ class _DepartmentStatusScreenState extends State<DepartmentStatusScreen> {
     );
 
     if (confirmed == true) {
-      setState(() {
-        _departments.removeAt(index);
-      });
-
-      _showSnackBar('Department deleted', const Color(0xFFEF4444));
+      try {
+        await _service.leaveQueue(entryId);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You left the queue'),
+            backgroundColor: Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
-  // ===== FORM DIALOG — Create + Update දෙකටම =====
-  Future<Map<String, dynamic>?> _showDepartmentForm({
-    required String title,
-    required String buttonText,
-    String? initialName,
-    String? initialQueued,
-    String? initialWaitTime,
-    String? initialStatus,
-  }) async {
-    final nameController = TextEditingController(text: initialName ?? '');
-    final queuedController = TextEditingController(text: initialQueued ?? '');
-    final waitTimeController =
-        TextEditingController(text: initialWaitTime ?? '');
-    String status = initialStatus ?? 'LOW';
-
-    return showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ===== Department Name =====
-                  const Text(
-                    'Department Name',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: nameController,
-                    decoration: InputDecoration(
-                      hintText: 'e.g. Eye Clinic',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 12),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  // ===== Queued Patients =====
-                  const Text(
-                    'Queued Patients',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: queuedController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      hintText: 'e.g. 24',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 12),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  // ===== Average Wait Time =====
-                  const Text(
-                    'Average Wait Time (mins)',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: waitTimeController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      hintText: 'e.g. 12',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 12),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  // ===== Status =====
-                  const Text(
-                    'Status',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: ['LOW', 'MODERATE', 'BUSY'].map((s) {
-                      final isSelected = status == s;
-                      final color = _getStatusColor(s);
-                      return Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.only(
-                            right: s != 'BUSY' ? 6 : 0,
-                          ),
-                          child: GestureDetector(
-                            onTap: () {
-                              setDialogState(() => status = s);
-                            },
-                            child: Container(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 10),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? color
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? color
-                                      : Colors.grey.shade300,
-                                ),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  s,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: isSelected
-                                        ? Colors.white
-                                        : Colors.black87,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3B82F6),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-                onPressed: () {
-                  // ===== Validation =====
-                  if (nameController.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(ctx).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please enter a department name'),
-                      ),
-                    );
-                    return;
-                  }
-
-                  final queued = int.tryParse(queuedController.text.trim());
-                  final waitTime =
-                      int.tryParse(waitTimeController.text.trim());
-
-                  if (queued == null || waitTime == null) {
-                    ScaffoldMessenger.of(ctx).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please enter valid numbers'),
-                      ),
-                    );
-                    return;
-                  }
-
-                  Navigator.pop(ctx, {
-                    'name': nameController.text.trim(),
-                    'queued': queued,
-                    'waitTime': waitTime,
-                    'status': status,
-                  });
-                },
-                child: Text(
-                  buttonText,
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  // ===== Snackbar Helper =====
-  void _showSnackBar(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  // ============================================================
-  //  BUILD
-  // ============================================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -409,138 +284,132 @@ class _DepartmentStatusScreenState extends State<DepartmentStatusScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_circle_outline,
+            icon: const Icon(Icons.refresh_rounded,
                 color: Color(0xFF3B82F6)),
-            onPressed: _addDepartment,
-            tooltip: 'Add Department',
+            onPressed: () => setState(() {}),
+            tooltip: 'Refresh',
           ),
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ===== HEADER ROW =====
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Live Counter Updates',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDBEAFE),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text(
-                      'Updated just now',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1E40AF),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
+        child: StreamBuilder<Map<String, dynamic>?>(
+          stream: _service.getMyActiveQueueEntry(),
+          builder: (context, mySnapshot) {
+            if (mySnapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-              // ===== PRIVACY MODE BANNER =====
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: const Color(0xFF3B82F6).withOpacity(0.2)),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(
-                      Icons.shield_outlined,
-                      color: Color(0xFF3B82F6),
-                      size: 20,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: RichText(
-                        text: const TextSpan(
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF1E40AF),
-                            height: 1.5,
-                          ),
-                          children: [
-                            TextSpan(
-                              text: 'Privacy Mode Active: ',
-                              style:
-                                  TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            TextSpan(
-                              text:
-                                  'Showing wait metrics and load counts only. Individual names hidden.',
-                            ),
-                          ],
+            final myEntry = mySnapshot.data;
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (myEntry != null)
+                    _myActiveQueueSection(myEntry)
+                  else
+                    _joinQueueBanner(),
+
+                  const SizedBox(height: 24),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Live Department Status',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDBEAFE),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          DateFormat('h:mm a').format(DateTime.now()),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E40AF),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
 
-              // ===== ADD DEPARTMENT BUTTON =====
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton.icon(
-                  onPressed: _addDepartment,
-                  icon: const Icon(Icons.add, color: Colors.white, size: 20),
-                  label: const Text(
-                    'Add New Department',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color:
+                              const Color(0xFF3B82F6).withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      children: const [
+                        Icon(Icons.shield_outlined,
+                            color: Color(0xFF3B82F6), size: 18),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Privacy Mode: Wait metrics and load counts only.',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF1E40AF),
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3B82F6),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    elevation: 0,
+                  const SizedBox(height: 16),
+
+                  StreamBuilder<List<Map<String, dynamic>>>(
+                    stream: _service.getDepartmentQueues(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(40),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
+
+                      if (snapshot.hasError) {
+                        return _errorState(snapshot.error.toString());
+                      }
+
+                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return _emptyDepartmentsState();
+                      }
+
+                      return Column(
+                        children: snapshot.data!.map((dept) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _departmentCard(dept),
+                          );
+                        }).toList(),
+                      );
+                    },
                   ),
-                ),
+
+                  const SizedBox(height: 20),
+                ],
               ),
-              const SizedBox(height: 16),
-
-              // ===== EMPTY STATE =====
-              if (_departments.isEmpty) _emptyState(),
-
-              // ===== DEPARTMENT CARDS =====
-              ..._departments.asMap().entries.map((entry) {
-                final index = entry.key;
-                final dept = entry.value;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _departmentCard(dept, index),
-                );
-              }).toList(),
-
-              const SizedBox(height: 10),
-            ],
-          ),
+            );
+          },
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -563,45 +432,270 @@ class _DepartmentStatusScreenState extends State<DepartmentStatusScreen> {
     );
   }
 
-  // ===== Empty State =====
-  Widget _emptyState() {
+  // ============================================================
+  //  MY ACTIVE QUEUE SECTION
+  // ============================================================
+  Widget _myActiveQueueSection(Map<String, dynamic> entry) {
+    final joinedAt = (entry['joinedAt'] as Timestamp).toDate();
+    final department = entry['department'] as String? ?? '';
+    final hospital = entry['hospital'] as String? ?? '';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF3B82F6), Color(0xFF1E40AF)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF3B82F6).withOpacity(0.3),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.circle,
+                            color: Color(0xFF10B981), size: 8),
+                        SizedBox(width: 6),
+                        Text(
+                          'YOU ARE IN QUEUE',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      entry['tokenNumber'] ?? 'T-000',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E40AF),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                department,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(Icons.local_hospital,
+                      color: Colors.white70, size: 14),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      hospital,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: _statBox(
+                      '${entry['patientsAhead'] ?? 0}',
+                      'Patients Ahead',
+                      Icons.people_outline,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _statBox(
+                      '${entry['estimatedWait'] ?? 0}m',
+                      'Est. Wait',
+                      Icons.access_time,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _statBox(
+                      DateFormat('h:mm a').format(joinedAt),
+                      'Joined',
+                      Icons.login,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _nowServingRow(department, hospital),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 46,
+                child: OutlinedButton.icon(
+                  onPressed: () => _leaveQueue(
+                      entry['id'], entry['tokenNumber']),
+                  icon: const Icon(Icons.exit_to_app,
+                      color: Colors.white, size: 18),
+                  label: const Text(
+                    'Leave Queue',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(
+                        color: Colors.white54, width: 1.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        _queueProgressCard(entry),
+      ],
+    );
+  }
+
+  Widget _statBox(String value, String label, IconData icon) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(40),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white24,
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.local_hospital_outlined,
-              size: 60, color: Colors.grey.shade300),
-          const SizedBox(height: 16),
-          Text(
-            'No departments yet',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey.shade600,
-            ),
-          ),
+          Icon(icon, color: Colors.white70, size: 16),
           const SizedBox(height: 6),
           Text(
-            'Tap "Add New Department" to get started',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade500,
+            value,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
-            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              color: Colors.white70,
+            ),
           ),
         ],
       ),
     );
   }
 
-  // ===== Department Card =====
-  Widget _departmentCard(Map<String, dynamic> dept, int index) {
-    final statusColor = _getStatusColor(dept['status']);
+  Widget _nowServingRow(String department, String hospital) {
+    return StreamBuilder<Map<String, dynamic>?>(
+      stream: _service.getNowServingToken(department, hospital),
+      builder: (context, snapshot) {
+        final nowServing = snapshot.data;
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white12,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white24),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.campaign_outlined,
+                    color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'NOW SERVING',
+                      style: TextStyle(
+                        fontSize: 9,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      nowServing != null
+                          ? nowServing['tokenNumber'] ?? 'Waiting'
+                          : 'Not started yet',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _queueProgressCard(Map<String, dynamic> entry) {
+    final patientsAhead = entry['patientsAhead'] as int? ?? 0;
+    final totalInQueue = patientsAhead + 1;
+    final completed = totalInQueue > 0
+        ? (totalInQueue - patientsAhead - 1) / totalInQueue
+        : 1.0;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -619,7 +713,183 @@ class _DepartmentStatusScreenState extends State<DepartmentStatusScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ===== Department name + Status badge =====
+          const Row(
+            children: [
+              Icon(Icons.timeline,
+                  color: Color(0xFF3B82F6), size: 20),
+              SizedBox(width: 8),
+              Text(
+                'Your Queue Progress',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: completed.clamp(0.0, 1.0),
+              minHeight: 10,
+              backgroundColor: const Color(0xFFE5E7EB),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                Color(0xFF3B82F6),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Started',
+                  style: TextStyle(
+                      fontSize: 11, color: Colors.grey.shade600)),
+              Text(
+                patientsAhead == 0
+                    ? "You're next!"
+                    : '$patientsAhead more to go',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF3B82F6),
+                ),
+              ),
+              const Text('Your Turn',
+                  style: TextStyle(
+                      fontSize: 11, color: Color(0xFF3B82F6))),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF3CD),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFFFD966)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.lightbulb_outline,
+                    color: Color(0xFFD97706), size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    patientsAhead == 0
+                        ? 'Your turn is next! Please be ready.'
+                        : 'Stay nearby. You will be notified when your turn is near.',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF92400E),
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _joinQueueBanner() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+            color: const Color(0xFFDBEAFE), width: 1.5),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: const BoxDecoration(
+              color: Color(0xFFEFF6FF),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.people_alt_rounded,
+              color: Color(0xFF3B82F6),
+              size: 40,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Not in any queue',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Join an OPD queue to get your token and track '
+            'your live position.',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey.shade600,
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton.icon(
+              onPressed: _joinQueue,
+              icon: const Icon(Icons.add_circle_outline,
+                  color: Colors.white, size: 20),
+              label: const Text(
+                'Join OPD Queue',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF3B82F6),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _departmentCard(Map<String, dynamic> dept) {
+    final statusColor = dept['statusColor'] as Color;
+    final waiting = dept['waiting'] as int? ?? 0;
+    final serving = dept['serving'] as int? ?? 0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.06),
+            blurRadius: 8,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -653,8 +923,6 @@ class _DepartmentStatusScreenState extends State<DepartmentStatusScreen> {
             ],
           ),
           const SizedBox(height: 12),
-
-          // ===== Queued + Wait Time =====
           Row(
             children: [
               Row(
@@ -668,15 +936,11 @@ class _DepartmentStatusScreenState extends State<DepartmentStatusScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
+                  Text('Queued: ',
+                      style: TextStyle(
+                          fontSize: 13, color: Colors.grey.shade600)),
                   Text(
-                    'Queued: ',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                  Text(
-                    '${dept['queued']} Patients',
+                    '${dept['queued']}',
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
@@ -686,15 +950,11 @@ class _DepartmentStatusScreenState extends State<DepartmentStatusScreen> {
                 ],
               ),
               const Spacer(),
+              Text('Avg Wait: ',
+                  style: TextStyle(
+                      fontSize: 13, color: Colors.grey.shade600)),
               Text(
-                'Avg Wait: ',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-              Text(
-                '${dept['waitTime']} mins',
+                '${dept['waitTime']} min',
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
@@ -703,61 +963,145 @@ class _DepartmentStatusScreenState extends State<DepartmentStatusScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          if (waiting > 0 || serving > 0) ...[
+            const SizedBox(height: 10),
+            Divider(height: 1, color: Colors.grey.shade200),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                if (serving > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD1FAE5),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.play_circle,
+                            color: Color(0xFF10B981), size: 12),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$serving serving',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF10B981),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (waiting > 0) ...[
+                  if (serving > 0) const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.hourglass_top,
+                            color: Color(0xFFD97706), size: 12),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$waiting waiting',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFD97706),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 
-          // ===== Divider =====
-          Divider(height: 1, color: Colors.grey.shade200),
-          const SizedBox(height: 10),
+  Widget _emptyDepartmentsState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(40),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.hourglass_empty,
+              size: 60, color: Colors.grey.shade300),
+          const SizedBox(height: 16),
+          Text(
+            'No active queues',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'No patients have joined any department queue yet today.',
+            style: TextStyle(
+                fontSize: 12, color: Colors.grey.shade500),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
 
-          // ===== EDIT + DELETE buttons =====
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _editDepartment(index),
-                  icon: const Icon(Icons.edit_outlined,
-                      size: 16, color: Color(0xFF3B82F6)),
-                  label: const Text(
-                    'Edit',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF3B82F6),
-                    ),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    side: const BorderSide(color: Color(0xFF3B82F6)),
-                  ),
-                ),
+  Widget _errorState(String error) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.red.shade200),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.error_outline,
+              size: 50, color: Colors.red.shade400),
+          const SizedBox(height: 12),
+          const Text(
+            'Could not load queues',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            error,
+            style: TextStyle(
+                fontSize: 11, color: Colors.grey.shade600),
+            textAlign: TextAlign.center,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: () => setState(() {}),
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('Retry'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF3B82F6),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _deleteDepartment(index),
-                  icon: const Icon(Icons.delete_outline,
-                      size: 16, color: Color(0xFFEF4444)),
-                  label: const Text(
-                    'Delete',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFFEF4444),
-                    ),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    side: const BorderSide(color: Color(0xFFEF4444)),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),
