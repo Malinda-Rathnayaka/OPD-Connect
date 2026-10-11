@@ -57,11 +57,13 @@ class PatientService {
         .where('status', isEqualTo: 'upcoming')
         .orderBy('dateTime')
         .snapshots()
-        .map((s) => s.docs.map((d) {
-              final data = d.data();
-              data['id'] = d.id;
-              return data;
-            }).toList());
+        .map(
+          (s) => s.docs.map((d) {
+            final data = d.data();
+            data['id'] = d.id;
+            return data;
+          }).toList(),
+        );
   }
 
   Stream<List<Map<String, dynamic>>> getPastAppointments() {
@@ -72,11 +74,36 @@ class PatientService {
         .where('status', whereIn: ['completed', 'cancelled'])
         .orderBy('dateTime', descending: true)
         .snapshots()
-        .map((s) => s.docs.map((d) {
-              final data = d.data();
-              data['id'] = d.id;
-              return data;
-            }).toList());
+        .map(
+          (s) => s.docs.map((d) {
+            final data = d.data();
+            data['id'] = d.id;
+            return data;
+          }).toList(),
+        );
+  }
+
+  Stream<List<Map<String, dynamic>>> getPastVisits() {
+    final uid = currentUserId;
+    if (uid == null) return Stream.value([]);
+
+    return _db.collection('patients').doc(uid).snapshots().map((doc) {
+      if (!doc.exists) return <Map<String, dynamic>>[];
+      final data = doc.data();
+      if (data == null) return <Map<String, dynamic>>[];
+
+      final history = data['history'];
+      if (history == null || history is! List) {
+        return <Map<String, dynamic>>[];
+      }
+
+      return history
+          .whereType<Map>()
+          .map((entry) => Map<String, dynamic>.from(entry))
+          .toList()
+          .reversed
+          .toList();
+    });
   }
 
   Future<void> updateAppointment({
@@ -152,8 +179,10 @@ class PatientService {
         .where('department', isEqualTo: department)
         .where('hospital', isEqualTo: hospital)
         .where('status', whereIn: ['waiting', 'serving'])
-        .where('joinedAt',
-            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+        .where(
+          'joinedAt',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay),
+        )
         .where('joinedAt', isLessThan: Timestamp.fromDate(endOfDay))
         .get();
 
@@ -196,16 +225,18 @@ class PatientService {
         .limit(1)
         .snapshots()
         .map((s) {
-      if (s.docs.isEmpty) return null;
-      final data = s.docs.first.data();
-      data['id'] = s.docs.first.id;
-      return data;
-    });
+          if (s.docs.isEmpty) return null;
+          final data = s.docs.first.data();
+          data['id'] = s.docs.first.id;
+          return data;
+        });
   }
 
   // ===== READ — ඒ department එකේ දැන් serving කරන token =====
   Stream<Map<String, dynamic>?> getNowServingToken(
-      String department, String hospital) {
+    String department,
+    String hospital,
+  ) {
     final now = DateTime.now();
     final startOfDay = DateTime(now.year, now.month, now.day);
 
@@ -214,16 +245,18 @@ class PatientService {
         .where('department', isEqualTo: department)
         .where('hospital', isEqualTo: hospital)
         .where('status', isEqualTo: 'serving')
-        .where('joinedAt',
-            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+        .where(
+          'joinedAt',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay),
+        )
         .limit(1)
         .snapshots()
         .map((s) {
-      if (s.docs.isEmpty) return null;
-      final data = s.docs.first.data();
-      data['id'] = s.docs.first.id;
-      return data;
-    });
+          if (s.docs.isEmpty) return null;
+          final data = s.docs.first.data();
+          data['id'] = s.docs.first.id;
+          return data;
+        });
   }
 
   // ===== READ — හැම department එකකම live queue =====
@@ -234,54 +267,59 @@ class PatientService {
     return _db
         .collection('queue_entries')
         .where('status', whereIn: ['waiting', 'serving'])
-        .where('joinedAt',
-            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+        .where(
+          'joinedAt',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay),
+        )
         .snapshots()
         .map((s) {
-      final Map<String, List<Map<String, dynamic>>> grouped = {};
+          final Map<String, List<Map<String, dynamic>>> grouped = {};
 
-      for (var doc in s.docs) {
-        final data = doc.data();
-        final dept = data['department'] as String? ?? 'Unknown';
-        grouped.putIfAbsent(dept, () => []).add(data);
-      }
+          for (var doc in s.docs) {
+            final data = doc.data();
+            final dept = data['department'] as String? ?? 'Unknown';
+            grouped.putIfAbsent(dept, () => []).add(data);
+          }
 
-      final List<Map<String, dynamic>> result = [];
-      grouped.forEach((dept, entries) {
-        final waiting =
-            entries.where((e) => e['status'] == 'waiting').length;
-        final serving =
-            entries.where((e) => e['status'] == 'serving').length;
+          final List<Map<String, dynamic>> result = [];
+          grouped.forEach((dept, entries) {
+            final waiting = entries
+                .where((e) => e['status'] == 'waiting')
+                .length;
+            final serving = entries
+                .where((e) => e['status'] == 'serving')
+                .length;
 
-        String status;
-        Color statusColor;
-        if (waiting >= 30) {
-          status = 'BUSY';
-          statusColor = const Color(0xFFEF4444);
-        } else if (waiting >= 15) {
-          status = 'MODERATE';
-          statusColor = const Color(0xFFF59E0B);
-        } else {
-          status = 'LOW';
-          statusColor = const Color(0xFF3B82F6);
-        }
+            String status;
+            Color statusColor;
+            if (waiting >= 30) {
+              status = 'BUSY';
+              statusColor = const Color(0xFFEF4444);
+            } else if (waiting >= 15) {
+              status = 'MODERATE';
+              statusColor = const Color(0xFFF59E0B);
+            } else {
+              status = 'LOW';
+              statusColor = const Color(0xFF3B82F6);
+            }
 
-        result.add({
-          'name': dept,
-          'queued': waiting + serving,
-          'serving': serving,
-          'waiting': waiting,
-          'waitTime': (waiting + 1) * 5,
-          'status': status,
-          'statusColor': statusColor,
+            result.add({
+              'name': dept,
+              'queued': waiting + serving,
+              'serving': serving,
+              'waiting': waiting,
+              'waitTime': (waiting + 1) * 5,
+              'status': status,
+              'statusColor': statusColor,
+            });
+          });
+
+          result.sort(
+            (a, b) => (a['name'] as String).compareTo(b['name'] as String),
+          );
+
+          return result;
         });
-      });
-
-      result.sort((a, b) =>
-          (a['name'] as String).compareTo(b['name'] as String));
-
-      return result;
-    });
   }
 
   // ===== UPDATE — ඔයාගේ queue entry =====
@@ -341,11 +379,13 @@ class PatientService {
         .where('patientId', isEqualTo: currentUserId)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((s) => s.docs.map((d) {
-              final data = d.data();
-              data['id'] = d.id;
-              return data;
-            }).toList());
+        .map(
+          (s) => s.docs.map((d) {
+            final data = d.data();
+            data['id'] = d.id;
+            return data;
+          }).toList(),
+        );
   }
 
   Future<void> markNotificationAsRead(String id) async {
