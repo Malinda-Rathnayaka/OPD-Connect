@@ -50,12 +50,12 @@ class PatientService {
   }
 
   Stream<List<Map<String, dynamic>>> getUpcomingAppointments() {
-    if (currentUserId == null) return Stream.value([]);
+    final uid = currentUserId;
+    if (uid == null) return Stream.value([]);
     return _db
         .collection('appointments')
-        .where('patientId', isEqualTo: currentUserId)
-        .where('status', isEqualTo: 'upcoming')
-        .orderBy('dateTime')
+        .where('patientId', isEqualTo: uid)
+        .where('status', isEqualTo: 'confirmed')
         .snapshots()
         .map(
           (s) => s.docs.map((d) {
@@ -64,6 +64,32 @@ class PatientService {
             return data;
           }).toList(),
         );
+  }
+
+  Future<Map<String, dynamic>?> getAppointment(String id) async {
+    final doc = await _db.collection('appointments').doc(id).get();
+    if (!doc.exists) return null;
+    final data = doc.data()!;
+    data['id'] = doc.id;
+    return data;
+  }
+
+  Future<void> rescheduleAppointment({
+    required String appointmentId,
+    required DateTime newDate,
+    required String newSession,
+  }) async {
+    await _db.collection('appointments').doc(appointmentId).update({
+      'appointmentDate': Timestamp.fromDate(newDate),
+      'appointmentTime': newSession,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    await createNotification(
+      title: 'Appointment Rescheduled',
+      message: 'Your appointment has been rescheduled.',
+      type: 'reschedule',
+    );
   }
 
   Stream<List<Map<String, dynamic>>> getPastAppointments() {

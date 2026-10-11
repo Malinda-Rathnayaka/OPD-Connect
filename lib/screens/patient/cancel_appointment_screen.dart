@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../services/patient_service.dart';
 import 'cancellation_success_screen.dart'; // ← අලුතින් add කරපු import එක
 
 class CancelAppointmentScreen extends StatefulWidget {
   // My Appointments එකෙන් pass කරන data
+  final String appointmentId;
   final String doctorName;
   final String department;
   final String token;
@@ -10,6 +12,7 @@ class CancelAppointmentScreen extends StatefulWidget {
 
   const CancelAppointmentScreen({
     super.key,
+    required this.appointmentId,
     required this.doctorName,
     required this.department,
     required this.token,
@@ -22,6 +25,8 @@ class CancelAppointmentScreen extends StatefulWidget {
 }
 
 class _CancelAppointmentScreenState extends State<CancelAppointmentScreen> {
+  final PatientService _patientService = PatientService();
+  bool _isCancelling = false;
   // Selected reason (default = 0)
   int _selectedReason = 0;
 
@@ -371,22 +376,36 @@ class _CancelAppointmentScreenState extends State<CancelAppointmentScreen> {
                 borderRadius: BorderRadius.circular(20),
               ),
             ),
-            onPressed: () {
-              Navigator.pop(ctx); // Dialog එක close කරන්න
-
-              // Success screen එකට යන්න
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => CancellationSuccessScreen(
-                    doctorName: widget.doctorName,
-                    token: widget.token,
-                  ),
-                ),
-              );
-
-              // TODO: Firebase එකෙන් booking එක cancel කරන්න
-            },
+            onPressed: _isCancelling
+                ? null
+                : () async {
+                    Navigator.pop(ctx);
+                    setState(() => _isCancelling = true);
+                    try {
+                      await _patientService
+                          .cancelAppointment(widget.appointmentId);
+                      if (!mounted) return;
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CancellationSuccessScreen(
+                            doctorName: widget.doctorName,
+                            token: widget.token,
+                          ),
+                        ),
+                      );
+                    } catch (error) {
+                      if (!mounted) return;
+                      setState(() => _isCancelling = false);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Could not cancel appointment: $error'),
+                          backgroundColor: Colors.red,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  },
             child: const Text(
               'Yes, Cancel',
               style: TextStyle(color: Colors.white),

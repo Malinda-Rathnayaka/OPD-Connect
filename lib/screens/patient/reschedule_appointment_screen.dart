@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../services/patient_service.dart';
 
 class RescheduleAppointmentScreen extends StatefulWidget {
+  final String? appointmentId;
   final String doctorName;
   final String department;
   final String hospital;
@@ -11,6 +13,7 @@ class RescheduleAppointmentScreen extends StatefulWidget {
 
   const RescheduleAppointmentScreen({
     super.key,
+    this.appointmentId,
     required this.doctorName,
     required this.department,
     required this.hospital,
@@ -26,6 +29,8 @@ class RescheduleAppointmentScreen extends StatefulWidget {
 
 class _RescheduleAppointmentScreenState
     extends State<RescheduleAppointmentScreen> {
+  final PatientService _patientService = PatientService();
+  bool _isSaving = false;
   // ===== FORM STATE =====
   late DateTime _selectedDate;
   late String _selectedSession;
@@ -877,22 +882,52 @@ class _RescheduleAppointmentScreenState
                 borderRadius: BorderRadius.circular(20),
               ),
             ),
-            onPressed: () {
+            onPressed: _isSaving
+                ? null
+                : () async {
               Navigator.pop(ctx);
-              Navigator.pop(context);
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    widget.isReschedule
-                        ? 'Appointment rescheduled successfully'
-                        : 'Appointment updated successfully',
+              if (widget.appointmentId == null) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Appointment ID is unavailable'),
+                    behavior: SnackBarBehavior.floating,
                   ),
-                  backgroundColor: const Color(0xFF10B981),
-                ),
-              );
-
-              // TODO: Firebase එකෙන් booking එක update කරන්න
+                );
+                return;
+              }
+              setState(() => _isSaving = true);
+              try {
+                await _patientService.rescheduleAppointment(
+                  appointmentId: widget.appointmentId!,
+                  newDate: _selectedDate,
+                  newSession: _sessionTimeRanges[_selectedSession] ??
+                      _selectedSession,
+                );
+                if (!mounted) return;
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      widget.isReschedule
+                          ? 'Appointment rescheduled'
+                          : 'Appointment updated',
+                    ),
+                    backgroundColor: const Color(0xFF10B981),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              } catch (error) {
+                if (!mounted) return;
+                setState(() => _isSaving = false);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Could not update appointment: $error'),
+                    backgroundColor: Colors.red,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
             },
             child: const Text(
               'Yes, Confirm',
