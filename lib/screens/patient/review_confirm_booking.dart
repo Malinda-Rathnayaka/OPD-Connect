@@ -28,6 +28,7 @@ class _ReviewConfirmBookingScreenState
   String? _patientName;
   String? _date;
   late int _availableSlots;
+  int _totalSlots = 0;
   bool _isLoading = false;
   bool _isConfirmed = false;
   bool _isLoadingData = true;
@@ -40,7 +41,10 @@ class _ReviewConfirmBookingScreenState
     _loadData();
   }
 
-  String get _tokenNumber => 'T-${_availableSlots.toString().padLeft(3, '0')}';
+  String get _tokenNumber {
+    final tokenIndex = (_totalSlots - _availableSlots + 1).clamp(1, 999);
+    return 'T-${tokenIndex.toString().padLeft(3, '0')}';
+  }
 
   DateTime? _readDate(dynamic value) {
     if (value is Timestamp) return DateUtils.dateOnly(value.toDate());
@@ -81,12 +85,14 @@ class _ReviewConfirmBookingScreenState
         final data = sessionDoc.data()!;
         final appointmentDate = _readDate(data['date']);
         final available = (data['availableSlots'] as num?)?.toInt();
+        final total = (data['totalSlots'] as num?)?.toInt();
         if (mounted) {
           setState(() {
             _date = appointmentDate == null
                 ? 'N/A'
                 : _dateLabel(appointmentDate);
             _availableSlots = available ?? widget.availableSlots;
+            _totalSlots = total ?? available ?? widget.availableSlots;
           });
         }
       } else {
@@ -188,19 +194,21 @@ class _ReviewConfirmBookingScreenState
             if (patientName.isEmpty) {
               throw StateError('The selected patient name is unavailable.');
             }
+            final totalSlots =
+                (sessionData['totalSlots'] as num?)?.toInt() ??
+                (_totalSlots > 0 ? _totalSlots : currentSlots);
             final currentBookedCount =
                 (sessionData['bookedCount'] as num?)?.toInt() ??
-                (((sessionData['totalSlots'] as num?)?.toInt() ??
-                            currentSlots) -
-                        currentSlots)
-                    .clamp(0, 999);
-            final tokenNumber = 'T-${currentSlots.toString().padLeft(3, '0')}';
+                (totalSlots - currentSlots).clamp(0, 999);
+            final tokenIndex = (totalSlots - currentSlots + 1).clamp(1, 999);
+            final tokenNumber = 'T-${tokenIndex.toString().padLeft(3, '0')}';
             final newSlots = currentSlots - 1;
 
             debugPrint('DEBUG: Token = $tokenNumber');
             debugPrint('DEBUG: Reference = $referenceNumber');
             transaction.update(sessionRef, {
               'availableSlots': newSlots,
+              'totalSlots': totalSlots,
               'bookedCount': currentBookedCount + 1,
               'status': newSlots == 0 ? 'full' : 'available',
               'isAvailable': newSlots > 0,

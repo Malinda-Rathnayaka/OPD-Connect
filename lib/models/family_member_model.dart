@@ -35,8 +35,8 @@ class FamilyMemberModel {
       createdAt: createdAtValue is Timestamp
           ? createdAtValue.toDate()
           : createdAtValue is DateTime
-              ? createdAtValue
-              : null,
+          ? createdAtValue
+          : null,
     );
   }
 

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../models/patient_model.dart';
 import '../models/family_member_model.dart';
 
@@ -23,8 +24,9 @@ class PatientService {
           nic: userData['nic'] ?? '',
           phone: userData['phone'] ?? '',
           email: userData['email'] ?? '',
+          age: (userData['age'] as num?)?.toInt() ?? 0,
+          gender: userData['gender']?.toString() ?? '',
           preferredLanguage: userData['preferredLanguage'] ?? 'English',
-          profileImageUrl: userData['profileImageUrl'] ?? '',
           createdAt: userData['createdAt'] is Timestamp
               ? (userData['createdAt'] as Timestamp).toDate()
               : null,
@@ -92,7 +94,10 @@ class PatientService {
   /// Update an existing family member document.
   Future<void> updateFamilyMember(FamilyMemberModel member) async {
     try {
-      await _db.collection('family_members').doc(member.id).update(member.toMap());
+      await _db
+          .collection('family_members')
+          .doc(member.id)
+          .update(member.toMap());
     } catch (error) {
       rethrow;
     }

@@ -6,8 +6,9 @@ class PatientModel {
   final String nic;
   final String phone;
   final String email;
+  final int age;
+  final String gender;
   final String preferredLanguage;
-  final String profileImageUrl;
   final DateTime? createdAt;
 
   PatientModel({
@@ -16,8 +17,9 @@ class PatientModel {
     required this.nic,
     required this.phone,
     required this.email,
+    this.age = 0,
+    this.gender = '',
     this.preferredLanguage = 'English',
-    this.profileImageUrl = '',
     this.createdAt,
   });
 
@@ -30,13 +32,14 @@ class PatientModel {
       nic: map['nic'] ?? '',
       phone: map['phone'] ?? '',
       email: map['email'] ?? '',
+      age: (map['age'] as num?)?.toInt() ?? 0,
+      gender: map['gender']?.toString() ?? '',
       preferredLanguage: map['preferredLanguage'] ?? 'English',
-        profileImageUrl: map['profileImageUrl'] ?? '',
       createdAt: createdAtValue is Timestamp
           ? createdAtValue.toDate()
           : createdAtValue is DateTime
-              ? createdAtValue
-              : null,
+          ? createdAtValue
+          : null,
     );
   }
 
@@ -46,8 +49,9 @@ class PatientModel {
       'nic': nic,
       'phone': phone,
       'email': email,
+      'age': age,
+      'gender': gender,
       'preferredLanguage': preferredLanguage,
-      'profileImageUrl': profileImageUrl,
       'createdAt': Timestamp.fromDate(createdAt ?? DateTime.now()),
     };
   }
@@ -58,8 +62,9 @@ class PatientModel {
     String? nic,
     String? phone,
     String? email,
+    int? age,
+    String? gender,
     String? preferredLanguage,
-    String? profileImageUrl,
     DateTime? createdAt,
   }) {
     return PatientModel(
@@ -68,14 +73,15 @@ class PatientModel {
       nic: nic ?? this.nic,
       phone: phone ?? this.phone,
       email: email ?? this.email,
+      age: age ?? this.age,
+      gender: gender ?? this.gender,
       preferredLanguage: preferredLanguage ?? this.preferredLanguage,
-      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       createdAt: createdAt ?? this.createdAt,
     );
   }
 
   @override
   String toString() {
-    return 'PatientModel(id: $id, fullName: $fullName, nic: $nic, phone: $phone, email: $email, preferredLanguage: $preferredLanguage, profileImageUrl: $profileImageUrl, createdAt: $createdAt)';
+    return 'PatientModel(id: $id, fullName: $fullName, nic: $nic, phone: $phone, email: $email, age: $age, gender: $gender, preferredLanguage: $preferredLanguage, createdAt: $createdAt)';
   }
 }

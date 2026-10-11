@@ -43,29 +43,24 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
 
       final patientId = user.uid;
       final userDoc = await _firestore.collection('users').doc(patientId).get();
-
-      String patientName = 'Patient';
-
-      if (userDoc.exists && userDoc.data() != null) {
-        final data = userDoc.data()!;
-        if (data['name'] != null && data['name'].toString().trim().isNotEmpty) {
-          patientName = data['name'].toString().trim();
-        }
-      }
-
       final patientDoc = await _firestore
           .collection('patients')
           .doc(patientId)
           .get();
-      if (patientDoc.exists && patientDoc.data() != null) {
-        final data = patientDoc.data()!;
-        if (patientName == 'Patient' || patientName.trim().isEmpty) {
-          final fullName = data['fullName']?.toString().trim();
-          if (fullName != null && fullName.isNotEmpty) {
-            patientName = fullName;
-          }
-        }
-      }
+      final userData = userDoc.data() ?? <String, dynamic>{};
+      final patientData = patientDoc.data() ?? <String, dynamic>{};
+      final patientName =
+          [
+                patientData['fullName'],
+                userData['fullName'],
+                userData['name'],
+                user.displayName,
+              ]
+              .map((value) => value?.toString().trim() ?? '')
+              .firstWhere(
+                (name) => name.isNotEmpty && name.toLowerCase() != 'patient',
+                orElse: () => user.email?.split('@').first ?? 'Patient',
+              );
 
       final familySnapshot = await _firestore
           .collection('family_members')
@@ -136,6 +131,33 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     return DateFormat('EEE, d MMM yyyy').format(date);
   }
 
+  String get _selectedProfileName {
+    if (_selectedProfileIndex <= 0) return _patientName;
+    final memberIndex = _selectedProfileIndex - 1;
+    if (memberIndex >= _familyMembers.length) return _patientName;
+    return _familyMembers[memberIndex]['fullName']?.toString().trim() ??
+        _patientName;
+  }
+
+  bool _appointmentBelongsToSelectedProfile(Map<String, dynamic> appointment) {
+    final selectedName = _selectedProfileName.trim().toLowerCase();
+    final bookedForId = appointment['bookedForId']?.toString();
+    if (bookedForId != null && bookedForId.isNotEmpty) {
+      if (_selectedProfileIndex == 0) {
+        return bookedForId == _auth.currentUser?.uid;
+      }
+      final memberIndex = _selectedProfileIndex - 1;
+      if (memberIndex < _familyMembers.length) {
+        return bookedForId == _familyMembers[memberIndex]['id']?.toString();
+      }
+    }
+
+    final patientName = appointment['patientName']?.toString().trim();
+    return patientName != null &&
+        patientName.isNotEmpty &&
+        patientName.toLowerCase() == selectedName;
+  }
+
   Widget _buildLiveAppointmentCards() {
     final userId = _auth.currentUser?.uid;
     if (userId == null) {
@@ -161,6 +183,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         final today = DateUtils.dateOnly(DateTime.now());
         final appointments =
             snapshot.data?.docs.map((doc) => doc.data()).where((appointment) {
+              if (!_appointmentBelongsToSelectedProfile(appointment)) {
+                return false;
+              }
               final date = _parseAppointmentDate(
                 appointment['appointmentDate'],
               );
