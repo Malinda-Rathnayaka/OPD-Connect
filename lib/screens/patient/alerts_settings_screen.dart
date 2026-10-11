@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../../utils/language_strings.dart';
+import '../../services/patient_service.dart';
+import 'live_queue_tracker_screen.dart';
 
 class AlertsSettingsScreen extends StatefulWidget {
   const AlertsSettingsScreen({super.key});
@@ -9,6 +12,7 @@ class AlertsSettingsScreen extends StatefulWidget {
 }
 
 class _AlertsSettingsScreenState extends State<AlertsSettingsScreen> {
+  final PatientService _patientService = PatientService();
   int _selectedTab = 0;
   bool _smsNotifications = true;
   bool _pushAlerts = false;
@@ -27,10 +31,10 @@ class _AlertsSettingsScreenState extends State<AlertsSettingsScreen> {
 
   // ===== Threshold labels — භාෂාව අනුව =====
   List<String> get _thresholds => [
-        _t['threshold_3']!,
-        _t['threshold_5']!,
-        _t['threshold_10']!,
-      ];
+    _t['threshold_3']!,
+    _t['threshold_5']!,
+    _t['threshold_10']!,
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -52,6 +56,11 @@ class _AlertsSettingsScreenState extends State<AlertsSettingsScreen> {
           ),
         ),
         actions: [
+          if (_selectedTab == 0)
+            IconButton(
+              icon: const Icon(Icons.refresh, color: Colors.black87),
+              onPressed: () => setState(() {}),
+            ),
           IconButton(
             icon: const Icon(Icons.settings_outlined, color: Colors.black87),
             onPressed: () {},
@@ -138,8 +147,7 @@ class _AlertsSettingsScreenState extends State<AlertsSettingsScreen> {
                           child: _pillButton(
                             label: 'English',
                             isSelected: _selectedLanguage == 0,
-                            onTap: () =>
-                                setState(() => _selectedLanguage = 0),
+                            onTap: () => setState(() => _selectedLanguage = 0),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -147,8 +155,7 @@ class _AlertsSettingsScreenState extends State<AlertsSettingsScreen> {
                           child: _pillButton(
                             label: 'සිංහල',
                             isSelected: _selectedLanguage == 1,
-                            onTap: () =>
-                                setState(() => _selectedLanguage = 1),
+                            onTap: () => setState(() => _selectedLanguage = 1),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -156,8 +163,7 @@ class _AlertsSettingsScreenState extends State<AlertsSettingsScreen> {
                           child: _pillButton(
                             label: 'தமிழ்',
                             isSelected: _selectedLanguage == 2,
-                            onTap: () =>
-                                setState(() => _selectedLanguage = 2),
+                            onTap: () => setState(() => _selectedLanguage = 2),
                           ),
                         ),
                       ],
@@ -188,8 +194,7 @@ class _AlertsSettingsScreenState extends State<AlertsSettingsScreen> {
                             divisions: 2,
                             activeColor: const Color(0xFF3B82F6),
                             inactiveColor: Colors.grey.shade300,
-                            onChanged: (val) =>
-                                setState(() => _textSize = val),
+                            onChanged: (val) => setState(() => _textSize = val),
                           ),
                         ),
                         const Text(
@@ -237,7 +242,31 @@ class _AlertsSettingsScreenState extends State<AlertsSettingsScreen> {
                   ),
                 ),
               ] else ...[
-                _emptyAlertsState(),
+                StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: _patientService.getUpcomingAlerts(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(40),
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    }
+                    if (snapshot.hasError) {
+                      return _alertsErrorState(snapshot.error);
+                    }
+                    final alerts = snapshot.data ?? [];
+                    if (alerts.isEmpty) return _emptyAlertsState();
+                    return Column(
+                      children: [
+                        _alertsSummaryBanner(alerts.length),
+                        const SizedBox(height: 12),
+                        ...alerts.map((alert) => _alertCard(alert)),
+                      ],
+                    );
+                  },
+                ),
               ],
             ],
           ),
@@ -253,16 +282,25 @@ class _AlertsSettingsScreenState extends State<AlertsSettingsScreen> {
         },
         items: [
           BottomNavigationBarItem(
-              icon: const Icon(Icons.home), label: _t['nav_home']!),
+            icon: const Icon(Icons.home),
+            label: _t['nav_home']!,
+          ),
           BottomNavigationBarItem(
-              icon: const Icon(Icons.search), label: _t['nav_search']!),
+            icon: const Icon(Icons.search),
+            label: _t['nav_search']!,
+          ),
           BottomNavigationBarItem(
-              icon: const Icon(Icons.calendar_today),
-              label: _t['nav_appointments']!),
+            icon: const Icon(Icons.calendar_today),
+            label: _t['nav_appointments']!,
+          ),
           BottomNavigationBarItem(
-              icon: const Icon(Icons.people), label: _t['nav_queue']!),
+            icon: const Icon(Icons.people),
+            label: _t['nav_queue']!,
+          ),
           BottomNavigationBarItem(
-              icon: const Icon(Icons.person), label: _t['nav_profile']!),
+            icon: const Icon(Icons.person),
+            label: _t['nav_profile']!,
+          ),
         ],
       ),
     );
@@ -293,10 +331,7 @@ class _AlertsSettingsScreenState extends State<AlertsSettingsScreen> {
     );
   }
 
-  Widget _sectionCard({
-    required String title,
-    required List<Widget> children,
-  }) {
+  Widget _sectionCard({required String title, required List<Widget> children}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -352,10 +387,7 @@ class _AlertsSettingsScreenState extends State<AlertsSettingsScreen> {
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
             ],
           ),
@@ -411,8 +443,7 @@ class _AlertsSettingsScreenState extends State<AlertsSettingsScreen> {
       ),
       child: Column(
         children: [
-          Icon(Icons.notifications_none,
-              size: 60, color: Colors.grey.shade300),
+          Icon(Icons.notifications_none, size: 60, color: Colors.grey.shade300),
           const SizedBox(height: 16),
           Text(
             _t['no_alerts']!,
@@ -425,14 +456,223 @@ class _AlertsSettingsScreenState extends State<AlertsSettingsScreen> {
           const SizedBox(height: 6),
           Text(
             _t['no_alerts_sub']!,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade500,
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
             textAlign: TextAlign.center,
           ),
         ],
       ),
     );
+  }
+
+  Widget _alertsErrorState(Object? error) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.error_outline, size: 50, color: Colors.red.shade400),
+          const SizedBox(height: 12),
+          const Text(
+            'Could not load alerts',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            error.toString(),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: () => setState(() {}),
+            icon: const Icon(Icons.refresh),
+            label: const Text('Retry'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF3B82F6),
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _alertCard(Map<String, dynamic> alert) {
+    final severity = alert['severity']?.toString() ?? 'low';
+    final color = _severityColor(severity);
+    final icon = severity == 'high'
+        ? Icons.warning_amber_rounded
+        : severity == 'medium'
+        ? Icons.schedule_rounded
+        : Icons.notifications_active_rounded;
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border(left: BorderSide(color: color, width: 3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.06),
+            blurRadius: 8,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(9),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        alert['title']?.toString() ?? 'Appointment Alert',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      alert['timeAgo']?.toString() ?? '',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: color,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  alert['message']?.toString() ?? '',
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.4,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+                if ((alert['referenceNumber']?.toString() ?? '').isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.confirmation_number_outlined,
+                          size: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          alert['referenceNumber'].toString(),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      final appointmentId = alert['appointmentId']?.toString();
+                      if (appointmentId == null || appointmentId.isEmpty) {
+                        return;
+                      }
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const LiveQueueTrackerScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.arrow_forward, size: 16),
+                    label: const Text('View Appointment'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF3B82F6),
+                      padding: EdgeInsets.zero,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _alertsSummaryBanner(int count) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF3B82F6).withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.notifications_active_rounded,
+            color: Color(0xFF3B82F6),
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'You have $count upcoming reminder${count == 1 ? '' : 's'}\n'
+              'Stay on track with your appointments.',
+              style: const TextStyle(
+                fontSize: 13,
+                height: 1.5,
+                color: Color(0xFF1E40AF),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _severityColor(String severity) {
+    switch (severity) {
+      case 'high':
+        return const Color(0xFFEF4444);
+      case 'medium':
+        return const Color(0xFFF59E0B);
+      default:
+        return const Color(0xFF3B82F6);
+    }
   }
 }

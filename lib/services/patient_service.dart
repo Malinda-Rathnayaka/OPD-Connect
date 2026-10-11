@@ -66,6 +66,106 @@ class PatientService {
         );
   }
 
+  /// READ — Generate appointment reminders dynamically.
+  Stream<List<Map<String, dynamic>>> getUpcomingAlerts() {
+    final uid = currentUserId;
+    if (uid == null) return Stream.value([]);
+
+    return _db
+        .collection('appointments')
+        .where('patientId', isEqualTo: uid)
+        .where('status', isEqualTo: 'confirmed')
+        .snapshots()
+        .map((snapshot) {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final tomorrow = today.add(const Duration(days: 1));
+      final alerts = <Map<String, dynamic>>[];
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final rawDate = data['appointmentDate'];
+        DateTime? appointmentDate;
+        if (rawDate is Timestamp) {
+          appointmentDate = rawDate.toDate();
+        } else if (rawDate is String) {
+          appointmentDate = DateTime.tryParse(rawDate);
+        } else if (rawDate is DateTime) {
+          appointmentDate = rawDate;
+        }
+        if (appointmentDate == null) continue;
+
+        final appointmentDay = DateTime(
+          appointmentDate.year,
+          appointmentDate.month,
+          appointmentDate.day,
+        );
+        final timeSlot = (data['appointmentTime'] ?? '').toString();
+        final token = (data['tokenNumber'] ?? 'T-000').toString();
+        final referenceNumber = (data['referenceNumber'] ?? '').toString();
+
+        if (appointmentDay == today) {
+          alerts.add({
+            'id': 'today_${doc.id}',
+            'title': "Today's Appointment",
+            'message':
+                'You have an appointment today at $timeSlot. Token: $token. '
+                'Please arrive 15 minutes early.',
+            'type': 'reminder',
+            'severity': 'high',
+            'isRead': false,
+            'appointmentId': doc.id,
+            'appointmentDate': appointmentDate,
+            'referenceNumber': referenceNumber,
+            'tokenNumber': token,
+            'timeAgo': 'Today',
+          });
+        } else if (appointmentDay == tomorrow) {
+          alerts.add({
+            'id': 'tomorrow_${doc.id}',
+            'title': "Tomorrow's Appointment",
+            'message':
+                'Reminder: You have an appointment tomorrow at $timeSlot. '
+                'Token: $token.',
+            'type': 'reminder',
+            'severity': 'medium',
+            'isRead': false,
+            'appointmentId': doc.id,
+            'appointmentDate': appointmentDate,
+            'referenceNumber': referenceNumber,
+            'tokenNumber': token,
+            'timeAgo': 'Tomorrow',
+          });
+        } else if (appointmentDay.isAfter(tomorrow) &&
+            appointmentDay.difference(today).inDays <= 7) {
+          final daysAway = appointmentDay.difference(today).inDays;
+          alerts.add({
+            'id': 'upcoming_${doc.id}',
+            'title': 'Upcoming Appointment',
+            'message':
+                'Your appointment is in $daysAway days ($timeSlot). '
+                'Token: $token.',
+            'type': 'reminder',
+            'severity': 'low',
+            'isRead': false,
+            'appointmentId': doc.id,
+            'appointmentDate': appointmentDate,
+            'referenceNumber': referenceNumber,
+            'tokenNumber': token,
+            'timeAgo': 'In $daysAway days',
+          });
+        }
+      }
+
+      alerts.sort((a, b) {
+        final aDate = a['appointmentDate'] as DateTime;
+        final bDate = b['appointmentDate'] as DateTime;
+        return aDate.compareTo(bDate);
+      });
+      return alerts;
+    });
+  }
+
   Future<Map<String, dynamic>?> getAppointment(String id) async {
     final doc = await _db.collection('appointments').doc(id).get();
     if (!doc.exists) return null;
