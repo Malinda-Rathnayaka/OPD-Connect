@@ -27,7 +27,7 @@ class UserModel {
       emailOrPhone: map['emailOrPhone'] ?? map['email'] ?? '',
       email: map['email'] ?? map['emailOrPhone'] ?? '',
       phone: map['phone'] ?? '',
-      name: map['name'] ?? '',
+      name: map['name'] ?? map['fullName'] ?? '',
       role: map['role'] ?? 'patient',
       isVerified: map['isVerified'] ?? true,
       isApproved: map['isApproved'] ?? (map['role'] != 'doctor'),
