@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 
 import 'my_family_profile.dart';
 import 'patient_home_screen.dart';
+import 'patient_live_queue_screen.dart';
 
 class BookingConfirmedScreen extends StatefulWidget {
   final String date;
@@ -89,13 +90,6 @@ Scan the QR code at the hospital counter to check in.
     } finally {
       if (mounted) setState(() => _isSharing = false);
     }
-  }
-
-  void _openDirectBookingFlow(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const MyFamilyProfileScreen()),
-    );
   }
 
   @override
@@ -281,7 +275,7 @@ Scan the QR code at the hospital counter to check in.
         ),
         bottomNavigationBar: BottomNavigationBar(
           type: BottomNavigationBarType.fixed,
-          currentIndex: 2,
+          currentIndex: 1,
           selectedItemColor: Colors.blue,
           unselectedItemColor: Colors.grey,
           onTap: (index) {
@@ -296,12 +290,23 @@ Scan the QR code at the hospital counter to check in.
                 );
                 break;
               case 1:
-              case 3:
-                _openDirectBookingFlow(context);
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PatientHomeScreen(),
+                  ),
+                );
                 break;
               case 2:
-              case 4:
-                Navigator.push(
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PatientLiveQueueScreen(),
+                  ),
+                );
+                break;
+              case 3:
+                Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
                     builder: (context) => const MyFamilyProfileScreen(),
@@ -315,7 +320,6 @@ Scan the QR code at the hospital counter to check in.
               icon: Icon(Icons.home_outlined),
               label: 'Home',
             ),
-            BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
             BottomNavigationBarItem(
               icon: Icon(Icons.calendar_today_outlined),
               label: 'Appointments',

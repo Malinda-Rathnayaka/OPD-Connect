@@ -380,21 +380,20 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   }
 
   void _handleBottomNavTap(int index) {
+    if (index == _selectedIndex) return;
+
     setState(() {
       _selectedIndex = index;
     });
 
     switch (index) {
       case 0:
-        break;
       case 1:
-      case 2:
-        _openDirectBookingFlow();
         break;
-      case 3:
+      case 2:
         _navigateTo(PatientLiveQueueScreen());
         break;
-      case 4:
+      case 3:
         _navigateTo(const MyFamilyProfileScreen());
         break;
     }
@@ -637,7 +636,6 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
               icon: Icon(Icons.home_outlined),
               label: 'Home',
             ),
-            BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
             BottomNavigationBarItem(
               icon: Icon(Icons.calendar_today_outlined),
               label: 'Appointments',

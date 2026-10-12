@@ -7,6 +7,7 @@ import '../../models/patient_model.dart';
 import '../../services/patient_service.dart';
 import '../auth/login_screen.dart';
 import 'patient_home_screen.dart';
+import 'patient_live_queue_screen.dart';
 import 'select_appointment_slot.dart';
 
 class MyFamilyProfileScreen extends StatefulWidget {
@@ -970,13 +971,13 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
             ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        currentIndex: 4,
+        currentIndex: 3,
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
         onTap: (index) {
           switch (index) {
             case 0:
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
                   builder: (context) => const PatientHomeScreen(),
@@ -984,11 +985,22 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
               );
               break;
             case 1:
-            case 2:
-            case 3:
-              _goToBookingFlow();
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PatientHomeScreen(),
+                ),
+              );
               break;
-            case 4:
+            case 2:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PatientLiveQueueScreen(),
+                ),
+              );
+              break;
+            case 3:
               break;
           }
         },
@@ -997,7 +1009,6 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
             icon: Icon(Icons.home_outlined),
             label: 'Home',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
           BottomNavigationBarItem(
             icon: Icon(Icons.calendar_today_outlined),
             label: 'Appointments',
