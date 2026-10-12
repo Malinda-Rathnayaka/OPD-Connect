@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../utils/language_strings.dart';
 import '../../services/patient_service.dart';
-import 'live_queue_tracker_screen.dart';
 
 class AlertsSettingsScreen extends StatefulWidget {
   const AlertsSettingsScreen({super.key});
@@ -242,6 +241,7 @@ class _AlertsSettingsScreenState extends State<AlertsSettingsScreen> {
                   ),
                 ),
               ] else ...[
+                // ===== ALERTS TAB =====
                 StreamBuilder<List<Map<String, dynamic>>>(
                   stream: _patientService.getUpcomingAlerts(),
                   builder: (context, snapshot) {
@@ -507,6 +507,9 @@ class _AlertsSettingsScreenState extends State<AlertsSettingsScreen> {
     );
   }
 
+  // ═══════════════════════════════════════════════════════════
+  //  ALERT CARD (View Appointment button REMOVED)
+  // ═══════════════════════════════════════════════════════════
   Widget _alertCard(Map<String, dynamic> alert) {
     final severity = alert['severity']?.toString() ?? 'low';
     final color = _severityColor(severity);
@@ -600,30 +603,6 @@ class _AlertsSettingsScreenState extends State<AlertsSettingsScreen> {
                       ],
                     ),
                   ),
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: () {
-                      final appointmentId = alert['appointmentId']?.toString();
-                      if (appointmentId == null || appointmentId.isEmpty) {
-                        return;
-                      }
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const LiveQueueTrackerScreen(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.arrow_forward, size: 16),
-                    label: const Text('View Appointment'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF3B82F6),
-                      padding: EdgeInsets.zero,
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
