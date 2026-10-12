@@ -18,37 +18,8 @@ class LiveQueueTrackerScreen extends StatefulWidget {
 }
 
 class _LiveQueueTrackerScreenState extends State<LiveQueueTrackerScreen>
-    with SingleTickerProviderStateMixin {
+{
   final PatientService _service = PatientService();
-
-  late AnimationController _animationController;
-  late Animation<double> _progressAnimation;
-  double _currentProgress = 0.0;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    );
-
-    _progressAnimation = Tween<double>(begin: 0.0, end: 0.7).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeOutCubic,
-      ),
-    );
-
-    _animationController.forward();
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {

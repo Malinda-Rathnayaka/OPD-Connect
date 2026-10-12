@@ -36,7 +36,6 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
   static const Color _dangerDark = Color(0xFF991B1B);
   static const Color _dangerLight = Color(0xFFEF4444);
   static const Color _ink = Color(0xFF0F172A);
-  static const Color _muted = Color(0xFF64748B);
   static const Color _surface = Colors.white;
   static const Color _border = Color(0xFFE2E8F0);
   static const Color _fieldFill = Color(0xFFF8FAFC);

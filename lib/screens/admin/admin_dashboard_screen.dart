@@ -26,7 +26,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   static const Color _primary = Color(0xFF2563EB);
   static const Color _accent = Color(0xFF3B82F6);
   static const Color _surface = Color(0xFFF5F7FB);
-  static const Color _cardBg = Color(0xFFFFFFFF);
   static const Color _textPrimary = Color(0xFF0F172A);
   static const Color _textSecondary = Color(0xFF64748B);
 

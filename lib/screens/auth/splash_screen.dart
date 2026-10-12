@@ -57,7 +57,6 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Size size = MediaQuery.of(context).size;
     final bool isLast = _currentPage == _onboardingData.length - 1;
 
     return Scaffold(

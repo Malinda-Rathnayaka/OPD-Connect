@@ -20,8 +20,6 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
   static const _bgMid = Color(0xFFF8FAFC);
   static const _bgBottom = Color(0xFFFFFFFF);
   static const _primary = Color(0xFF2563EB);
-  static const _primaryDark = Color(0xFF1E40AF);
-  static const _primaryLight = Color(0xFF3B82F6);
   static const _violet = Color(0xFF7C3AED);
   static const _violetDark = Color(0xFF6D28D9);
   static const _ink = Color(0xFF0F172A);

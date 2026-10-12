@@ -803,7 +803,6 @@ class _RescheduleAppointmentScreenState
   void _showConfirmationDialog(BuildContext context) {
     final action = widget.isReschedule ? 'reschedule' : 'modify';
     final sessionColor = _sessionColors[_selectedSession] ?? Colors.blue;
-    final sessionIcon = _sessionIcons[_selectedSession] ?? Icons.access_time;
 
     showDialog(
       context: context,

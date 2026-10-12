@@ -50,7 +50,7 @@ class HospitalService {
     try {
       final normalizedQuery = query.trim();
       if (normalizedQuery.isEmpty) {
-        return getAllHospitals();
+        return await getAllHospitals();
       }
 
       final snapshot = await _db

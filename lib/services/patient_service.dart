@@ -2,6 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../models/family_member_model.dart';
+import '../models/patient_model.dart';
+
 /// Service class for patient operations:
 /// - Appointments CRUD
 /// - Departments (admin) CRUD
@@ -527,12 +530,6 @@ class PatientService {
   // ============================================================
 
   String _formatDate(DateTime d) => '${d.day}/${d.month}/${d.year}';
-
-import '../models/patient_model.dart';
-import '../models/family_member_model.dart';
-
-class PatientService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   /// Get patient by Firestore document ID from the `patients` collection.
   /// If the patient record is not yet created, fall back to the `users` collection.
