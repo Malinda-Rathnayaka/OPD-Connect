@@ -1,6 +1,9 @@
 import 'dart:ui';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../../services/doctor_service.dart';
 
 class ActiveConsultationScreen extends StatefulWidget {
@@ -101,8 +104,8 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
               ),
             ),
             const SizedBox(height: 2),
-            const Text(
-              'ROOM 04 • DR. KAMAL PERERA',
+            Text(
+              _doctorDisplayName,
               style: TextStyle(
                 color: _primary,
                 fontSize: 10.5,
@@ -132,19 +135,25 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
             top: -140,
             left: -120,
             child: _glow(
-                color: const Color(0xFF93C5FD).withOpacity(0.35), radius: 260),
+              color: const Color(0xFF93C5FD).withOpacity(0.35),
+              radius: 260,
+            ),
           ),
           Positioned(
             top: 100,
             right: -160,
             child: _glow(
-                color: const Color(0xFFBFDBFE).withOpacity(0.45), radius: 240),
+              color: const Color(0xFFBFDBFE).withOpacity(0.45),
+              radius: 240,
+            ),
           ),
           Positioned(
             bottom: -180,
             left: -100,
             child: _glow(
-                color: const Color(0xFFDBEAFE).withOpacity(0.55), radius: 280),
+              color: const Color(0xFFDBEAFE).withOpacity(0.55),
+              radius: 280,
+            ),
           ),
 
           // 3. Content
@@ -171,7 +180,14 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _patientHeader(patientData),
+                    FutureBuilder<Map<String, dynamic>>(
+                      future: _loadPatientDetails(patientData),
+                      builder: (context, detailsSnapshot) {
+                        return _patientHeader(
+                          detailsSnapshot.data ?? patientData,
+                        );
+                      },
+                    ),
                     const SizedBox(height: 16),
 
                     // Patient history
@@ -227,14 +243,13 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
                       onTap: _isSaving
                           ? null
                           : () => _submit(
-                                queueDocId: queueDocId,
-                                patientId: patientId,
-                                patientName: patientData['patientName']
-                                        ?.toString() ??
-                                    'Unknown Patient',
-                                tokenNo:
-                                    patientData['tokenNo']?.toString() ?? '',
-                              ),
+                              queueDocId: queueDocId,
+                              patientId: patientId,
+                              patientName:
+                                  patientData['patientName']?.toString() ??
+                                  'Unknown Patient',
+                              tokenNo: patientData['tokenNo']?.toString() ?? '',
+                            ),
                       icon: Icons.arrow_forward_rounded,
                       loading: _isSaving,
                     ),
@@ -286,7 +301,8 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Treatment saved and next patient called.')),
+            content: Text('Treatment saved and next patient called.'),
+          ),
         );
       }
     } catch (error) {
@@ -305,38 +321,38 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
   // ─────────────────────────────────────────────────────────────
 
   Widget _emptyState() => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: _primary.withOpacity(0.08),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.person_search_rounded,
-                  size: 40,
-                  color: _primary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'No patient currently in consultation.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: _muted,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  height: 1.5,
-                ),
-              ),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: _primary.withOpacity(0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.person_search_rounded,
+              size: 40,
+              color: _primary,
+            ),
           ),
-        ),
-      );
+          const SizedBox(height: 16),
+          const Text(
+            'No patient currently in consultation.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: _muted,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 
   Widget _patientHeader(Map<String, dynamic> patientData) {
     return Container(
@@ -419,16 +435,70 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
             runSpacing: 8,
             children: [
               _headerChip(
-                  Icons.badge_outlined, 'NIC: ${patientData['nic'] ?? 'N/A'}'),
-              _headerChip(Icons.phone_outlined,
-                  'Phone: ${patientData['phone'] ?? 'N/A'}'),
-              _headerChip(Icons.confirmation_number_outlined,
-                  'Token ${patientData['tokenNo'] ?? '-'}'),
+                Icons.badge_outlined,
+                'NIC: ${patientData['nic'] ?? 'N/A'}',
+              ),
+              _headerChip(
+                Icons.phone_outlined,
+                'Phone: ${patientData['phone'] ?? 'N/A'}',
+              ),
+              _headerChip(
+                Icons.confirmation_number_outlined,
+                'Token ${patientData['tokenNo'] ?? '-'}',
+              ),
             ],
           ),
         ],
       ),
     );
+  }
+
+  String get _doctorDisplayName {
+    final user = FirebaseAuth.instance.currentUser;
+    final name = user?.displayName?.trim() ?? '';
+    if (name.isEmpty) {
+      return user?.email?.split('@').first ?? 'Doctor';
+    }
+    return name.toLowerCase().startsWith('dr.') ? name : 'Dr. $name';
+  }
+
+  Future<Map<String, dynamic>> _loadPatientDetails(
+    Map<String, dynamic> queueData,
+  ) async {
+    final patientId = queueData['patientId']?.toString().trim() ?? '';
+    if (patientId.isEmpty) return queueData;
+
+    final firestore = FirebaseFirestore.instance;
+    final patientSnapshot = await firestore
+        .collection('patients')
+        .doc(patientId)
+        .get();
+    final userSnapshot = await firestore
+        .collection('users')
+        .doc(patientId)
+        .get();
+    final patientData = patientSnapshot.data() ?? <String, dynamic>{};
+    final userData = userSnapshot.data() ?? <String, dynamic>{};
+
+    String valueFrom(String key) {
+      for (final source in [patientData, userData, queueData]) {
+        final value = source[key]?.toString().trim() ?? '';
+        if (value.isNotEmpty) return value;
+      }
+      return '';
+    }
+
+    final fullName = valueFrom('fullName');
+    final name = fullName.isNotEmpty ? fullName : valueFrom('name');
+
+    return {
+      ...queueData,
+      'patientName': name.isNotEmpty
+          ? name
+          : queueData['patientName']?.toString() ?? 'Patient',
+      'nic': valueFrom('nic'),
+      'phone': valueFrom('phone'),
+    };
   }
 
   Widget _headerChip(IconData icon, String text) {
@@ -507,7 +577,9 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: _primary.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(20),
@@ -535,9 +607,13 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
                     ),
                     const SizedBox(height: 8),
                     _historyLine(
-                        'Diagnosis', record['diagnosis'] ?? 'Not recorded'),
-                    _historyLine('Treatment',
-                        record['prescription'] ?? 'Not recorded'),
+                      'Diagnosis',
+                      record['diagnosis'] ?? 'Not recorded',
+                    ),
+                    _historyLine(
+                      'Treatment',
+                      record['prescription'] ?? 'Not recorded',
+                    ),
                     if ((record['advice'] ?? '').toString().isNotEmpty)
                       _historyLine('Notes', record['advice']),
                   ],
@@ -585,10 +661,7 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
           children: [
             TextSpan(
               text: '$label: ',
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                color: _ink,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w700, color: _ink),
             ),
             TextSpan(
               text: value,
@@ -601,27 +674,27 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
   }
 
   Widget _sectionHeader(String title) => Row(
-        children: [
-          Container(
-            width: 4,
-            height: 18,
-            decoration: BoxDecoration(
-              color: _primary,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: _ink,
-              letterSpacing: -0.2,
-            ),
-          ),
-        ],
-      );
+    children: [
+      Container(
+        width: 4,
+        height: 18,
+        decoration: BoxDecoration(
+          color: _primary,
+          borderRadius: BorderRadius.circular(4),
+        ),
+      ),
+      const SizedBox(width: 10),
+      Text(
+        title,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+          color: _ink,
+          letterSpacing: -0.2,
+        ),
+      ),
+    ],
+  );
 
   Widget _buildField({
     required String id,
@@ -665,7 +738,9 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
             labelText: label,
             hintText: hint,
             hintStyle: TextStyle(
-                color: Colors.blueGrey.shade300, fontSize: 13.5),
+              color: Colors.blueGrey.shade300,
+              fontSize: 13.5,
+            ),
             labelStyle: TextStyle(
               color: isFocused ? _primary : Colors.blueGrey.shade500,
               fontSize: 14,
@@ -684,8 +759,10 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
             ),
             filled: true,
             fillColor: _fieldFill,
-            contentPadding:
-                const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 18,
+              horizontal: 16,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(color: _border),
@@ -777,41 +854,41 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
   }
 
   Widget _chipIcon({required IconData icon, required Color color}) => Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(icon, color: color, size: 18),
-      );
+    padding: const EdgeInsets.all(8),
+    decoration: BoxDecoration(
+      color: color.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Icon(icon, color: color, size: 18),
+  );
 
   Widget _glow({required Color color, required double radius}) => Container(
-        width: radius,
-        height: radius,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [color, color.withOpacity(0.0)],
-            stops: const [0.0, 1.0],
-          ),
-        ),
-      );
+    width: radius,
+    height: radius,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      gradient: RadialGradient(
+        colors: [color, color.withOpacity(0.0)],
+        stops: const [0.0, 1.0],
+      ),
+    ),
+  );
 
   BoxDecoration _cardDecoration({double radius = 18}) => BoxDecoration(
-        color: _surface,
-        borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: _border),
-        boxShadow: [
-          BoxShadow(
-            color: _primary.withOpacity(0.06),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      );
+    color: _surface,
+    borderRadius: BorderRadius.circular(radius),
+    border: Border.all(color: _border),
+    boxShadow: [
+      BoxShadow(
+        color: _primary.withOpacity(0.06),
+        blurRadius: 18,
+        offset: const Offset(0, 8),
+      ),
+      BoxShadow(
+        color: Colors.black.withOpacity(0.02),
+        blurRadius: 6,
+        offset: const Offset(0, 2),
+      ),
+    ],
+  );
 }

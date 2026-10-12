@@ -115,7 +115,8 @@ service cloud.firestore {
     }
 
     match /emergency_records/{recordId} {
-      allow read: if isDoctor() && resource.data.doctorId == request.auth.uid;
+      allow read: if isAdmin()
+        || (isDoctor() && resource.data.doctorId == request.auth.uid);
       allow create: if isDoctor() && request.resource.data.doctorId == request.auth.uid;
     }
 

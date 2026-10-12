@@ -15,13 +15,19 @@ class DoctorLeaveScreen extends StatefulWidget {
 class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
   final DoctorService _service = DoctorService();
 
-  // ---- Theme tokens (aligned with auth + dashboard) ----
+  // ---- Theme tokens (blue-dominant palette) ----
   static const _bgTop = Color(0xFFEFF6FF);
   static const _bgMid = Color(0xFFF8FAFC);
   static const _bgBottom = Color(0xFFFFFFFF);
+
+  // Primary blue (matches your app)
   static const _primary = Color(0xFF2563EB);
-  static const _violet = Color(0xFF7C3AED);
-  static const _violetDark = Color(0xFF6D28D9);
+  static const _primaryDark = Color(0xFF1E40AF);
+  static const _primaryLight = Color(0xFF3B82F6);
+
+  // Accent used only for small subtitle text (kept for visual variety)
+  static const _accent = Color(0xFF7C3AED);
+
   static const _ink = Color(0xFF0F172A);
   static const _muted = Color(0xFF64748B);
   static const _surface = Colors.white;
@@ -95,7 +101,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
             const Text(
               'MANAGE YOUR OPD AVAILABILITY',
               style: TextStyle(
-                color: _violet,
+                color: _accent,
                 fontSize: 10.5,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.6,
@@ -118,7 +124,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
             ),
           ),
 
-          // 2. Subtle blue + violet glows
+          // 2. Subtle blue glows
           Positioned(
             top: -140,
             left: -120,
@@ -129,7 +135,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
             top: 100,
             right: -160,
             child: _glow(
-                color: const Color(0xFFC4B5FD).withOpacity(0.35), radius: 240),
+                color: const Color(0xFFBFDBFE).withOpacity(0.45), radius: 240),
           ),
           Positioned(
             bottom: -180,
@@ -153,12 +159,34 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
               if (leaves.isEmpty) {
                 return _emptyState();
               }
-              return ListView.separated(
+
+              final pendingCount =
+                  leaves.where((l) => l.status == 'PENDING').length;
+              final approvedCount =
+                  leaves.where((l) => l.status == 'APPROVED').length;
+              final rejectedCount =
+                  leaves.where((l) => l.status == 'REJECTED').length;
+
+              return ListView(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
                 physics: const BouncingScrollPhysics(),
-                itemCount: leaves.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (_, index) => _leaveCard(leaves[index]),
+                children: [
+                  _buildHeroCard(
+                    total: leaves.length,
+                    pending: pendingCount,
+                    approved: approvedCount,
+                    rejected: rejectedCount,
+                  ),
+                  const SizedBox(height: 22),
+                  _sectionHeader('Your Leave Requests'),
+                  const SizedBox(height: 14),
+                  ...leaves.map(
+                    (leave) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _leaveCard(leave),
+                    ),
+                  ),
+                ],
               );
             },
           ),
@@ -169,7 +197,180 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────
-  // Floating Action Button (glow pill)
+  // Hero stats card (BLUE gradient)
+  // ─────────────────────────────────────────────────────────────
+  Widget _buildHeroCard({
+    required int total,
+    required int pending,
+    required int approved,
+    required int rejected,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [_primaryDark, _primary, _primaryLight],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          stops: [0.0, 0.55, 1.0],
+        ),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: _primary.withOpacity(0.32),
+            blurRadius: 26,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.28),
+                    width: 1,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.event_note_rounded,
+                  color: Colors.white,
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'LEAVE OVERVIEW',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.1,
+                  ),
+                ),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.35),
+                    width: 1,
+                  ),
+                ),
+                child: Text(
+                  '$total Total',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _heroStat(
+                  label: 'Pending',
+                  value: pending,
+                  icon: Icons.hourglass_bottom_rounded,
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 42,
+                color: Colors.white.withOpacity(0.20),
+              ),
+              Expanded(
+                child: _heroStat(
+                  label: 'Approved',
+                  value: approved,
+                  icon: Icons.check_circle_rounded,
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 42,
+                color: Colors.white.withOpacity(0.20),
+              ),
+              Expanded(
+                child: _heroStat(
+                  label: 'Rejected',
+                  value: rejected,
+                  icon: Icons.cancel_rounded,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _heroStat({
+    required String label,
+    required int value,
+    required IconData icon,
+  }) =>
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.18),
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Icon(icon, color: Colors.white, size: 14),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              value.toString(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.5,
+                height: 1.0,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.85),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
+        ),
+      );
+
+  // ─────────────────────────────────────────────────────────────
+  // Floating Action Button (BLUE glow pill)
   // ─────────────────────────────────────────────────────────────
   Widget _buildFab() {
     return Container(
@@ -177,7 +378,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: _violet.withOpacity(0.45),
+            color: _primary.withOpacity(0.45),
             blurRadius: 24,
             spreadRadius: 0,
             offset: const Offset(0, 10),
@@ -185,7 +386,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
         ],
       ),
       child: FloatingActionButton.extended(
-        backgroundColor: _violet,
+        backgroundColor: _primary,
         foregroundColor: Colors.white,
         elevation: 0,
         highlightElevation: 0,
@@ -204,113 +405,185 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────
-  // Leave card (blue-tinted with violet accent)
+  // Section header (BLUE accent bar)
+  // ─────────────────────────────────────────────────────────────
+  Widget _sectionHeader(String title) => Row(
+        children: [
+          Container(
+            width: 4,
+            height: 18,
+            decoration: BoxDecoration(
+              color: _primary,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: _ink,
+                letterSpacing: -0.2,
+              ),
+            ),
+          ),
+        ],
+      );
+
+  // ─────────────────────────────────────────────────────────────
+  // Leave card
   // ─────────────────────────────────────────────────────────────
   Widget _leaveCard(DoctorLeaveModel leave) {
     final pending = leave.status == 'PENDING';
     final colors = _statusColors(leave.status);
+
     return Container(
       decoration: _cardDecoration(),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [_violet, _violetDark],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _violet.withOpacity(0.30),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.event_busy_rounded,
-                    color: Colors.white,
-                    size: 20,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Status-colored left accent bar (kept for quick scanning)
+              Container(
+                width: 5,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [colors.$1, colors.$1.withOpacity(0.6)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        _prettyDate(leave.date),
-                        style: const TextStyle(
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w700,
-                          color: _ink,
-                          letterSpacing: -0.2,
-                        ),
+                      Row(
+                        children: [
+                          // BLUE icon badge
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [_primaryDark, _primary],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _primary.withOpacity(0.30),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.event_busy_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _prettyDate(leave.date),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: _ink,
+                                    letterSpacing: -0.2,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.confirmation_number_outlined,
+                                      size: 11,
+                                      color: _muted,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Flexible(
+                                      child: Text(
+                                        leave.date,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: _muted,
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.w500,
+                                          letterSpacing: 0.3,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _statusPill(leave.status, colors.$1, colors.$2),
+                        ],
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        leave.date,
-                        style: const TextStyle(
-                          color: _muted,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.3,
-                        ),
+                      const SizedBox(height: 14),
+                      _infoRow(
+                        icon: Icons.info_outline_rounded,
+                        label: 'Reason',
+                        value: leave.reason,
+                        color: _primary,
                       ),
+                      if (leave.notes.trim().isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        _infoRow(
+                          icon: Icons.sticky_note_2_outlined,
+                          label: 'Notes',
+                          value: leave.notes,
+                          color: _primary,
+                        ),
+                      ],
+                      if (pending) ...[
+                        const SizedBox(height: 14),
+                        const Divider(height: 1, color: _border),
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            _actionPill(
+                              icon: Icons.edit_outlined,
+                              label: 'Edit',
+                              color: _primary,
+                              onTap: () => _showLeaveDialog(leave: leave),
+                            ),
+                            const SizedBox(width: 8),
+                            _actionPill(
+                              icon: Icons.delete_outline,
+                              label: 'Cancel',
+                              color: const Color(0xFFDC2626),
+                              onTap: () => _deleteLeave(leave),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
-                _statusPill(leave.status, colors.$1, colors.$2),
-              ],
-            ),
-            const SizedBox(height: 14),
-            _infoRow(
-              icon: Icons.info_outline_rounded,
-              label: 'Reason',
-              value: leave.reason,
-              color: _violet,
-            ),
-            if (leave.notes.trim().isNotEmpty) ...[
-              const SizedBox(height: 8),
-              _infoRow(
-                icon: Icons.sticky_note_2_outlined,
-                label: 'Notes',
-                value: leave.notes,
-                color: _primary,
               ),
             ],
-            if (pending) ...[
-              const SizedBox(height: 14),
-              const Divider(height: 1, color: _border),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  _actionPill(
-                    icon: Icons.edit_outlined,
-                    label: 'Edit',
-                    color: _primary,
-                    onTap: () => _showLeaveDialog(leave: leave),
-                  ),
-                  const SizedBox(width: 8),
-                  _actionPill(
-                    icon: Icons.delete_outline,
-                    label: 'Cancel',
-                    color: const Color(0xFFDC2626),
-                    onTap: () => _deleteLeave(leave),
-                  ),
-                ],
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );
@@ -431,7 +704,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────
-  // Empty state
+  // Empty state (BLUE accent)
   // ─────────────────────────────────────────────────────────────
   Widget _emptyState() => Center(
         child: Padding(
@@ -440,30 +713,37 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: _violet.withOpacity(0.08),
+                  gradient: LinearGradient(
+                    colors: [
+                      _primary.withOpacity(0.14),
+                      _primaryLight.withOpacity(0.06),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.event_busy_rounded,
                   size: 40,
-                  color: _violet,
+                  color: _primary,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
               const Text(
                 'No leave requests yet.',
                 style: TextStyle(
                   color: _ink,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
                   letterSpacing: -0.2,
                 ),
               ),
               const SizedBox(height: 6),
               const Text(
-                'Tap “Request Leave” to submit your first one.',
+                'Tap “Request Leave” below to submit your first request.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: _muted,
@@ -494,7 +774,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
       );
 
   // ─────────────────────────────────────────────────────────────
-  // Leave dialog — styled fields
+  // Leave dialog — BLUE gradient header
   // ─────────────────────────────────────────────────────────────
   Future<void> _showLeaveDialog({DoctorLeaveModel? leave}) async {
     final dateController =
@@ -506,7 +786,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
         context: context,
         builder: (dialogContext) => AlertDialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(24),
           ),
           titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
           contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
@@ -516,36 +796,48 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [_violet, _violetDark],
+                    colors: [_primaryDark, _primary],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
-                      color: _violet.withOpacity(0.30),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+                      color: _primary.withOpacity(0.35),
+                      blurRadius: 14,
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),
                 child: const Icon(
                   Icons.event_busy_rounded,
                   color: Colors.white,
-                  size: 20,
+                  size: 22,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               Text(
                 leave == null ? 'Request Leave' : 'Edit Leave Request',
                 style: const TextStyle(
                   fontWeight: FontWeight.w800,
-                  fontSize: 18,
+                  fontSize: 19,
                   color: _ink,
                   letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                leave == null
+                    ? 'Submit a new leave request for approval.'
+                    : 'Update the details of your leave request.',
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: _muted,
+                  fontWeight: FontWeight.w500,
+                  height: 1.4,
                 ),
               ),
             ],
@@ -785,7 +1077,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────
-  // Delete confirm dialog (styled)
+  // Delete confirm dialog
   // ─────────────────────────────────────────────────────────────
   Future<void> _deleteLeave(DoctorLeaveModel leave) async {
     final confirmed = await showDialog<bool>(

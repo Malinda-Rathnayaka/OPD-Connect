@@ -1,16 +1,14 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
+
 import '../../services/doctor_service.dart';
 
 class EmergencyTreatmentScreen extends StatefulWidget {
   final String? sessionId;
   final String? queueDocId;
 
-  const EmergencyTreatmentScreen({
-    super.key,
-    this.sessionId,
-    this.queueDocId,
-  });
+  const EmergencyTreatmentScreen({super.key, this.sessionId, this.queueDocId});
 
   @override
   State<EmergencyTreatmentScreen> createState() =>
@@ -28,13 +26,17 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
 
   String? _focusedField;
 
-  // ---- Theme tokens (aligned with the app) ----
-  static const Color _bgTop = Color(0xFFFFF1F2);
-  static const Color _bgMid = Color(0xFFF8FAFC);
+  // ---- Theme tokens (blue + white + red medical palette) ----
+  static const Color _bgTop = Color(0xFFEFF6FF); // soft blue
+  static const Color _bgMid = Color(0xFFF8FAFC); // clean white
   static const Color _bgBottom = Color(0xFFFFFFFF);
-  static const Color _danger = Color(0xFFDC2626);
+
+  static const Color _primary = Color(0xFF2563EB); // clinical blue
+
+  static const Color _danger = Color(0xFFDC2626); // emergency red
   static const Color _dangerDark = Color(0xFF991B1B);
   static const Color _dangerLight = Color(0xFFEF4444);
+
   static const Color _ink = Color(0xFF0F172A);
   static const Color _surface = Colors.white;
   static const Color _border = Color(0xFFE2E8F0);
@@ -92,9 +94,9 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to log emergency: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to log emergency: $e')));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -104,8 +106,12 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
   @override
   Widget build(BuildContext context) {
     DateTime now = DateTime.now();
-    String dateStr = "${now.year}-${now.month}-${now.day}";
-    String timeStr = "${now.hour}:${now.minute.toString().padLeft(2, '0')}";
+    String dateStr =
+        "${now.year}-${now.month.toString().padLeft(2, '0')}-"
+        "${now.day.toString().padLeft(2, '0')}";
+    String timeStr =
+        "${now.hour.toString().padLeft(2, '0')}:"
+        "${now.minute.toString().padLeft(2, '0')}";
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -121,7 +127,7 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
             color: _surface,
             shape: const CircleBorder(),
             elevation: 2,
-            shadowColor: _danger.withOpacity(0.25),
+            shadowColor: _primary.withOpacity(0.20),
             child: InkWell(
               customBorder: const CircleBorder(),
               onTap: () => Navigator.pop(context),
@@ -134,7 +140,7 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
                 child: const Icon(
                   Icons.arrow_back_ios_new_rounded,
                   size: 16,
-                  color: _danger,
+                  color: _primary,
                 ),
               ),
             ),
@@ -144,38 +150,51 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ShaderMask(
-              shaderCallback: (rect) => const LinearGradient(
-                colors: [_dangerDark, _danger],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ).createShader(rect),
-              child: const Text(
-                'Log Emergency Case',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.3,
-                ),
+            const Text(
+              'Log Emergency Case',
+              style: TextStyle(
+                color: _ink,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
               ),
             ),
             const SizedBox(height: 2),
-            const Text(
-              'IMMEDIATE ATTENTION REQUIRED',
-              style: TextStyle(
-                color: _danger,
-                fontSize: 10.5,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.8,
-              ),
+            Row(
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: _danger,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: _danger.withOpacity(0.6),
+                        blurRadius: 6,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 6),
+                const Text(
+                  'IMMEDIATE ATTENTION REQUIRED',
+                  style: TextStyle(
+                    color: _danger,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
       body: Stack(
         children: [
-          // 1. Soft light background gradient (red-tinted for emergency context)
+          // 1. Blue → white → white gradient (calm clinical backdrop)
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -187,24 +206,30 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
             ),
           ),
 
-          // 2. Soft red + blue radial glows
+          // 2. Soft blue + red radial glows (blue dominant, red accent)
           Positioned(
             top: -140,
             left: -120,
             child: _glow(
-                color: const Color(0xFFFCA5A5).withOpacity(0.45), radius: 260),
+              color: const Color(0xFF93C5FD).withOpacity(0.40),
+              radius: 260,
+            ),
           ),
           Positioned(
             top: 100,
             right: -160,
             child: _glow(
-                color: const Color(0xFFFECACA).withOpacity(0.55), radius: 240),
+              color: const Color(0xFFFCA5A5).withOpacity(0.35),
+              radius: 240,
+            ),
           ),
           Positioned(
             bottom: -180,
             left: -100,
             child: _glow(
-                color: const Color(0xFFFEE2E2).withOpacity(0.65), radius: 280),
+              color: const Color(0xFFDBEAFE).withOpacity(0.55),
+              radius: 280,
+            ),
           ),
 
           // 3. Content
@@ -218,8 +243,8 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
                 _buildEmergencyBanner(dateStr, timeStr),
                 const SizedBox(height: 22),
 
-                // Section header
-                _sectionHeader('Patient Information'),
+                // Section header — blue (calm intake)
+                _sectionHeader('Patient Information', color: _primary),
                 const SizedBox(height: 14),
 
                 _buildField(
@@ -228,6 +253,8 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
                   hint: 'e.g. Sunil Shantha',
                   controller: _nameController,
                   icon: Icons.person_outline_rounded,
+                  accent: _primary,
+                  isRequired: true,
                 ),
                 const SizedBox(height: 14),
                 _buildField(
@@ -236,10 +263,12 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
                   hint: 'e.g. 199012345678 or 0712345678',
                   controller: _nicController,
                   icon: Icons.badge_outlined,
+                  accent: _primary,
                 ),
 
                 const SizedBox(height: 22),
-                _sectionHeader('Emergency Details'),
+                // Section header — red (urgent)
+                _sectionHeader('Emergency Details', color: _danger),
                 const SizedBox(height: 14),
 
                 _buildField(
@@ -248,6 +277,8 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
                   hint: 'e.g. Severe Chest Pain / Asthma Attack',
                   controller: _reasonController,
                   icon: Icons.warning_amber_rounded,
+                  accent: _danger,
+                  isRequired: true,
                   maxLines: 2,
                 ),
                 const SizedBox(height: 14),
@@ -257,6 +288,7 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
                   hint: 'e.g. Nebulized / Hydrocortisone IV',
                   controller: _treatmentController,
                   icon: Icons.medication_outlined,
+                  accent: _danger,
                   maxLines: 2,
                 ),
                 const SizedBox(height: 14),
@@ -266,76 +298,15 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
                   hint: 'e.g. Sent to ICU Ward 02',
                   controller: _notesController,
                   icon: Icons.sticky_note_2_outlined,
+                  accent: _danger,
                   maxLines: 2,
                 ),
 
                 const SizedBox(height: 28),
 
-                // Save button with red glow
-                SizedBox(
-                  height: 56,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Container(
-                        height: 56,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(30),
-                          boxShadow: [
-                            BoxShadow(
-                              color: _danger.withOpacity(0.4),
-                              blurRadius: 24,
-                              spreadRadius: 0,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _danger,
-                            foregroundColor: Colors.white,
-                            disabledBackgroundColor:
-                                _danger.withOpacity(0.6),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            elevation: 0,
-                            shadowColor: Colors.transparent,
-                          ),
-                          onPressed:
-                              _isSaving ? null : _saveEmergencyRecord,
-                          child: _isSaving
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.4,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.save_rounded, size: 20),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Save & Update Patient History',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 0.4,
-                                        fontSize: 15,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                // Save button with red glow — flex-safe, no overflow
+                _buildSaveButton(),
+
                 const SizedBox(height: 12),
               ],
             ),
@@ -346,7 +317,82 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────
-  // Emergency banner (gradient red with date/time chips)
+  // Save button (overflow-safe)
+  // ─────────────────────────────────────────────────────────────
+  Widget _buildSaveButton() {
+    return SizedBox(
+      height: 56,
+      width: double.infinity,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            height: 56,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: _danger.withOpacity(0.40),
+                  blurRadius: 22,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _danger,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: _danger.withOpacity(0.6),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                elevation: 0,
+                shadowColor: Colors.transparent,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+              ),
+              onPressed: _isSaving ? null : _saveEmergencyRecord,
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.save_rounded, size: 20),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'Save & Update Patient History',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.3,
+                              fontSize: 14.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Emergency banner (red hero, blue-tinted white glass chips)
   // ─────────────────────────────────────────────────────────────
   Widget _buildEmergencyBanner(String dateStr, String timeStr) {
     return Container(
@@ -361,9 +407,14 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: _danger.withOpacity(0.30),
+            color: _danger.withOpacity(0.32),
             blurRadius: 24,
             offset: const Offset(0, 12),
+          ),
+          BoxShadow(
+            color: _primary.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -376,18 +427,37 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'EMERGENCY CASE',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.85),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.2,
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.22),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Icon(
+                            Icons.emergency_rounded,
+                            color: Colors.white,
+                            size: 12,
+                          ),
+                        ),
+                        const SizedBox(width: 7),
+                        Text(
+                          'EMERGENCY CASE',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.92),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     const Text(
                       'Immediate treatment log',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -398,6 +468,7 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
                   ],
                 ),
               ),
+              const SizedBox(width: 12),
               ClipOval(
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
@@ -468,28 +539,33 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
     );
   }
 
-  Widget _sectionHeader(String title) => Row(
-        children: [
-          Container(
-            width: 4,
-            height: 18,
-            decoration: BoxDecoration(
-              color: _danger,
-              borderRadius: BorderRadius.circular(4),
-            ),
+  // Section header with configurable accent color
+  Widget _sectionHeader(String title, {required Color color}) => Row(
+    children: [
+      Container(
+        width: 4,
+        height: 18,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(4),
+        ),
+      ),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: _ink,
+            letterSpacing: -0.2,
           ),
-          const SizedBox(width: 10),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: _ink,
-              letterSpacing: -0.2,
-            ),
-          ),
-        ],
-      );
+        ),
+      ),
+    ],
+  );
 
   Widget _buildField({
     required String id,
@@ -497,6 +573,8 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
     required String hint,
     required TextEditingController controller,
     required IconData icon,
+    required Color accent,
+    bool isRequired = false,
     int maxLines = 1,
   }) {
     final isFocused = _focusedField == id;
@@ -511,7 +589,7 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
           boxShadow: isFocused
               ? [
                   BoxShadow(
-                    color: _danger.withOpacity(0.18),
+                    color: accent.withOpacity(0.18),
                     blurRadius: 20,
                     offset: const Offset(0, 6),
                   ),
@@ -528,32 +606,36 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
             fontWeight: FontWeight.w500,
             color: _ink,
           ),
-          cursorColor: _danger,
+          cursorColor: accent,
           decoration: InputDecoration(
-            labelText: label,
+            labelText: isRequired ? '$label *' : label,
             hintText: hint,
             hintStyle: TextStyle(
-                color: Colors.blueGrey.shade300, fontSize: 13.5),
+              color: Colors.blueGrey.shade300,
+              fontSize: 13.5,
+            ),
             labelStyle: TextStyle(
-              color: isFocused ? _danger : Colors.blueGrey.shade500,
+              color: isFocused ? accent : Colors.blueGrey.shade500,
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
-            floatingLabelStyle: const TextStyle(
-              color: _danger,
+            floatingLabelStyle: TextStyle(
+              color: accent,
               fontSize: 13.5,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.2,
             ),
             prefixIcon: Icon(
               icon,
-              color: isFocused ? _danger : Colors.blueGrey.shade400,
+              color: isFocused ? accent : Colors.blueGrey.shade400,
               size: 21,
             ),
             filled: true,
             fillColor: _fieldFill,
-            contentPadding:
-                const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 18,
+              horizontal: 16,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(color: _border),
@@ -564,7 +646,7 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: _danger, width: 1.6),
+              borderSide: BorderSide(color: accent, width: 1.6),
             ),
           ),
         ),
@@ -573,14 +655,14 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
   }
 
   Widget _glow({required Color color, required double radius}) => Container(
-        width: radius,
-        height: radius,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [color, color.withOpacity(0.0)],
-            stops: const [0.0, 1.0],
-          ),
-        ),
-      );
+    width: radius,
+    height: radius,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      gradient: RadialGradient(
+        colors: [color, color.withOpacity(0.0)],
+        stops: const [0.0, 1.0],
+      ),
+    ),
+  );
 }

@@ -6,6 +6,7 @@ import '../../services/auth_service.dart';
 import 'admin_user_list_screen.dart';
 import 'admin_pending_doctors_screen.dart';
 import 'admin_leave_approvals_screen.dart';
+import '../shared/emergency_records_screen.dart';
 
 /// Main Admin Dashboard with summary cards and quick-access navigation.
 class AdminDashboardScreen extends StatefulWidget {
@@ -530,6 +531,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 subtitle: 'Review and approve doctor leave requests',
                 onTap: () => setState(() => _currentIndex = 4),
               ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                icon: Icons.emergency_rounded,
+                color: const Color(0xFFDC2626),
+                title: 'Emergency Records',
+                subtitle: 'Review all emergency treatment cases',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const EmergencyRecordsScreen(isAdmin: true),
+                  ),
+                ),
+              ),
             ],
           ),
         );
@@ -795,10 +809,7 @@ class _QuickActionTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFFE2E8F0),
-              width: 1,
-            ),
+            border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF0F172A).withOpacity(0.04),
