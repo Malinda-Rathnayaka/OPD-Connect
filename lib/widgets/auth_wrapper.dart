@@ -72,6 +72,7 @@ class AuthWrapper extends StatelessWidget {
                 return const DoctorDashboardScreen(); // Doctor Portal Dashboard
               case 'patient':
               default:
+                return const PatientHomeScreen(); 
                 return const PatientHomeScreen();
             }
           },
