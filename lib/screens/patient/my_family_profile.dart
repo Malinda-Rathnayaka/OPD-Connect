@@ -1,17 +1,13 @@
-import 'dart:io' show File;
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../models/family_member_model.dart';
 import '../../models/patient_model.dart';
 import '../../services/patient_service.dart';
 import '../auth/login_screen.dart';
 import 'patient_home_screen.dart';
+import 'patient_live_queue_screen.dart';
 import 'select_appointment_slot.dart';
 
 class MyFamilyProfileScreen extends StatefulWidget {
@@ -48,8 +44,6 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
       _patient?.preferredLanguage.trim().isNotEmpty == true
       ? _patient!.preferredLanguage
       : 'English';
-  String get _profileImageUrl => _patient?.profileImageUrl ?? '';
-
   List<String> get _bookingOptions {
     final options = <String>['Myself ($_displayName)'];
     for (final member in _familyMembers) {
@@ -75,19 +69,43 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
 
     if (userDoc.exists && userDoc.data() != null) {
       final userData = userDoc.data()!;
-      final patientName = userData['name']?.toString().trim();
-      final patientNIC = await _getPatientNic(patientId);
+      final patientDoc = await _db.collection('patients').doc(patientId).get();
+      final patientProfileData = patientDoc.data() ?? <String, dynamic>{};
+      final patientName =
+          [
+                patientProfileData['fullName'],
+                userData['fullName'],
+                userData['name'],
+              ]
+              .map((value) => value?.toString().trim() ?? '')
+              .followedBy([
+                _auth.currentUser?.displayName?.trim() ?? '',
+                _auth.currentUser?.email?.split('@').first.trim() ?? '',
+              ])
+              .firstWhere(
+                (value) => value.isNotEmpty && value.toLowerCase() != 'patient',
+                orElse: () => 'Patient',
+              );
+      final patientNIC =
+          patientProfileData['nic']?.toString() ??
+          userData['nic']?.toString() ??
+          await _getPatientNic(patientId);
 
       final patientData = PatientModel(
         id: userDoc.id,
-        fullName: patientName != null && patientName.isNotEmpty
-            ? patientName
-            : 'Patient',
+        fullName: patientName,
         nic: patientNIC,
-        phone: userData['phone'] ?? '',
+        phone: userData['phone'] ?? patientProfileData['phone'] ?? '',
         email: userData['email'] ?? '',
+        age:
+            (userData['age'] as num?)?.toInt() ??
+            (patientProfileData['age'] as num?)?.toInt() ??
+            0,
+        gender:
+            userData['gender']?.toString() ??
+            patientProfileData['gender']?.toString() ??
+            '',
         preferredLanguage: userData['preferredLanguage'] ?? 'English',
-        profileImageUrl: userData['profileImageUrl'] ?? '',
         createdAt: userData['createdAt'] is Timestamp
             ? (userData['createdAt'] as Timestamp).toDate()
             : null,
@@ -120,7 +138,6 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
         phone: currentUser.phoneNumber ?? '',
         email: currentUser.email ?? '',
         preferredLanguage: 'English',
-        profileImageUrl: '',
         createdAt: DateTime.now(),
       );
       print(
@@ -160,7 +177,6 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
               phone: '',
               email: _auth.currentUser?.email ?? '',
               preferredLanguage: 'English',
-              profileImageUrl: '',
               createdAt: DateTime.now(),
             );
         _familyMembers = familyMembers;
@@ -185,7 +201,6 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
           phone: _auth.currentUser?.phoneNumber ?? '',
           email: _auth.currentUser?.email ?? '',
           preferredLanguage: 'English',
-          profileImageUrl: '',
           createdAt: DateTime.now(),
         );
         _familyMembers = [];
@@ -205,8 +220,9 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
     required String nic,
     required String phone,
     required String email,
+    required int age,
+    required String gender,
     required String preferredLanguage,
-    required String profileImageUrl,
   }) async {
     final updatedPatient = PatientModel(
       id: _patientId,
@@ -214,8 +230,9 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
       nic: nic,
       phone: phone,
       email: email,
+      age: age,
+      gender: gender,
       preferredLanguage: preferredLanguage,
-      profileImageUrl: profileImageUrl,
       createdAt: _patient?.createdAt ?? DateTime.now(),
     );
 
@@ -228,10 +245,13 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
       );
       batch.set(_db.collection('users').doc(_patientId), {
         'name': fullName,
+        'fullName': fullName,
+        'nic': nic,
         'phone': phone,
         'email': email,
+        'age': age,
+        'gender': gender,
         'preferredLanguage': preferredLanguage,
-        'profileImageUrl': profileImageUrl,
       }, SetOptions(merge: true));
       await batch.commit();
       await _auth.currentUser?.updateDisplayName(fullName);
@@ -249,145 +269,108 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
     }
   }
 
-  bool _isValidRemoteImageUrl(String value) {
-    final normalized = value.trim();
-    if (normalized.isEmpty) return false;
-    return normalized.startsWith('http://') ||
-        normalized.startsWith('https://') ||
-        normalized.startsWith('data:image/');
-  }
-
-  ImageProvider<Object>? _buildProfileImageProvider() {
-    final imageUrl = _profileImageUrl.trim();
-    if (imageUrl.isEmpty) return null;
-    if (_isValidRemoteImageUrl(imageUrl)) {
-      return NetworkImage(imageUrl);
-    }
-    if (!kIsWeb && imageUrl.startsWith('/')) {
-      return FileImage(File(imageUrl));
-    }
-    return null;
-  }
-
-  Future<void> _pickProfileImage() async {
-    try {
-      final pickedFile = await ImagePicker().pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 85,
-        maxWidth: 1200,
-      );
-
-      if (pickedFile == null) return;
-
-      String imageUrl = '';
-      if (kIsWeb) {
-        imageUrl = pickedFile.path;
-      } else {
-        final storageRef = FirebaseStorage.instance
-            .ref()
-            .child('profile_pictures')
-            .child('$_patientId.jpg');
-
-        final file = File(pickedFile.path);
-        await storageRef.putFile(file);
-        imageUrl = await storageRef.getDownloadURL();
-      }
-
-      await _savePatientProfile(
-        fullName: _displayName,
-        nic: _displayNic,
-        phone: _displayPhone,
-        email: _patient?.email ?? _auth.currentUser?.email ?? '',
-        preferredLanguage: _displayLanguage,
-        profileImageUrl: imageUrl,
-      );
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to update profile picture: $error')),
-      );
-    }
-  }
-
   Future<void> _showEditProfileDialog() async {
     final fullNameController = TextEditingController(text: _displayName);
     final nicController = TextEditingController(text: _displayNic);
     final phoneController = TextEditingController(text: _displayPhone);
+    final ageController = TextEditingController(
+      text: _patient?.age.toString() ?? '',
+    );
+    String genderValue = _patient?.gender.isNotEmpty == true
+        ? _patient!.gender
+        : 'Other';
     final emailController = TextEditingController(
       text: _patient?.email ?? _auth.currentUser?.email ?? '',
     );
     final languageController = TextEditingController(text: _displayLanguage);
-    final imageUrlController = TextEditingController(text: _profileImageUrl);
 
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Edit Profile'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: fullNameController,
-                  decoration: const InputDecoration(labelText: 'Full Name'),
-                ),
-                TextField(
-                  controller: nicController,
-                  decoration: const InputDecoration(labelText: 'NIC'),
-                ),
-                TextField(
-                  controller: phoneController,
-                  decoration: const InputDecoration(labelText: 'Phone'),
-                ),
-                TextField(
-                  controller: emailController,
-                  readOnly: true,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                ),
-                TextField(
-                  controller: languageController,
-                  decoration: const InputDecoration(
-                    labelText: 'Preferred Language',
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: const Text('Edit Profile'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: fullNameController,
+                    decoration: const InputDecoration(labelText: 'Full Name'),
                   ),
-                ),
-                TextField(
-                  controller: imageUrlController,
-                  decoration: const InputDecoration(
-                    labelText: 'Profile Picture URL',
+                  TextField(
+                    controller: nicController,
+                    decoration: const InputDecoration(labelText: 'NIC'),
                   ),
-                ),
-              ],
+                  TextField(
+                    controller: phoneController,
+                    decoration: const InputDecoration(labelText: 'Phone'),
+                  ),
+                  TextField(
+                    controller: ageController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Age'),
+                  ),
+                  DropdownButtonFormField<String>(
+                    value: genderValue,
+                    decoration: const InputDecoration(labelText: 'Gender'),
+                    items: const [
+                      DropdownMenuItem(value: 'Male', child: Text('Male')),
+                      DropdownMenuItem(value: 'Female', child: Text('Female')),
+                      DropdownMenuItem(value: 'Other', child: Text('Other')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() => genderValue = value);
+                      }
+                    },
+                  ),
+                  TextField(
+                    controller: emailController,
+                    readOnly: true,
+                    decoration: const InputDecoration(labelText: 'Email'),
+                  ),
+                  TextField(
+                    controller: languageController,
+                    decoration: const InputDecoration(
+                      labelText: 'Preferred Language',
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final fullName = fullNameController.text.trim();
-                if (fullName.isEmpty) {
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    const SnackBar(content: Text('Full name cannot be empty.')),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final fullName = fullNameController.text.trim();
+                  if (fullName.isEmpty) {
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      const SnackBar(
+                        content: Text('Full name cannot be empty.'),
+                      ),
+                    );
+                    return;
+                  }
+                  Navigator.pop(dialogContext);
+                  await _savePatientProfile(
+                    fullName: fullName,
+                    nic: nicController.text.trim(),
+                    phone: phoneController.text.trim(),
+                    email:
+                        _auth.currentUser?.email ?? emailController.text.trim(),
+                    preferredLanguage: languageController.text.trim(),
+                    age: int.tryParse(ageController.text.trim()) ?? 0,
+                    gender: genderValue,
                   );
-                  return;
-                }
-                Navigator.pop(dialogContext);
-                await _savePatientProfile(
-                  fullName: fullName,
-                  nic: nicController.text.trim(),
-                  phone: phoneController.text.trim(),
-                  email:
-                      _auth.currentUser?.email ?? emailController.text.trim(),
-                  preferredLanguage: languageController.text.trim(),
-                  profileImageUrl: imageUrlController.text.trim(),
-                );
-              },
-              child: const Text('Save'),
-            ),
-          ],
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -404,6 +387,7 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
     final ageController = TextEditingController(
       text: existing?.age.toString() ?? '',
     );
+    final memberId = existing?.id ?? _db.collection('family_members').doc().id;
     String genderValue = existing?.gender.isNotEmpty == true
         ? existing!.gender
         : 'Male';
@@ -473,9 +457,7 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
                   onPressed: () async {
                     Navigator.pop(dialogContext);
                     final member = FamilyMemberModel(
-                      id:
-                          existing?.id ??
-                          _db.collection('family_members').doc().id,
+                      id: memberId,
                       patientId: _patientId,
                       fullName: fullNameController.text.trim(),
                       relationship: relationshipController.text.trim(),
@@ -745,45 +727,14 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
                         padding: const EdgeInsets.all(16),
                         child: Row(
                           children: [
-                            Stack(
-                              children: [
-                                CircleAvatar(
-                                  radius: 32,
-                                  backgroundColor: Colors.blue.shade100,
-                                  backgroundImage: _buildProfileImageProvider(),
-                                  child: _buildProfileImageProvider() == null
-                                      ? const Icon(
-                                          Icons.person,
-                                          size: 36,
-                                          color: Colors.blue,
-                                        )
-                                      : null,
-                                ),
-                                Positioned(
-                                  right: 0,
-                                  bottom: 0,
-                                  child: InkWell(
-                                    onTap: _pickProfileImage,
-                                    borderRadius: BorderRadius.circular(20),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blue,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: Colors.white,
-                                          width: 2,
-                                        ),
-                                      ),
-                                      child: const Icon(
-                                        Icons.edit,
-                                        size: 16,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                            const CircleAvatar(
+                              radius: 32,
+                              backgroundColor: Color(0xFFE3F2FD),
+                              child: Icon(
+                                Icons.person,
+                                size: 36,
+                                color: Colors.blue,
+                              ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -801,6 +752,12 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
                                   Text('NIC: $_displayNic'),
                                   const SizedBox(height: 4),
                                   Text('Phone: $_displayPhone'),
+                                  const SizedBox(height: 4),
+                                  Text('Age: ${_patient?.age ?? 0}'),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Gender: ${_patient?.gender.isNotEmpty == true ? _patient!.gender : 'Not set'}',
+                                  ),
                                   const SizedBox(height: 4),
                                   Text('Preferred Language: $_displayLanguage'),
                                 ],
@@ -1014,13 +971,13 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
             ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        currentIndex: 4,
+        currentIndex: 3,
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
         onTap: (index) {
           switch (index) {
             case 0:
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
                   builder: (context) => const PatientHomeScreen(),
@@ -1028,11 +985,22 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
               );
               break;
             case 1:
-            case 2:
-            case 3:
-              _goToBookingFlow();
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PatientHomeScreen(),
+                ),
+              );
               break;
-            case 4:
+            case 2:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PatientLiveQueueScreen(),
+                ),
+              );
+              break;
+            case 3:
               break;
           }
         },
@@ -1041,7 +1009,6 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
             icon: Icon(Icons.home_outlined),
             label: 'Home',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
           BottomNavigationBarItem(
             icon: Icon(Icons.calendar_today_outlined),
             label: 'Appointments',

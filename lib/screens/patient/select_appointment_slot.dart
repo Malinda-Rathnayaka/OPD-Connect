@@ -47,9 +47,46 @@ class _SelectAppointmentSlotScreenState
     return null;
   }
 
-  Widget _buildSessionCard(String sessionId, Map<String, dynamic> session) {
+  bool _hasSessionEnded(Map<String, dynamic> session, DateTime date) {
+    final now = DateTime.now();
+    if (!DateUtils.isSameDay(date, now)) return false;
+
+    final endTime = session['endTime']?.toString().trim() ?? '';
+    if (endTime.isEmpty) return false;
+
+    DateTime? parsedEndTime;
+    for (final format in [
+      DateFormat('h:mm a', 'en_US'),
+      DateFormat('hh:mm a', 'en_US'),
+      DateFormat('H:mm', 'en_US'),
+    ]) {
+      try {
+        parsedEndTime = format.parseStrict(endTime);
+        break;
+      } on FormatException {
+        continue;
+      }
+    }
+    if (parsedEndTime == null) return false;
+
+    final sessionEnd = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      parsedEndTime.hour,
+      parsedEndTime.minute,
+    );
+    return !sessionEnd.isAfter(now);
+  }
+
+  Widget _buildSessionCard(
+    String sessionId,
+    Map<String, dynamic> session,
+    DateTime date,
+  ) {
     final availableSlots = (session['availableSlots'] as num?)?.toInt() ?? 0;
-    final isBookable = availableSlots > 0;
+    final hasEnded = _hasSessionEnded(session, date);
+    final isBookable = availableSlots > 0 && !hasEnded;
     final isSelected = _selectedSessionId == sessionId;
     final sessionType = session['sessionType']?.toString() ?? 'OPD';
     final startTime = session['startTime']?.toString() ?? '';
@@ -59,7 +96,9 @@ class _SelectAppointmentSlotScreenState
         : availableSlots <= 2
         ? Colors.orange.shade100
         : Colors.green.shade100;
-    final badgeText = availableSlots > 0
+    final badgeText = hasEnded
+        ? 'Session ended'
+        : availableSlots > 0
         ? '$availableSlots Slots left'
         : 'Fully Booked';
 
@@ -232,8 +271,11 @@ class _SelectAppointmentSlotScreenState
               }
             }
             final selectedSlots =
-                (selectedSession?.data()['availableSlots'] as num?)?.toInt() ??
-                0;
+                selectedSession != null &&
+                    !_hasSessionEnded(selectedSession.data(), selectedDate)
+                ? (selectedSession.data()['availableSlots'] as num?)?.toInt() ??
+                      0
+                : 0;
             final selectedSessionId = selectedSession?.id;
             final selectedTime =
                 selectedSession?.data()['time']?.toString() ??
@@ -294,7 +336,8 @@ class _SelectAppointmentSlotScreenState
                   )
                 else
                   ...sessionsForDate.map(
-                    (doc) => _buildSessionCard(doc.id, doc.data()),
+                    (doc) =>
+                        _buildSessionCard(doc.id, doc.data(), selectedDate),
                   ),
                 const SizedBox(height: 8),
                 SizedBox(
