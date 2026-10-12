@@ -1,11 +1,14 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'my_family_profile.dart';
 import 'patient_home_screen.dart';
 
-class BookingConfirmedScreen extends StatelessWidget {
-  final String patientName;
+class BookingConfirmedScreen extends StatefulWidget {
   final String date;
   final String time;
   final String tokenNumber;
@@ -13,12 +16,80 @@ class BookingConfirmedScreen extends StatelessWidget {
 
   const BookingConfirmedScreen({
     super.key,
-    required this.patientName,
     required this.date,
     required this.time,
     required this.tokenNumber,
     required this.referenceNumber,
   });
+
+  @override
+  State<BookingConfirmedScreen> createState() => _BookingConfirmedScreenState();
+}
+
+class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
+  final ScreenshotController _screenshotController = ScreenshotController();
+  bool _isSharing = false;
+
+  String get _qrData =>
+      '''
+OPD BOOKING CONFIRMED
+=====================
+Reference: ${widget.referenceNumber}
+Token: ${widget.tokenNumber}
+Date: ${widget.date}
+Time: ${widget.time}
+Status: Confirmed
+
+Show this at the hospital counter to check in.
+''';
+
+  Future<void> _shareQrCode() async {
+    if (_isSharing) return;
+
+    setState(() => _isSharing = true);
+    try {
+      final Uint8List? image = await _screenshotController.capture(
+        delay: const Duration(milliseconds: 100),
+      );
+      if (image == null) {
+        throw StateError('Failed to capture the booking QR code.');
+      }
+
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [
+            XFile.fromData(
+              image,
+              mimeType: 'image/png',
+              name: 'opd_booking_${widget.referenceNumber}.png',
+            ),
+          ],
+          subject: 'OPD Booking - ${widget.referenceNumber}',
+          text:
+              '''
+OPD Booking Confirmed
+
+Reference: ${widget.referenceNumber}
+Token: ${widget.tokenNumber}
+Date: ${widget.date}
+Time: ${widget.time}
+
+Scan the QR code at the hospital counter to check in.
+''',
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to share booking details: $error'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSharing = false);
+    }
+  }
 
   void _openDirectBookingFlow(BuildContext context) {
     Navigator.push(
@@ -29,21 +100,10 @@ class BookingConfirmedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final qrData =
-        'OPD BOOKING CONFIRMED\n'
-        '=====================\n'
-        'Reference: $referenceNumber\n'
-        'Token: $tokenNumber\n'
-        'Date: $date\n'
-        'Time: $time\n'
-        'Status: Confirmed\n\n'
-        'Show this at the hospital counter to check in.';
-
     return Theme(
-      data: Theme.of(context).copyWith(
+      data: ThemeData.from(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
-        colorScheme: Theme.of(context).colorScheme
-            .copyWith(primary: Colors.blue),
       ),
       child: Scaffold(
         appBar: AppBar(
@@ -95,7 +155,7 @@ class BookingConfirmedScreen extends StatelessWidget {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  referenceNumber,
+                  widget.referenceNumber,
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
@@ -103,26 +163,51 @@ class BookingConfirmedScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Padding(
+              Screenshot(
+                controller: _screenshotController,
+                child: Container(
+                  width: double.infinity,
                   padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.shade100),
+                  ),
                   child: Column(
                     children: [
+                      const Text(
+                        'BOOKING QR CODE',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       QrImageView(
-                        data: qrData,
+                        data: _qrData,
                         version: QrVersions.auto,
                         size: 200,
                         backgroundColor: Colors.white,
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Scan this at the Hospital Counter check-in desk',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 13, color: Colors.grey),
+                      Text(
+                        'Token: ${widget.tokenNumber}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 18,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text('Date: ${widget.date}'),
+                      Text('Time: ${widget.time}'),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Reference: ${widget.referenceNumber}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade700,
+                        ),
                       ),
                     ],
                   ),
@@ -132,25 +217,43 @@ class BookingConfirmedScreen extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: _InfoBox(label: 'Patient', value: patientName),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _InfoBox(label: 'Token', value: tokenNumber),
+                    child: _InfoBox(label: 'Token', value: widget.tokenNumber),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: _InfoBox(label: 'Time', value: time),
+                    child: _InfoBox(label: 'Time', value: widget.time),
                   ),
                 ],
               ),
               const SizedBox(height: 20),
-              _InfoBox(label: 'Date', value: date),
+              _InfoBox(label: 'Date', value: widget.date),
               const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _isSharing ? null : _shareQrCode,
+                  icon: _isSharing
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Icon(Icons.share),
+                  label: Text(_isSharing ? 'Sharing...' : 'Share QR Code'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
