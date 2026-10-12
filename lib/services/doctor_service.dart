@@ -89,10 +89,10 @@ class DoctorService {
     required String slotDate,
     required String timeSlot,
   }) async {
-    final snapshot = await _db
-        .collection('appointments')
-        .where('doctorId', isEqualTo: doctorId)
-        .get();
+    // Older appointment documents were created without doctorId. Read the
+    // collection and apply the doctor/date/slot checks locally so those
+    // bookings remain available when a doctor starts the matching session.
+    final snapshot = await _db.collection('appointments').get();
     final range = _slotMinutes(timeSlot);
     return snapshot.docs
         .where((doc) {
@@ -100,13 +100,19 @@ class DoctorService {
           if ((data['status']?.toString().toLowerCase() ?? '') == 'cancelled') {
             return false;
           }
+          final appointmentDoctorId = data['doctorId']?.toString().trim();
+          if (appointmentDoctorId != null &&
+              appointmentDoctorId.isNotEmpty &&
+              appointmentDoctorId != doctorId) {
+            return false;
+          }
           if (_dateKey(data['appointmentDate']) != slotDate) {
             return false;
           }
-          final appointmentMinutes = _timeMinutes(data['appointmentTime']);
-          return appointmentMinutes != null &&
-              appointmentMinutes >= range.$1 &&
-              appointmentMinutes < range.$2;
+          final appointmentRange = _slotMinutes(
+            data['appointmentTime']?.toString() ?? '',
+          );
+          return _rangesOverlap(range, appointmentRange);
         })
         .map((doc) {
           final data = doc.data();
@@ -124,9 +130,8 @@ class DoctorService {
         .where((patient) => patient['id'].toString().isNotEmpty)
         .toList()
       ..sort(
-        (a, b) => (_timeMinutes(a['appointmentTime']) ?? 0).compareTo(
-          _timeMinutes(b['appointmentTime']) ?? 0,
-        ),
+        (a, b) => (_appointmentStartMinutes(a['appointmentTime']) ?? 0)
+            .compareTo(_appointmentStartMinutes(b['appointmentTime']) ?? 0),
       );
   }
 
@@ -139,22 +144,15 @@ class DoctorService {
 
   String _dateKey(dynamic value) {
     if (value is Timestamp) {
-      return value.toDate().toIso8601String().substring(0, 10);
+      return value.toDate().toLocal().toIso8601String().substring(0, 10);
     }
     if (value is DateTime) {
-      return value.toIso8601String().substring(0, 10);
+      return value.toLocal().toIso8601String().substring(0, 10);
     }
     final text = value?.toString().trim() ?? '';
     final parsed = DateTime.tryParse(text);
-    if (parsed != null) return parsed.toIso8601String().substring(0, 10);
-    final normalized = text.toLowerCase();
-    final now = DateTime.now();
-    if (normalized == 'today') return now.toIso8601String().substring(0, 10);
-    if (normalized == 'tomorrow') {
-      return now
-          .add(const Duration(days: 1))
-          .toIso8601String()
-          .substring(0, 10);
+    if (parsed != null) {
+      return parsed.toLocal().toIso8601String().substring(0, 10);
     }
     return '';
   }
@@ -186,11 +184,21 @@ class DoctorService {
 
   (int, int) _slotMinutes(String slot) {
     final parts = slot.split(RegExp(r'\s*-\s*'));
-    final start = _timeMinutes(parts.first) ?? 0;
-    final end = parts.length > 1
-        ? (_timeMinutes(parts.last) ?? 24 * 60)
-        : 24 * 60;
-    return (start, end);
+    final start = _timeMinutes(parts.first);
+    final end = parts.length > 1 ? _timeMinutes(parts.last) : null;
+    if (start == null || end == null) return (-1, -1);
+    // Some seeded morning slots used "12:00 AM" for noon. Treat an end time
+    // earlier than the start as the end of the same daytime slot.
+    var normalizedEnd = end;
+    if (normalizedEnd <= start && start < 12 * 60 && normalizedEnd == 0) {
+      normalizedEnd = 12 * 60;
+    }
+    return (start, normalizedEnd);
+  }
+
+  bool _rangesOverlap((int, int) first, (int, int) second) {
+    if (first.$1 < 0 || second.$1 < 0) return false;
+    return first.$1 < second.$2 && second.$1 < first.$2;
   }
 
   int? _timeMinutes(dynamic value) {
@@ -203,6 +211,12 @@ class DoctorService {
     if (period == 'PM' && hour < 12) hour += 12;
     if (period == 'AM' && hour == 12) hour = 0;
     return hour * 60 + minute;
+  }
+
+  int? _appointmentStartMinutes(dynamic value) {
+    final text = value?.toString() ?? '';
+    final start = text.split(RegExp(r'\s*-\s*')).first;
+    return _timeMinutes(start);
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> getCompletedRecords(
@@ -350,6 +364,14 @@ class DoctorService {
         session.collection('queue').doc(),
         _queuePatient(patients[i], i),
       );
+      final appointmentId = patients[i]['appointmentId']?.toString();
+      if (appointmentId != null && appointmentId.isNotEmpty) {
+        batch.update(_db.collection('appointments').doc(appointmentId), {
+          'sessionId': session.id,
+          'liveSessionId': session.id,
+          'liveSessionStartedAt': FieldValue.serverTimestamp(),
+        });
+      }
     }
     try {
       await batch.commit();
@@ -539,6 +561,8 @@ class DoctorService {
     final historyRef = patientDoc.exists
         ? patientRef
         : (userDoc?.exists == true ? userRef : null);
+    final currentQueue = await queueRef.doc(queueDocId).get();
+    final appointmentId = currentQueue.data()?['appointmentId']?.toString();
     final next = await queueRef.where('status', isEqualTo: 'ARRIVED').get();
     next.docs.sort(
       (a, b) => ((a.data()['order'] as num?) ?? 0).compareTo(
@@ -561,13 +585,10 @@ class DoctorService {
       'date': now.toIso8601String(),
     };
     final batch = _db.batch();
-    batch.update(queueRef.doc(queueDocId), {
-      'status': 'COMPLETED',
-      'diagnosis': diagnosis.trim(),
-      'prescription': prescription.trim(),
-      'advice': advice.trim(),
-      'completedAt': FieldValue.serverTimestamp(),
-    });
+    batch.delete(queueRef.doc(queueDocId));
+    if (appointmentId != null && appointmentId.isNotEmpty) {
+      batch.delete(_db.collection('appointments').doc(appointmentId));
+    }
     batch.set(recordRef, record);
     if (historyRef != null) {
       batch.set(historyRef, {
@@ -628,12 +649,11 @@ class DoctorService {
       ),
     );
     final batch = _db.batch();
-    batch.update(current.reference, {
-      'status': 'SKIPPED',
-      'skipReason': reason.trim(),
-      'skipDetails': details.trim(),
-      'skippedAt': FieldValue.serverTimestamp(),
-    });
+    batch.delete(current.reference);
+    final appointmentId = data['appointmentId']?.toString();
+    if (appointmentId != null && appointmentId.isNotEmpty) {
+      batch.delete(_db.collection('appointments').doc(appointmentId));
+    }
     final emergencyRef = _db.collection('emergency_records').doc();
     batch.set(emergencyRef, {
       'doctorId': FirebaseAuth.instance.currentUser?.uid,
