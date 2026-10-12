@@ -28,6 +28,7 @@ class _ReviewConfirmBookingScreenState
   String? _patientName;
   String? _date;
   late int _availableSlots;
+  int _totalSlots = 0;
   bool _isLoading = false;
   bool _isConfirmed = false;
   bool _isLoadingData = true;
@@ -40,7 +41,10 @@ class _ReviewConfirmBookingScreenState
     _loadData();
   }
 
-  String get _tokenNumber => 'T-${_availableSlots.toString().padLeft(3, '0')}';
+  String get _tokenNumber {
+    final tokenIndex = (_totalSlots - _availableSlots + 1).clamp(1, 999);
+    return 'T-${tokenIndex.toString().padLeft(3, '0')}';
+  }
 
   DateTime? _readDate(dynamic value) {
     if (value is Timestamp) return DateUtils.dateOnly(value.toDate());
@@ -81,12 +85,14 @@ class _ReviewConfirmBookingScreenState
         final data = sessionDoc.data()!;
         final appointmentDate = _readDate(data['date']);
         final available = (data['availableSlots'] as num?)?.toInt();
+        final total = (data['totalSlots'] as num?)?.toInt();
         if (mounted) {
           setState(() {
             _date = appointmentDate == null
                 ? 'N/A'
                 : _dateLabel(appointmentDate);
             _availableSlots = available ?? widget.availableSlots;
+            _totalSlots = total ?? available ?? widget.availableSlots;
           });
         }
       } else {
@@ -165,71 +171,72 @@ class _ReviewConfirmBookingScreenState
       final appointmentRef = firestore.collection('appointments').doc();
       final referenceNumber = 'OPD-${DateTime.now().millisecondsSinceEpoch}';
 
-      final bookingResult = await firestore
-          .runTransaction<({String patientName, String tokenNumber})>((
-            transaction,
-          ) async {
-            debugPrint('DEBUG: Transaction START');
-            final sessionDoc = await transaction.get(sessionRef);
+      final tokenNumber = await firestore.runTransaction<String>((
+        transaction,
+      ) async {
+        debugPrint('DEBUG: Transaction START');
+        final sessionDoc = await transaction.get(sessionRef);
 
-            if (!sessionDoc.exists) {
-              throw StateError('Session does not exist');
-            }
+        if (!sessionDoc.exists) {
+          throw StateError('Session does not exist');
+        }
 
-            final sessionData = sessionDoc.data()!;
-            final rawSlots = sessionData['availableSlots'];
-            final currentSlots = rawSlots is num ? rawSlots.toInt() : 0;
-            debugPrint('DEBUG: Current slots = $currentSlots');
-            if (currentSlots <= 0) {
-              throw StateError('Session is fully booked');
-            }
+        final sessionData = sessionDoc.data()!;
+        final rawSlots = sessionData['availableSlots'];
+        final currentSlots = rawSlots is num ? rawSlots.toInt() : 0;
+        debugPrint('DEBUG: Current slots = $currentSlots');
+        if (currentSlots <= 0) {
+          throw StateError('Session is fully booked');
+        }
 
-            final patientName = widget.bookingForName.trim();
-            if (patientName.isEmpty) {
-              throw StateError('The selected patient name is unavailable.');
-            }
-            final currentBookedCount =
-                (sessionData['bookedCount'] as num?)?.toInt() ??
-                (((sessionData['totalSlots'] as num?)?.toInt() ??
-                            currentSlots) -
-                        currentSlots)
-                    .clamp(0, 999);
-            final tokenNumber = 'T-${currentSlots.toString().padLeft(3, '0')}';
-            final newSlots = currentSlots - 1;
+        final patientName = widget.bookingForName.trim();
+        if (patientName.isEmpty) {
+          throw StateError('The selected patient name is unavailable.');
+        }
+        final totalSlots =
+            (sessionData['totalSlots'] as num?)?.toInt() ??
+            (_totalSlots > 0 ? _totalSlots : currentSlots);
+        final currentBookedCount =
+            (sessionData['bookedCount'] as num?)?.toInt() ??
+            (totalSlots - currentSlots).clamp(0, 999);
+        final tokenIndex = (totalSlots - currentSlots + 1).clamp(1, 999);
+        final tokenNumber = 'T-${tokenIndex.toString().padLeft(3, '0')}';
+        final newSlots = currentSlots - 1;
 
-            debugPrint('DEBUG: Token = $tokenNumber');
-            debugPrint('DEBUG: Reference = $referenceNumber');
-            transaction.update(sessionRef, {
-              'availableSlots': newSlots,
-              'bookedCount': currentBookedCount + 1,
-              'status': newSlots == 0 ? 'full' : 'available',
-              'isAvailable': newSlots > 0,
-            });
-            debugPrint('DEBUG: Slots decremented to $newSlots');
-            debugPrint('DEBUG: Appointment ID = ${appointmentRef.id}');
-            transaction.set(appointmentRef, {
-              'patientId': user.uid,
-              'patientName': patientName,
-              'sessionId': widget.sessionId,
-              'doctorId': sessionData['doctorId'],
-              'doctorName': sessionData['doctorName'],
-              'hospitalId': sessionData['hospitalId'],
-              'hospitalName': sessionData['hospitalName'],
-              'department': sessionData['department'],
-              'appointmentDate': Timestamp.fromDate(parsedDate),
-              'appointmentTime': widget.time,
-              'tokenNumber': tokenNumber,
-              'status': 'confirmed',
-              'referenceNumber': referenceNumber,
-              'createdAt': FieldValue.serverTimestamp(),
-            });
-            debugPrint('DEBUG: Appointment set');
+        debugPrint('DEBUG: Token = $tokenNumber');
+        debugPrint('DEBUG: Reference = $referenceNumber');
+        transaction.update(sessionRef, {
+          'availableSlots': newSlots,
+          'totalSlots': totalSlots,
+          'bookedCount': currentBookedCount + 1,
+          'status': newSlots == 0 ? 'full' : 'available',
+          'isAvailable': newSlots > 0,
+        });
+        debugPrint('DEBUG: Slots decremented to $newSlots');
+        debugPrint('DEBUG: Appointment ID = ${appointmentRef.id}');
+        transaction.set(appointmentRef, {
+          'patientId': user.uid,
+          'patientName': patientName,
+          'sessionId': widget.sessionId,
+          'doctorId': sessionData['doctorId'],
+          'doctorName': sessionData['doctorName'],
+          'hospitalId': sessionData['hospitalId'],
+          'hospitalName': sessionData['hospitalName'],
+          'department': sessionData['department'],
+          'appointmentDate': Timestamp.fromDate(parsedDate),
+          'appointmentTime': widget.time,
+          'tokenNumber': tokenNumber,
+          'status': 'confirmed',
+          'referenceNumber': referenceNumber,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+        debugPrint('DEBUG: Appointment set');
 
-            return (patientName: patientName, tokenNumber: tokenNumber);
-          });
+        return tokenNumber;
+      });
 
       debugPrint('DEBUG: Transaction COMMITTED');
-      debugPrint('DEBUG: Token = ${bookingResult.tokenNumber}');
+      debugPrint('DEBUG: Token = $tokenNumber');
       debugPrint('DEBUG: Reference = $referenceNumber');
 
       if (!mounted) return;
@@ -239,10 +246,9 @@ class _ReviewConfirmBookingScreenState
         context,
         MaterialPageRoute(
           builder: (context) => BookingConfirmedScreen(
-            patientName: bookingResult.patientName,
             date: _date ?? '',
             time: widget.time,
-            tokenNumber: bookingResult.tokenNumber,
+            tokenNumber: tokenNumber,
             referenceNumber: referenceNumber,
           ),
         ),

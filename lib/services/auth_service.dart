@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import '../models/user_model.dart';
 
 class AuthService {
@@ -60,7 +61,11 @@ class AuthService {
     final user = _auth.currentUser;
     if (user == null) throw FirebaseAuthException(code: 'no-current-user');
     if (!{'patient', 'doctor'}.contains(role)) {
-      throw ArgumentError.value(role, 'role', 'Only patients and doctors can register here.');
+      throw ArgumentError.value(
+        role,
+        'role',
+        'Only patients and doctors can register here.',
+      );
     }
 
     final emailAddress = user.email ?? email.trim().toLowerCase();
@@ -88,7 +93,10 @@ class AuthService {
       'createdAt': FieldValue.serverTimestamp(),
     };
 
-    await _db.collection('users').doc(user.uid).set(userData, SetOptions(merge: true));
+    await _db
+        .collection('users')
+        .doc(user.uid)
+        .set(userData, SetOptions(merge: true));
 
     await _db.collection('patients').doc(user.uid).set({
       'fullName': name,
@@ -96,7 +104,6 @@ class AuthService {
       'phone': phone,
       'email': user.email ?? email,
       'preferredLanguage': 'English',
-      'profileImageUrl': '',
       'createdAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
     if (isDoctor) {
@@ -135,7 +142,8 @@ class AuthService {
     final doctor = results[2].data();
     if (metadata == null && patient == null && doctor == null) return null;
 
-    final role = metadata?['role']?.toString() ??
+    final role =
+        metadata?['role']?.toString() ??
         (doctor != null ? 'doctor' : 'patient');
     final profile = role == 'doctor' ? doctor : patient;
     final authUser = _auth.currentUser;
@@ -145,7 +153,8 @@ class AuthService {
       'role': role,
       'email': profile?['email'] ?? metadata?['email'] ?? authUser?.email ?? '',
       'isVerified': metadata?['isVerified'] ?? profile?['isVerified'] ?? true,
-      'isApproved': metadata?['isApproved'] ?? profile?['isApproved'] ?? role != 'doctor',
+      'isApproved':
+          metadata?['isApproved'] ?? profile?['isApproved'] ?? role != 'doctor',
     };
     return UserModel.fromMap(merged, uid);
   }
