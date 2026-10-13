@@ -1,0 +1,28 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isApprovedDoctor(doctorId) {
+      return signedIn()
+        && request.auth.uid == doctorId
+        && firestore.get(
+          /databases/(default)/documents/users/$(request.auth.uid)
+        ).data.role == 'doctor'
+        && firestore.get(
+          /databases/(default)/documents/users/$(request.auth.uid)
+        ).data.isApproved == true;
+    }
+
+    match /doctor_profile_images/{doctorId}/{fileName} {
+      allow read: if signedIn();
+      allow write: if isApprovedDoctor(doctorId)
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if isApprovedDoctor(doctorId);
+    }
+  }
+}

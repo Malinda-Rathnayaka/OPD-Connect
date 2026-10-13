@@ -1,22 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 import 'firebase_options.dart';
-import 'services/seed_service.dart';
 import 'screens/auth/splash_screen.dart';
+import 'staff/staff_workspace.dart';
+
+const staffPreview = bool.fromEnvironment('STAFF_PREVIEW');
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  if (staffPreview) {
+    runApp(const OPDConnectApp());
+    return;
+  }
+
   // Load environment variables from .env file
   await dotenv.load(fileName: ".env");
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Auto-seed initial admin data using .env credentials
-  await SeedService.seedAdminAccount();
+  // Administrator profiles are provisioned by a trusted project owner.
 
   runApp(const OPDConnectApp());
 }
@@ -34,7 +39,9 @@ class OPDConnectApp extends StatelessWidget {
         useMaterial3: true,
       ),
       // Starts with SplashScreen onboarding flow
-      home: const SplashScreen(),
+      home: staffPreview
+          ? const HospitalStaffWorkspace(preview: true)
+          : const SplashScreen(),
     );
   }
 }

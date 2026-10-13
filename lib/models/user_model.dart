@@ -7,6 +7,9 @@ class UserModel {
   final String role; // 'patient', 'doctor', 'admin'
   final bool isVerified;
   final bool isApproved; // Admin approval flag for doctors
+  final bool isActive;
+  final String approvalStatus;
+  final String reviewNote;
   final DateTime? createdAt;
 
   UserModel({
@@ -18,6 +21,9 @@ class UserModel {
     required this.role,
     this.isVerified = true,
     this.isApproved = true,
+    this.isActive = true,
+    this.approvalStatus = '',
+    this.reviewNote = '',
     this.createdAt,
   });
 
@@ -27,10 +33,13 @@ class UserModel {
       emailOrPhone: map['emailOrPhone'] ?? map['email'] ?? '',
       email: map['email'] ?? map['emailOrPhone'] ?? '',
       phone: map['phone'] ?? '',
-      name: map['name'] ?? '',
+      name: map['name'] ?? map['fullName'] ?? '',
       role: map['role'] ?? 'patient',
       isVerified: map['isVerified'] ?? true,
       isApproved: map['isApproved'] ?? (map['role'] != 'doctor'),
+      isActive: map['isActive'] ?? true,
+      approvalStatus: map['approvalStatus'] ?? '',
+      reviewNote: map['reviewNote'] ?? '',
       createdAt: map['createdAt'] != null
           ? (map['createdAt'] as dynamic).toDate()
           : null,
@@ -46,6 +55,9 @@ class UserModel {
       'role': role,
       'isVerified': isVerified,
       'isApproved': isApproved,
+      'isActive': isActive,
+      'approvalStatus': approvalStatus,
+      'reviewNote': reviewNote,
     };
   }
 
@@ -58,6 +70,9 @@ class UserModel {
     String? role,
     bool? isVerified,
     bool? isApproved,
+    bool? isActive,
+    String? approvalStatus,
+    String? reviewNote,
   }) {
     return UserModel(
       uid: uid,
@@ -68,6 +83,9 @@ class UserModel {
       role: role ?? this.role,
       isVerified: isVerified ?? this.isVerified,
       isApproved: isApproved ?? this.isApproved,
+      isActive: isActive ?? this.isActive,
+      approvalStatus: approvalStatus ?? this.approvalStatus,
+      reviewNote: reviewNote ?? this.reviewNote,
       createdAt: createdAt,
     );
   }

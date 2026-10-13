@@ -124,7 +124,7 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
               return ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 itemCount: users.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
                   final user = users[index];
                   return _UserCard(
@@ -214,8 +214,8 @@ class _UserCard extends StatelessWidget {
               CircleAvatar(
                 radius: 24,
                 backgroundColor: isDoctor
-                    ? const Color(0xFF8B5CF6).withOpacity(0.12)
-                    : const Color(0xFF3B82F6).withOpacity(0.12),
+                    ? const Color(0xFF8B5CF6).withValues(alpha: 0.12)
+                    : const Color(0xFF3B82F6).withValues(alpha: 0.12),
                 child: Text(
                   user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
                   style: TextStyle(
@@ -248,7 +248,7 @@ class _UserCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.12),
+                  color: statusColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -265,7 +265,7 @@ class _UserCard extends StatelessWidget {
               // Delete button
               IconButton(
                 icon: const Icon(Icons.delete_outline_rounded, size: 20),
-                color: Colors.redAccent.withOpacity(0.7),
+                color: Colors.redAccent.withValues(alpha: 0.7),
                 onPressed: onDelete,
                 tooltip: 'Delete',
               ),
