@@ -78,7 +78,7 @@ class _CancelAppointmentScreenState extends State<CancelAppointmentScreen> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withOpacity(0.06),
+                      color: Colors.grey.withValues(alpha: 0.06),
                       blurRadius: 8,
                       spreadRadius: 1,
                     ),

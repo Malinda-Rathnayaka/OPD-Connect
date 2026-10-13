@@ -31,7 +31,7 @@ class AdminPendingDoctorsScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.1),
+                    color: const Color(0xFF10B981).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -62,7 +62,7 @@ class AdminPendingDoctorsScreen extends StatelessWidget {
         return ListView.separated(
           padding: const EdgeInsets.all(16),
           itemCount: pendingDoctors.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
+          separatorBuilder: (_, _) => const SizedBox(height: 10),
           itemBuilder: (context, index) {
             final doctor = pendingDoctors[index];
             return _PendingDoctorCard(
@@ -150,10 +150,10 @@ class _PendingDoctorCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.3)),
+        border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -174,7 +174,7 @@ class _PendingDoctorCard extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 26,
-                        backgroundColor: const Color(0xFF8B5CF6).withOpacity(0.12),
+                        backgroundColor: const Color(0xFF8B5CF6).withValues(alpha: 0.12),
                         child: Text(
                           doctor.name.isNotEmpty
                               ? doctor.name[0].toUpperCase()

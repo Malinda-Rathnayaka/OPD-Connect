@@ -322,7 +322,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           boxShadow: isFocused
               ? [
                   BoxShadow(
-                    color: const Color(0xFF2563EB).withOpacity(0.15),
+                    color: const Color(0xFF2563EB).withValues(alpha: 0.15),
                     blurRadius: 20,
                     offset: const Offset(0, 6),
                   ),
@@ -434,7 +434,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF2563EB).withOpacity(0.06)
+              ? const Color(0xFF2563EB).withValues(alpha: 0.06)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(14),
         ),
@@ -444,7 +444,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               padding: const EdgeInsets.all(9),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? const Color(0xFF2563EB).withOpacity(0.12)
+                    ? const Color(0xFF2563EB).withValues(alpha: 0.12)
                     : const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -501,7 +501,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: RadialGradient(
-          colors: [color, color.withOpacity(0.0)],
+          colors: [color, color.withValues(alpha: 0.0)],
           stops: const [0.0, 1.0],
         ),
       ),
@@ -524,7 +524,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               borderRadius: BorderRadius.circular(30),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF2563EB).withOpacity(0.45),
+                  color: const Color(0xFF2563EB).withValues(alpha: 0.45),
                   blurRadius: 28,
                   spreadRadius: 1,
                   offset: const Offset(0, 12),
@@ -597,19 +597,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
             top: -140,
             left: -120,
             child: _glow(
-                color: const Color(0xFF93C5FD).withOpacity(0.45), radius: 260),
+                color: const Color(0xFF93C5FD).withValues(alpha: 0.45), radius: 260),
           ),
           Positioned(
             top: 100,
             right: -160,
             child: _glow(
-                color: const Color(0xFFBFDBFE).withOpacity(0.55), radius: 240),
+                color: const Color(0xFFBFDBFE).withValues(alpha: 0.55), radius: 240),
           ),
           Positioned(
             bottom: -180,
             left: -100,
             child: _glow(
-                color: const Color(0xFFDBEAFE).withOpacity(0.7), radius: 280),
+                color: const Color(0xFFDBEAFE).withValues(alpha: 0.7), radius: 280),
           ),
 
           // 3. Content
@@ -650,7 +650,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 color: Colors.white,
                 shape: const CircleBorder(),
                 elevation: 2,
-                shadowColor: const Color(0xFF2563EB).withOpacity(0.2),
+                shadowColor: const Color(0xFF2563EB).withValues(alpha: 0.2),
                 child: InkWell(
                   customBorder: const CircleBorder(),
                   onTap: () => Navigator.pop(context),
@@ -692,7 +692,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF2563EB).withOpacity(0.35),
+                  color: const Color(0xFF2563EB).withValues(alpha: 0.35),
                   blurRadius: 24,
                   spreadRadius: 1,
                   offset: const Offset(0, 8),
@@ -706,9 +706,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.18),
+                    color: Colors.white.withValues(alpha: 0.18),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.35),
+                      color: Colors.white.withValues(alpha: 0.35),
                       width: 1.2,
                     ),
                   ),
@@ -877,7 +877,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF2563EB).withOpacity(0.05),
+                color: const Color(0xFF2563EB).withValues(alpha: 0.05),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -993,7 +993,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF2563EB).withOpacity(0.15),
+                  color: const Color(0xFF2563EB).withValues(alpha: 0.15),
                   blurRadius: 24,
                   offset: const Offset(0, 8),
                 ),
@@ -1030,7 +1030,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             color: const Color(0xFFEFF6FF),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: const Color(0xFF2563EB).withOpacity(0.2),
+              color: const Color(0xFF2563EB).withValues(alpha: 0.2),
             ),
           ),
           child: Text(
@@ -1052,7 +1052,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF2563EB).withOpacity(0.05),
+                color: const Color(0xFF2563EB).withValues(alpha: 0.05),
                 blurRadius: 16,
                 offset: const Offset(0, 6),
               ),

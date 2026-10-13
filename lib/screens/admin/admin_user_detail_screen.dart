@@ -164,7 +164,7 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: Colors.black.withValues(alpha: 0.04),
                     blurRadius: 16,
                     offset: const Offset(0, 4),
                   ),
@@ -176,8 +176,8 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
                   CircleAvatar(
                     radius: 44,
                     backgroundColor: isDoctor
-                        ? const Color(0xFF8B5CF6).withOpacity(0.12)
-                        : _accent.withOpacity(0.12),
+                        ? const Color(0xFF8B5CF6).withValues(alpha: 0.12)
+                        : _accent.withValues(alpha: 0.12),
                     child: Text(
                       widget.user.name.isNotEmpty
                           ? widget.user.name[0].toUpperCase()
@@ -201,8 +201,8 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                     decoration: BoxDecoration(
                       color: isDoctor
-                          ? const Color(0xFF8B5CF6).withOpacity(0.1)
-                          : const Color(0xFF3B82F6).withOpacity(0.1),
+                          ? const Color(0xFF8B5CF6).withValues(alpha: 0.1)
+                          : const Color(0xFF3B82F6).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -221,8 +221,8 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                       decoration: BoxDecoration(
                         color: widget.user.isApproved
-                            ? const Color(0xFF10B981).withOpacity(0.1)
-                            : const Color(0xFFF59E0B).withOpacity(0.1),
+                            ? const Color(0xFF10B981).withValues(alpha: 0.1)
+                            : const Color(0xFFF59E0B).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -251,7 +251,7 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: Colors.black.withValues(alpha: 0.04),
                     blurRadius: 16,
                     offset: const Offset(0, 4),
                   ),

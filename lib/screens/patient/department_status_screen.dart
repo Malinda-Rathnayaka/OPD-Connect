@@ -351,7 +351,7 @@ class _DepartmentStatusScreenState extends State<DepartmentStatusScreen> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                           color:
-                              const Color(0xFF3B82F6).withOpacity(0.2)),
+                              const Color(0xFF3B82F6).withValues(alpha: 0.2)),
                     ),
                     child: Row(
                       children: const [
@@ -454,7 +454,7 @@ class _DepartmentStatusScreenState extends State<DepartmentStatusScreen> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF3B82F6).withOpacity(0.3),
+                color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
                 blurRadius: 16,
                 offset: const Offset(0, 8),
               ),
@@ -704,7 +704,7 @@ class _DepartmentStatusScreenState extends State<DepartmentStatusScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.06),
+            color: Colors.grey.withValues(alpha: 0.06),
             blurRadius: 8,
             spreadRadius: 1,
           ),
@@ -881,7 +881,7 @@ class _DepartmentStatusScreenState extends State<DepartmentStatusScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.06),
+            color: Colors.grey.withValues(alpha: 0.06),
             blurRadius: 8,
             spreadRadius: 1,
           ),
@@ -907,7 +907,7 @@ class _DepartmentStatusScreenState extends State<DepartmentStatusScreen> {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.15),
+                  color: statusColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(

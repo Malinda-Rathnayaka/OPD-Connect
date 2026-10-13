@@ -108,7 +108,7 @@ class _DoctorPendingApprovalScreen extends StatelessWidget {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFF59E0B).withOpacity(0.2),
+                        color: const Color(0xFFF59E0B).withValues(alpha: 0.2),
                         blurRadius: 24,
                         offset: const Offset(0, 8),
                       ),
@@ -153,7 +153,7 @@ class _DoctorPendingApprovalScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: const Color(0xFFEFF6FF),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFF3B82F6).withOpacity(0.2)),
+                    border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.2)),
                   ),
                   child: const Row(
                     children: [

@@ -58,7 +58,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
             color: _surface,
             shape: const CircleBorder(),
             elevation: 2,
-            shadowColor: _primary.withOpacity(0.2),
+            shadowColor: _primary.withValues(alpha: 0.2),
             child: InkWell(
               customBorder: const CircleBorder(),
               onTap: () => Navigator.pop(context),
@@ -129,27 +129,28 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
             top: -140,
             left: -120,
             child: _glow(
-                color: const Color(0xFF93C5FD).withOpacity(0.35), radius: 260),
+                color: const Color(0xFF93C5FD).withValues(alpha: 0.35), radius: 260),
           ),
           Positioned(
             top: 100,
             right: -160,
             child: _glow(
-                color: const Color(0xFFBFDBFE).withOpacity(0.45), radius: 240),
+                color: const Color(0xFFBFDBFE).withValues(alpha: 0.45), radius: 240),
           ),
           Positioned(
             bottom: -180,
             left: -100,
             child: _glow(
-                color: const Color(0xFFDBEAFE).withOpacity(0.55), radius: 280),
+                color: const Color(0xFFDBEAFE).withValues(alpha: 0.55), radius: 280),
           ),
 
           // 3. Content
           StreamBuilder<List<DoctorLeaveModel>>(
             stream: _service.getDoctorLeaves(_doctorId),
             builder: (context, snapshot) {
-              if (snapshot.hasError)
+              if (snapshot.hasError) {
                 return _message('Unable to load leave requests.');
+              }
               if (!snapshot.hasData) {
                 return const Center(
                   child: CircularProgressIndicator(color: _primary),
@@ -217,7 +218,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: _primary.withOpacity(0.32),
+            color: _primary.withValues(alpha: 0.32),
             blurRadius: 26,
             offset: const Offset(0, 12),
           ),
@@ -231,10 +232,10 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.18),
+                  color: Colors.white.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.28),
+                    color: Colors.white.withValues(alpha: 0.28),
                     width: 1,
                   ),
                 ),
@@ -262,10 +263,10 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.18),
+                  color: Colors.white.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.35),
+                    color: Colors.white.withValues(alpha: 0.35),
                     width: 1,
                   ),
                 ),
@@ -294,7 +295,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
               Container(
                 width: 1,
                 height: 42,
-                color: Colors.white.withOpacity(0.20),
+                color: Colors.white.withValues(alpha: 0.20),
               ),
               Expanded(
                 child: _heroStat(
@@ -306,7 +307,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
               Container(
                 width: 1,
                 height: 42,
-                color: Colors.white.withOpacity(0.20),
+                color: Colors.white.withValues(alpha: 0.20),
               ),
               Expanded(
                 child: _heroStat(
@@ -335,7 +336,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.18),
+                color: Colors.white.withValues(alpha: 0.18),
                 borderRadius: BorderRadius.circular(9),
               ),
               child: Icon(icon, color: Colors.white, size: 14),
@@ -359,7 +360,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: Colors.white.withOpacity(0.85),
+                color: Colors.white.withValues(alpha: 0.85),
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.2,
@@ -378,7 +379,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: _primary.withOpacity(0.45),
+            color: _primary.withValues(alpha: 0.45),
             blurRadius: 24,
             spreadRadius: 0,
             offset: const Offset(0, 10),
@@ -454,7 +455,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
                 width: 5,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [colors.$1, colors.$1.withOpacity(0.6)],
+                    colors: [colors.$1, colors.$1.withValues(alpha: 0.6)],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ),
@@ -480,7 +481,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
-                                  color: _primary.withOpacity(0.30),
+                                  color: _primary.withValues(alpha: 0.30),
                                   blurRadius: 12,
                                   offset: const Offset(0, 4),
                                 ),
@@ -595,7 +596,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: fg.withOpacity(0.2)),
+        border: Border.all(color: fg.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -632,7 +633,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
         Container(
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: color, size: 14),
@@ -678,9 +679,9 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.08),
+            color: color.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: color.withOpacity(0.2)),
+            border: Border.all(color: color.withValues(alpha: 0.2)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -717,8 +718,8 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      _primary.withOpacity(0.14),
-                      _primaryLight.withOpacity(0.06),
+                      _primary.withValues(alpha: 0.14),
+                      _primaryLight.withValues(alpha: 0.06),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -806,7 +807,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
-                      color: _primary.withOpacity(0.35),
+                      color: _primary.withValues(alpha: 0.35),
                       blurRadius: 14,
                       offset: const Offset(0, 6),
                     ),
@@ -911,7 +912,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
                       borderRadius: BorderRadius.circular(30),
                       boxShadow: [
                         BoxShadow(
-                          color: _primary.withOpacity(0.4),
+                          color: _primary.withValues(alpha: 0.4),
                           blurRadius: 18,
                           offset: const Offset(0, 8),
                         ),
@@ -1015,7 +1016,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
           boxShadow: isFocused
               ? [
                   BoxShadow(
-                    color: _primary.withOpacity(0.15),
+                    color: _primary.withValues(alpha: 0.15),
                     blurRadius: 18,
                     offset: const Offset(0, 6),
                   ),
@@ -1182,7 +1183,7 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           gradient: RadialGradient(
-            colors: [color, color.withOpacity(0.0)],
+            colors: [color, color.withValues(alpha: 0.0)],
             stops: const [0.0, 1.0],
           ),
         ),
@@ -1194,12 +1195,12 @@ class _DoctorLeaveScreenState extends State<DoctorLeaveScreen> {
         border: Border.all(color: _border),
         boxShadow: [
           BoxShadow(
-            color: _primary.withOpacity(0.06),
+            color: _primary.withValues(alpha: 0.06),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),

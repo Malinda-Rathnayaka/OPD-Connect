@@ -1,6 +1,25 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isDoctor() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'doctor'
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isApproved == true;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function ownsSession(sessionId) {
+      return isDoctor()
+        && get(/databases/$(database)/documents/sessions/$(sessionId)).data.doctorId == request.auth.uid;
+    }
     
     // Doctors collection
     match /doctors/{document=**} {
@@ -35,27 +54,6 @@ service cloud.firestore {
     // Default fallback for any other collections
     match /{document=**} {
       allow read, write: if true;
-
-service cloud.firestore {
-  match /databases/{database}/documents {
-    function signedIn() {
-      return request.auth != null;
-    }
-
-    function isDoctor() {
-      return signedIn()
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'doctor'
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isApproved == true;
-    }
-
-    function isAdmin() {
-      return signedIn()
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    function ownsSession(sessionId) {
-      return isDoctor()
-        && get(/databases/$(database)/documents/sessions/$(sessionId)).data.doctorId == request.auth.uid;
     }
 
     match /users/{userId} {

@@ -148,19 +148,19 @@ class _LoginScreenState extends State<LoginScreen> {
             top: -140,
             left: -120,
             child: _glow(
-                color: const Color(0xFF93C5FD).withOpacity(0.45), radius: 260),
+                color: const Color(0xFF93C5FD).withValues(alpha: 0.45), radius: 260),
           ),
           Positioned(
             top: 100,
             right: -160,
             child: _glow(
-                color: const Color(0xFFBFDBFE).withOpacity(0.55), radius: 240),
+                color: const Color(0xFFBFDBFE).withValues(alpha: 0.55), radius: 240),
           ),
           Positioned(
             bottom: -180,
             left: -100,
             child: _glow(
-                color: const Color(0xFFDBEAFE).withOpacity(0.7), radius: 280),
+                color: const Color(0xFFDBEAFE).withValues(alpha: 0.7), radius: 280),
           ),
 
           // 3. Content
@@ -238,7 +238,7 @@ class _LoginScreenState extends State<LoginScreen> {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: RadialGradient(
-          colors: [color, color.withOpacity(0.0)],
+          colors: [color, color.withValues(alpha: 0.0)],
           stops: const [0.0, 1.0],
         ),
       ),
@@ -260,7 +260,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2563EB).withOpacity(0.35),
+            color: const Color(0xFF2563EB).withValues(alpha: 0.35),
             blurRadius: 28,
             spreadRadius: 2,
             offset: const Offset(0, 10),
@@ -274,9 +274,9 @@ class _LoginScreenState extends State<LoginScreen> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.18),
+              color: Colors.white.withValues(alpha: 0.18),
               border: Border.all(
-                color: Colors.white.withOpacity(0.35),
+                color: Colors.white.withValues(alpha: 0.35),
                 width: 1.2,
               ),
             ),
@@ -304,12 +304,12 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2563EB).withOpacity(0.08),
+            color: const Color(0xFF2563EB).withValues(alpha: 0.08),
             blurRadius: 30,
             offset: const Offset(0, 12),
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -503,7 +503,7 @@ class _LoginScreenState extends State<LoginScreen> {
           boxShadow: isFocused
               ? [
                   BoxShadow(
-                    color: const Color(0xFF2563EB).withOpacity(0.15),
+                    color: const Color(0xFF2563EB).withValues(alpha: 0.15),
                     blurRadius: 20,
                     offset: const Offset(0, 6),
                   ),
@@ -591,7 +591,7 @@ class _LoginScreenState extends State<LoginScreen> {
               borderRadius: BorderRadius.circular(30),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF2563EB).withOpacity(0.45),
+                  color: const Color(0xFF2563EB).withValues(alpha: 0.45),
                   blurRadius: 28,
                   spreadRadius: 1,
                   offset: const Offset(0, 12),
@@ -604,7 +604,7 @@ class _LoginScreenState extends State<LoginScreen> {
               backgroundColor: const Color(0xFF2563EB),
               foregroundColor: Colors.white,
               disabledBackgroundColor:
-                  const Color(0xFF2563EB).withOpacity(0.6),
+                  const Color(0xFF2563EB).withValues(alpha: 0.6),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30),
               ),

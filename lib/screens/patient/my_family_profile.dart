@@ -184,7 +184,7 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
             (_selectedBookingTarget != null &&
                 _bookingOptions.contains(_selectedBookingTarget))
             ? _selectedBookingTarget
-            : 'Myself (${_displayName})';
+            : 'Myself ($_displayName)';
         _isLoading = false;
       });
 
@@ -204,7 +204,7 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
           createdAt: DateTime.now(),
         );
         _familyMembers = [];
-        _selectedBookingTarget = 'Myself (${_displayName})';
+        _selectedBookingTarget = 'Myself ($_displayName)';
         _isLoading = false;
       });
       if (mounted) {
@@ -312,7 +312,7 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
                     decoration: const InputDecoration(labelText: 'Age'),
                   ),
                   DropdownButtonFormField<String>(
-                    value: genderValue,
+                    initialValue: genderValue,
                     decoration: const InputDecoration(labelText: 'Gender'),
                     items: const [
                       DropdownMenuItem(value: 'Male', child: Text('Male')),
@@ -427,7 +427,7 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
                       decoration: const InputDecoration(labelText: 'Age'),
                     ),
                     DropdownButtonFormField<String>(
-                      value: genderValue,
+                      initialValue: genderValue,
                       decoration: const InputDecoration(labelText: 'Gender'),
                       items: const [
                         DropdownMenuItem(value: 'Male', child: Text('Male')),
@@ -801,7 +801,7 @@ class _MyFamilyProfileScreenState extends State<MyFamilyProfileScreen> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: _bookingOptions.contains(_selectedBookingTarget)
+                      initialValue: _bookingOptions.contains(_selectedBookingTarget)
                           ? _selectedBookingTarget
                           : null,
                       decoration: InputDecoration(

@@ -340,7 +340,7 @@ class _AlertsSettingsScreenState extends State<AlertsSettingsScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.06),
+            color: Colors.grey.withValues(alpha: 0.06),
             blurRadius: 8,
             spreadRadius: 1,
           ),
@@ -395,7 +395,7 @@ class _AlertsSettingsScreenState extends State<AlertsSettingsScreen> {
         Switch(
           value: value,
           onChanged: onChanged,
-          activeColor: const Color(0xFF3B82F6),
+          activeThumbColor: const Color(0xFF3B82F6),
         ),
       ],
     );
@@ -529,7 +529,7 @@ class _AlertsSettingsScreenState extends State<AlertsSettingsScreen> {
         border: Border(left: BorderSide(color: color, width: 3)),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.06),
+            color: Colors.grey.withValues(alpha: 0.06),
             blurRadius: 8,
             spreadRadius: 1,
           ),
@@ -541,7 +541,7 @@ class _AlertsSettingsScreenState extends State<AlertsSettingsScreen> {
           Container(
             padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: color, size: 24),
@@ -618,7 +618,7 @@ class _AlertsSettingsScreenState extends State<AlertsSettingsScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFEFF6FF),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF3B82F6).withOpacity(0.2)),
+        border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
