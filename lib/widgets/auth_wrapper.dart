@@ -3,7 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import '../models/user_model.dart';
 import '../screens/auth/login_screen.dart';
-import '../screens/admin/admin_dashboard_screen.dart';
+import '../staff/staff_workspace.dart';
+import '../screens/doctor/doctor_dashboard_screen.dart';
+import '../screens/patient/patient_home_screen.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
@@ -53,8 +55,7 @@ class AuthWrapper extends StatelessWidget {
             }
 
             // ─── Doctor Approval Gate ──────────────────────
-            // If the doctor account has NOT been approved by admin,
-            // show a "pending approval" screen and block dashboard access.
+            // Doctor role එක සහ Admin approval නොමැති නම් Blocking screen එක pennවයි
             if (user.role == 'doctor' && !user.isApproved) {
               if (user.approvalStatus == 'rejected') {
                 return Scaffold(
@@ -97,12 +98,13 @@ class AuthWrapper extends StatelessWidget {
             // ─── Role-based routing ───────────────────────
             switch (user.role) {
               case 'admin':
-                return AdminDashboardScreen(admin: user);
+                return HospitalStaffWorkspace(actorId: user.uid, actorName: user.name,
+                    onSignOut: authService.signOut);
               case 'doctor':
-                return RoleHomeScreen(role: 'Doctor Dashboard (D-01)', user: user);
+                return const DoctorDashboardScreen(); // Doctor Portal Dashboard
               case 'patient':
               default:
-                return RoleHomeScreen(role: 'Patient Home (P-01)', user: user);
+                return const PatientHomeScreen();
             }
           },
         );
@@ -114,9 +116,6 @@ class AuthWrapper extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 // DOCTOR PENDING APPROVAL SCREEN
 // ─────────────────────────────────────────────────────────────
-// Shown when a doctor logs in but admin has not yet approved
-// their account. The doctor is signed out and redirected to the
-// login page with a clear message.
 class _DoctorPendingApprovalScreen extends StatelessWidget {
   final AuthService authService;
 
@@ -242,7 +241,7 @@ class _DoctorPendingApprovalScreen extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// PLACEHOLDER ROLE HOME SCREEN (patient / doctor)
+// PLACEHOLDER ROLE HOME SCREEN (Patient fallback)
 // ─────────────────────────────────────────────────────────────
 class RoleHomeScreen extends StatelessWidget {
   final String role;
