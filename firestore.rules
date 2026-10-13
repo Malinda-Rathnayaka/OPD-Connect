@@ -78,11 +78,22 @@ service cloud.firestore {
     }
 
     match /appointments/{appointmentId} {
+      // Allow a patient to load only appointments linked to their account.
+      // Existing shared collection rules above remain unchanged.
+      allow read: if signedIn() && resource.data.patientId == request.auth.uid;
       allow read: if isDoctor() && resource.data.doctorId == request.auth.uid;
       allow create: if signedIn() && request.resource.data.patientId == request.auth.uid;
       allow update: if signedIn()
         && (resource.data.patientId == request.auth.uid
             || (isDoctor() && resource.data.doctorId == request.auth.uid));
+    }
+
+    match /notifications/{notificationId} {
+      // Allow patients to access only their own dashboard notifications.
+      allow read, update, delete: if signedIn()
+        && resource.data.patientId == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.patientId == request.auth.uid;
     }
 
     match /patients/{patientId} {
