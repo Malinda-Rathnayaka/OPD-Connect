@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'my_family_profile.dart';
+import 'my_appointments_screen.dart';
+import 'alerts_settings_screen.dart';
 
 class PatientHomeScreen extends StatefulWidget {
   const PatientHomeScreen({super.key});
@@ -102,6 +104,14 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
       context,
       MaterialPageRoute(builder: (context) => const MyFamilyProfileScreen()),
     );
+  }
+
+  void _openAppointments() {
+    _navigateTo(const MyAppointmentsScreen());
+  }
+
+  void _openAlerts() {
+    _navigateTo(const AlertsSettingsScreen());
   }
 
   DateTime? _parseAppointmentDate(dynamic value) {
@@ -387,6 +397,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
       case 0:
         break;
       case 1:
+        _openAppointments();
+        break;
       case 2:
       case 3:
         _openDirectBookingFlow();
@@ -532,7 +544,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
           ),
           actions: [
             IconButton(
-              onPressed: () => _navigateTo(const MyFamilyProfileScreen()),
+              onPressed: _openAlerts,
               icon: const Icon(Icons.notifications_none_outlined),
             ),
           ],
@@ -598,7 +610,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                     icon: Icons.calendar_today,
                     title: 'My Bookings',
                     subtitle: 'View or edit sessions',
-                    onTap: _openDirectBookingFlow,
+                    onTap: _openAppointments,
                   ),
                   _QuickToolCard(
                     icon: Icons.people,

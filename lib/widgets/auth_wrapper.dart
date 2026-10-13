@@ -258,6 +258,7 @@ class _DoctorPendingApprovalScreen extends StatelessWidget {
                     border: Border.all(
                       color: const Color(0xFF3B82F6).withValues(alpha: 0.2),
                     ),
+                    border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.2)),
                   ),
                   child: const Row(
                     children: [
