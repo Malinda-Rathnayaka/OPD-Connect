@@ -113,6 +113,24 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
     return true;
   }
 
+  Future<void> _signOut() async {
+    if (!await _confirmLeave() || !mounted) return;
+    if (widget.onSignOut != null) {
+      widget.onSignOut!();
+    } else if (context.mounted && Navigator.canPop(context)) {
+      if (_hospitalDirty) {
+        setState(() {
+          _page = 0;
+          _hospitalDirty = false;
+        });
+        await WidgetsBinding.instance.endOfFrame;
+      }
+      if (context.mounted) Navigator.pop(context);
+    } else {
+      _notify('Close this tab to leave the preview.');
+    }
+  }
+
   Future<void> _account(StaffAccount account, AccountDialogMode mode) async {
     final result = await showDialog<bool>(
       context: context,
@@ -341,7 +359,9 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
                       vertical: 3,
                     ),
                     child: Material(
-                      color: _page == i ? StaffStyle.primarySoft : Colors.transparent,
+                      color: _page == i
+                          ? StaffStyle.primarySoft
+                          : Colors.transparent,
                       borderRadius: BorderRadius.circular(10),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(10),
@@ -594,28 +614,19 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
           ),
         ),
         const SizedBox(width: 8),
+        IconButton(
+          tooltip: c.preview ? 'Leave preview' : 'Sign out',
+          onPressed: _signOut,
+          icon: const Icon(Icons.logout_rounded, size: 21),
+        ),
+        const SizedBox(width: 4),
         PopupMenuButton<String>(
           tooltip: 'Your account',
           onSelected: (action) async {
             if (action == 'role') {
               if (await _navigate(3) && mounted) setState(() => _staffTab = 1);
             } else {
-              if (!await _confirmLeave()) return;
-              if (widget.onSignOut != null) {
-                widget.onSignOut!();
-              } else if (context.mounted && Navigator.canPop(context)) {
-                // HospitalSettingsPanel protects route pops until its draft is discarded.
-                if (_hospitalDirty) {
-                  setState(() {
-                    _page = 0;
-                    _hospitalDirty = false;
-                  });
-                  await WidgetsBinding.instance.endOfFrame;
-                }
-                if (context.mounted) Navigator.pop(context);
-              } else {
-                _notify('Close this tab to leave the preview.');
-              }
+              await _signOut();
             }
           },
           itemBuilder: (_) => [
