@@ -64,7 +64,7 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
             color: _surface,
             shape: const CircleBorder(),
             elevation: 2,
-            shadowColor: _primary.withOpacity(0.2),
+            shadowColor: _primary.withValues(alpha: 0.2),
             child: InkWell(
               customBorder: const CircleBorder(),
               onTap: () => Navigator.pop(context),
@@ -135,7 +135,7 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
             top: -140,
             left: -120,
             child: _glow(
-              color: const Color(0xFF93C5FD).withOpacity(0.35),
+              color: const Color(0xFF93C5FD).withValues(alpha: 0.35),
               radius: 260,
             ),
           ),
@@ -143,7 +143,7 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
             top: 100,
             right: -160,
             child: _glow(
-              color: const Color(0xFFBFDBFE).withOpacity(0.45),
+              color: const Color(0xFFBFDBFE).withValues(alpha: 0.45),
               radius: 240,
             ),
           ),
@@ -151,7 +151,7 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
             bottom: -180,
             left: -100,
             child: _glow(
-              color: const Color(0xFFDBEAFE).withOpacity(0.55),
+              color: const Color(0xFFDBEAFE).withValues(alpha: 0.55),
               radius: 280,
             ),
           ),
@@ -329,7 +329,7 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: _primary.withOpacity(0.08),
+              color: _primary.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -367,7 +367,7 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: _primary.withOpacity(0.30),
+            color: _primary.withValues(alpha: 0.30),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
@@ -385,7 +385,7 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
                     Text(
                       'IN CONSULTATION',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 1.0,
@@ -412,10 +412,10 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.18),
+                      color: Colors.white.withValues(alpha: 0.18),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.35),
+                        color: Colors.white.withValues(alpha: 0.35),
                         width: 1.5,
                       ),
                     ),
@@ -509,9 +509,9 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
+            color: Colors.white.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.25)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -581,7 +581,7 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: _primary.withOpacity(0.12),
+                            color: _primary.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
@@ -716,7 +716,7 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
           boxShadow: isFocused
               ? [
                   BoxShadow(
-                    color: _primary.withOpacity(0.15),
+                    color: _primary.withValues(alpha: 0.15),
                     blurRadius: 20,
                     offset: const Offset(0, 6),
                   ),
@@ -798,7 +798,7 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
               borderRadius: BorderRadius.circular(30),
               boxShadow: [
                 BoxShadow(
-                  color: _primary.withOpacity(0.4),
+                  color: _primary.withValues(alpha: 0.4),
                   blurRadius: 24,
                   spreadRadius: 0,
                   offset: const Offset(0, 10),
@@ -812,7 +812,7 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: _primary,
                 foregroundColor: Colors.white,
-                disabledBackgroundColor: _primary.withOpacity(0.6),
+                disabledBackgroundColor: _primary.withValues(alpha: 0.6),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
@@ -856,7 +856,7 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
   Widget _chipIcon({required IconData icon, required Color color}) => Container(
     padding: const EdgeInsets.all(8),
     decoration: BoxDecoration(
-      color: color.withOpacity(0.1),
+      color: color.withValues(alpha: 0.1),
       borderRadius: BorderRadius.circular(10),
     ),
     child: Icon(icon, color: color, size: 18),
@@ -868,7 +868,7 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
     decoration: BoxDecoration(
       shape: BoxShape.circle,
       gradient: RadialGradient(
-        colors: [color, color.withOpacity(0.0)],
+        colors: [color, color.withValues(alpha: 0.0)],
         stops: const [0.0, 1.0],
       ),
     ),
@@ -880,12 +880,12 @@ class _ActiveConsultationScreenState extends State<ActiveConsultationScreen> {
     border: Border.all(color: _border),
     boxShadow: [
       BoxShadow(
-        color: _primary.withOpacity(0.06),
+        color: _primary.withValues(alpha: 0.06),
         blurRadius: 18,
         offset: const Offset(0, 8),
       ),
       BoxShadow(
-        color: Colors.black.withOpacity(0.02),
+        color: Colors.black.withValues(alpha: 0.02),
         blurRadius: 6,
         offset: const Offset(0, 2),
       ),

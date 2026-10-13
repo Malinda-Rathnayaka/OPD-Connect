@@ -3,7 +3,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'firebase_options.dart';
-import 'services/seed_service.dart';
 import 'screens/auth/splash_screen.dart';
 import 'staff/staff_workspace.dart';
 
@@ -22,8 +21,7 @@ void main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Auto-seed initial admin data using .env credentials
-  await SeedService.seedAdminAccount();
+  // Administrator profiles are provisioned by a trusted project owner.
 
   runApp(const OPDConnectApp());
 }

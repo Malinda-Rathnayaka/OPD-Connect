@@ -120,7 +120,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.05),
+            color: Colors.grey.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -207,7 +207,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.05),
+            color: Colors.grey.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -249,7 +249,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
             boxShadow: selected
                 ? [
                     BoxShadow(
-                      color: const Color(0xFF3B82F6).withOpacity(0.3),
+                      color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -410,7 +410,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
@@ -450,15 +450,15 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isToday
-                ? const Color(0xFF3B82F6).withOpacity(0.25)
+                ? const Color(0xFF3B82F6).withValues(alpha: 0.25)
                 : Colors.grey.shade200,
             width: isToday ? 1.5 : 1,
           ),
           boxShadow: [
             BoxShadow(
               color: isToday
-                  ? const Color(0xFF3B82F6).withOpacity(0.1)
-                  : Colors.grey.withOpacity(0.06),
+                  ? const Color(0xFF3B82F6).withValues(alpha: 0.1)
+                  : Colors.grey.withValues(alpha: 0.06),
               blurRadius: 14,
               offset: const Offset(0, 6),
             ),
@@ -526,8 +526,8 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          const Color(0xFF3B82F6).withOpacity(0.15),
-                          const Color(0xFF3B82F6).withOpacity(0.05),
+                          const Color(0xFF3B82F6).withValues(alpha: 0.15),
+                          const Color(0xFF3B82F6).withValues(alpha: 0.05),
                         ],
                       ),
                       borderRadius: BorderRadius.circular(14),
@@ -807,7 +807,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.06),
+            color: Colors.grey.withValues(alpha: 0.06),
             blurRadius: 14,
             offset: const Offset(0, 6),
           ),
@@ -827,8 +827,8 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        const Color(0xFF10B981).withOpacity(0.15),
-                        const Color(0xFF10B981).withOpacity(0.05),
+                        const Color(0xFF10B981).withValues(alpha: 0.15),
+                        const Color(0xFF10B981).withValues(alpha: 0.05),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(14),
@@ -1103,7 +1103,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor.withOpacity(0.2)),
+        border: Border.all(color: borderColor.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1144,7 +1144,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
         color: const Color(0xFFDBEAFE),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: const Color(0xFF3B82F6).withOpacity(0.2),
+          color: const Color(0xFF3B82F6).withValues(alpha: 0.2),
         ),
       ),
       child: Row(
@@ -1175,7 +1175,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.06),
+            color: Colors.grey.withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -1249,7 +1249,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.06),
+            color: Colors.grey.withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),

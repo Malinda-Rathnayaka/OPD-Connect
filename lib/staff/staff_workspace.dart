@@ -4,6 +4,7 @@ import 'staff_controller.dart';
 import 'staff_dialogs.dart';
 import 'staff_models.dart';
 import 'staff_widgets.dart';
+import 'staff_records_panel.dart';
 
 class HospitalStaffWorkspace extends StatefulWidget {
   final bool preview;
@@ -27,6 +28,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
   final _search = TextEditingController();
   int _page = 0, _overviewTab = 0, _staffTab = 0;
   bool _hospitalDirty = false;
+  bool _confirmingNavigation = false;
   String _roleFilter = 'All roles', _statusFilter = 'All statuses';
   static const _titles = [
     'Overview',
@@ -65,8 +67,14 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
     super.dispose();
   }
 
-  Future<void> _navigate(int page) async {
-    if (_page == 4 && _hospitalDirty && page != 4) {
+  Future<bool> _confirmLeave() async {
+    if (c.busy) {
+      _notify('Wait for the current save to finish.');
+      return false;
+    }
+    if (_confirmingNavigation) return false;
+    if (_page == 4 && _hospitalDirty) {
+      _confirmingNavigation = true;
       final discard = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -86,9 +94,15 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
           ],
         ),
       );
-      if (discard != true || !mounted) return;
+      _confirmingNavigation = false;
+      if (discard != true || !mounted) return false;
     }
-    if (!mounted) return;
+    return mounted;
+  }
+
+  Future<bool> _navigate(int page) async {
+    if (_page == page) return true;
+    if (!await _confirmLeave()) return false;
     setState(() {
       _page = page;
       _hospitalDirty = false;
@@ -96,11 +110,13 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
       _roleFilter = 'All roles';
       _statusFilter = 'All statuses';
     });
+    return true;
   }
 
   Future<void> _account(StaffAccount account, AccountDialogMode mode) async {
     final result = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (_) => Theme(
         data: StaffStyle.theme(),
         child: AccountDialog(controller: c, account: account, mode: mode),
@@ -171,13 +187,33 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
                                                 ),
                                                 child: Icon(
                                                   Icons.science_outlined,
-                                                  color: StaffStyle.green,
+                                                  color: StaffStyle.primary,
                                                   size: 18,
                                                 ),
                                               ),
                                             ),
                                           ),
                                         _pageHeading(context),
+                                        if (c.accountAccessIssue != null) ...[
+                                          InfoBanner(
+                                            c.accountAccessIssue!,
+                                            warning: true,
+                                            action: TextButton(
+                                              onPressed: c.connect,
+                                              child: const Text('Retry'),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 20),
+                                        ],
+                                        if (c.accountsFromCache &&
+                                            !c.errors.containsKey('Accounts') &&
+                                            !c.preview) ...[
+                                          const InfoBanner(
+                                            'Showing cached account data. Changes are disabled until Firebase reconnects.',
+                                            warning: true,
+                                          ),
+                                          const SizedBox(height: 20),
+                                        ],
                                         if (c.errors.containsKey(
                                           'Accounts',
                                         )) ...[
@@ -191,7 +227,14 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
                                           ),
                                           const SizedBox(height: 20),
                                         ],
-                                        if (c.loading)
+                                        if (c.actorLoaded &&
+                                            !c.canReadWorkspace)
+                                          const EmptyState(
+                                            icon: Icons.lock_outline,
+                                            title: 'Staff access unavailable',
+                                            detail: 'Verify your account permissions before loading hospital records.',
+                                          )
+                                        else if (c.loading || !c.actorLoaded)
                                           const Padding(
                                             padding: EdgeInsets.all(45),
                                             child: Center(
@@ -234,7 +277,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
                   : NavigationBar(
                       height: 72,
                       backgroundColor: Colors.white,
-                      indicatorColor: StaffStyle.mint,
+                      indicatorColor: StaffStyle.primarySoft,
                       selectedIndex: _page <= 2 ? _page : 3,
                       onDestinationSelected: (index) =>
                           index == 3 ? _more(context) : _navigate(index),
@@ -298,7 +341,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
                       vertical: 3,
                     ),
                     child: Material(
-                      color: _page == i ? StaffStyle.mint : Colors.transparent,
+                      color: _page == i ? StaffStyle.primarySoft : Colors.transparent,
                       borderRadius: BorderRadius.circular(10),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(10),
@@ -314,7 +357,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
                                 _icons[i],
                                 size: 20,
                                 color: _page == i
-                                    ? StaffStyle.green
+                                    ? StaffStyle.primary
                                     : StaffStyle.muted,
                               ),
                               const SizedBox(width: 13),
@@ -327,7 +370,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
                                         ? FontWeight.w700
                                         : FontWeight.w500,
                                     color: _page == i
-                                        ? StaffStyle.green
+                                        ? StaffStyle.primary
                                         : StaffStyle.muted,
                                   ),
                                 ),
@@ -368,7 +411,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
                       children: [
                         const Icon(
                           Icons.support_agent_rounded,
-                          color: StaffStyle.green,
+                          color: StaffStyle.primary,
                           size: 24,
                         ),
                         const SizedBox(height: 10),
@@ -390,9 +433,10 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
                         ),
                         const SizedBox(height: 10),
                         InkWell(
-                          onTap: () {
-                            _navigate(3);
-                            setState(() => _staffTab = 1);
+                          onTap: () async {
+                            if (await _navigate(3) && mounted) {
+                              setState(() => _staffTab = 1);
+                            }
                           },
                           child: const Row(
                             children: [
@@ -401,7 +445,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
                                   'View role guide',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: StaffStyle.green,
+                                    color: StaffStyle.primary,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -410,7 +454,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
                               Icon(
                                 Icons.arrow_forward_rounded,
                                 size: 14,
-                                color: StaffStyle.green,
+                                color: StaffStyle.primary,
                               ),
                             ],
                           ),
@@ -457,7 +501,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
         width: 38,
         height: 38,
         decoration: BoxDecoration(
-          color: StaffStyle.green,
+          color: StaffStyle.primary,
           borderRadius: BorderRadius.circular(11),
         ),
         child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
@@ -498,7 +542,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
           Container(
             padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
-              color: StaffStyle.green,
+              color: StaffStyle.primary,
               borderRadius: BorderRadius.circular(9),
             ),
             child: const Icon(Icons.add_rounded, color: Colors.white, size: 22),
@@ -510,7 +554,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                c.hospitalName,
+                '${c.hospitalName}${c.settingsFromCache ? ' (cached)' : ''}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
@@ -530,22 +574,17 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
         ),
         if (desktop) ...[
           StatusPill(
-            c.preview
-                ? 'Preview'
-                : c.errors.containsKey('Accounts')
-                ? 'Connection issue'
-                : 'Connected',
+            c.connectionLabel,
             color: c.errors.containsKey('Accounts')
                 ? StaffStyle.amber
-                : StaffStyle.green,
+                : StaffStyle.primary,
           ),
           const SizedBox(width: 24),
         ],
         IconButton(
           tooltip: 'View alerts',
-          onPressed: () {
-            _navigate(0);
-            setState(() => _overviewTab = 1);
+          onPressed: () async {
+            if (await _navigate(0) && mounted) setState(() => _overviewTab = 1);
           },
           icon: Badge(
             isLabelVisible:
@@ -557,16 +596,26 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
         const SizedBox(width: 8),
         PopupMenuButton<String>(
           tooltip: 'Your account',
-          onSelected: (action) {
+          onSelected: (action) async {
             if (action == 'role') {
-              _navigate(3);
-              setState(() => _staffTab = 1);
-            } else if (widget.onSignOut != null) {
-              widget.onSignOut!();
-            } else if (Navigator.canPop(context)) {
-              Navigator.pop(context);
+              if (await _navigate(3) && mounted) setState(() => _staffTab = 1);
             } else {
-              _notify('Close this tab to leave the preview.');
+              if (!await _confirmLeave()) return;
+              if (widget.onSignOut != null) {
+                widget.onSignOut!();
+              } else if (context.mounted && Navigator.canPop(context)) {
+                // HospitalSettingsPanel protects route pops until its draft is discarded.
+                if (_hospitalDirty) {
+                  setState(() {
+                    _page = 0;
+                    _hospitalDirty = false;
+                  });
+                  await WidgetsBinding.instance.endOfFrame;
+                }
+                if (context.mounted) Navigator.pop(context);
+              } else {
+                _notify('Close this tab to leave the preview.');
+              }
             }
           },
           itemBuilder: (_) => [
@@ -579,13 +628,13 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
           ],
           child: CircleAvatar(
             radius: 18,
-            backgroundColor: StaffStyle.mint,
+            backgroundColor: StaffStyle.primarySoft,
             child: Text(
               c.actorName.split(' ').take(2).map((s) => s[0]).join(),
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: StaffStyle.green,
+                color: StaffStyle.primary,
               ),
             ),
           ),
@@ -605,7 +654,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
           children: [
             for (var i = 3; i < _titles.length; i++)
               ListTile(
-                leading: Icon(_icons[i], color: StaffStyle.green),
+                leading: Icon(_icons[i], color: StaffStyle.primary),
                 title: Text(_titles[i]),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () {
@@ -640,7 +689,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
               fontSize: 10,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.8,
-              color: StaffStyle.green,
+              color: StaffStyle.primary,
             ),
           ),
           const SizedBox(height: 8),
@@ -721,7 +770,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
         _alerts(context)
       else ...[
         StaffCard(
-          color: const Color(0xFFE6F2EC),
+          color: StaffStyle.primarySoft,
           padding: const EdgeInsets.all(26),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -874,7 +923,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
                             ),
                           ),
                           TextButton(
-                            onPressed: c.canWrite
+                            onPressed: c.canReview
                                 ? () => _account(a, AccountDialogMode.review)
                                 : null,
                             child: const Text(
@@ -902,12 +951,10 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
                 _serviceLine(
                   Icons.cloud_done_outlined,
                   'Account database',
-                  c.preview
-                      ? 'Preview'
-                      : c.errors.containsKey('Accounts')
-                      ? 'Unavailable'
-                      : 'Connected',
-                  !c.errors.containsKey('Accounts'),
+                  c.connectionLabel,
+                  !c.loading &&
+                      !c.accountsFromCache &&
+                      !c.errors.containsKey('Accounts'),
                 ),
                 const SizedBox(height: 20),
                 _serviceLine(
@@ -954,7 +1001,9 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
               children: [
                 SectionHeading(
                   'Recent activity',
-                  subtitle: 'Changes with a clear trail',
+                  subtitle: c.activityFromCache
+                      ? 'Cached activity records'
+                      : 'Changes with a clear trail',
                   trailing: TextButton(
                     onPressed: () => _navigate(5),
                     child: const Text(
@@ -963,7 +1012,13 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
                     ),
                   ),
                 ),
-                if (c.activity.isEmpty)
+                if (!c.activityLoaded || c.errors.containsKey('Activity'))
+                  const EmptyState(
+                    icon: Icons.history_rounded,
+                    title: 'Activity unavailable',
+                    detail: 'Waiting for authorized Firebase activity records.',
+                  )
+                else if (c.activity.isEmpty)
                   const EmptyState(
                     icon: Icons.history_rounded,
                     title: 'No activity yet',
@@ -1032,7 +1087,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
               borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                  color: StaffStyle.green.withValues(alpha: 0.07),
+                  color: StaffStyle.primary.withValues(alpha: 0.07),
                   blurRadius: 24,
                   offset: const Offset(0, 10),
                 ),
@@ -1044,7 +1099,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
                 const Icon(
                   Icons.medical_services_outlined,
                   size: 42,
-                  color: StaffStyle.green,
+                  color: StaffStyle.primary,
                 ),
                 const SizedBox(height: 12),
                 Container(
@@ -1074,7 +1129,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
           child: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: StaffStyle.green,
+              color: StaffStyle.primary,
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
@@ -1105,9 +1160,10 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          _navigate(destination);
-          if (role != null) setState(() => _roleFilter = role);
+        onTap: () async {
+          if (await _navigate(destination) && mounted && role != null) {
+            setState(() => _roleFilter = role);
+          }
         },
         child: StaffCard(
           padding: const EdgeInsets.all(18),
@@ -1128,7 +1184,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
                   Icon(
                     icon,
                     size: 19,
-                    color: amber ? StaffStyle.amber : StaffStyle.green,
+                    color: amber ? StaffStyle.amber : StaffStyle.primary,
                   ),
                 ],
               ),
@@ -1180,7 +1236,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
               state,
               style: TextStyle(
                 fontSize: 11,
-                color: good ? StaffStyle.green : StaffStyle.amber,
+                color: good ? StaffStyle.primary : StaffStyle.amber,
               ),
             ),
           ],
@@ -1189,7 +1245,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
       Icon(
         good ? Icons.check_circle_outline_rounded : Icons.info_outline_rounded,
         size: 17,
-        color: good ? StaffStyle.green : StaffStyle.amber,
+        color: good ? StaffStyle.primary : StaffStyle.amber,
       ),
     ],
   );
@@ -1202,7 +1258,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
           padding: const EdgeInsets.symmetric(vertical: 13),
           child: Row(
             children: [
-              Icon(icon, color: StaffStyle.green, size: 20),
+              Icon(icon, color: StaffStyle.primary, size: 20),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -1236,6 +1292,24 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
       );
 
   Widget _accounts(BuildContext context, {bool staffOnly = false}) {
+    if (c.errors.containsKey('Accounts')) {
+      return StaffCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SectionHeading(
+              staffOnly ? 'Staff directory' : 'Account directory',
+              subtitle: 'Account data could not be loaded',
+            ),
+            const EmptyState(
+              icon: Icons.cloud_off_outlined,
+              title: 'Directory unavailable',
+              detail: 'Restore authorized Firebase access and retry to load accounts.',
+            ),
+          ],
+        ),
+      );
+    }
     final source = staffOnly ? c.staff : c.accounts;
     final query = _search.text.toLowerCase().trim();
     final list = source
@@ -1263,7 +1337,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
           SectionHeading(
             staffOnly ? 'Staff directory' : 'Account directory',
             subtitle:
-                '${list.length} ${list.length == 1 ? 'account' : 'accounts'}${query.isNotEmpty ? ' matching your search' : ' in this view'}',
+                '${c.accountsFromCache ? 'Cached records · ' : ''}${list.length} ${list.length == 1 ? 'account' : 'accounts'}${query.isNotEmpty ? ' matching your search' : ' in this view'}',
           ),
           LayoutBuilder(
             builder: (context, size) => Wrap(
@@ -1573,12 +1647,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
     );
     if (reason == null || !mounted) return;
     try {
-      await c.updateAccount(
-        account,
-        {'isActive': !account.active, 'reviewNote': '$action: $reason'},
-        'Account ${account.active ? 'deactivated' : 'reactivated'}',
-        '${account.name} · $reason',
-      );
+      await c.setActive(account, active: !account.active, reason: reason);
       if (mounted) {
         _notify('Account ${account.active ? 'deactivated' : 'reactivated'}.');
       }
@@ -1596,23 +1665,38 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
         'Check identity, medical registration and hospital assignment before approving. Rejected registrations stay on record with the reason.',
       ),
       const SizedBox(height: 22),
+      if (!c.canManage &&
+          !c.loading &&
+          !c.accountsFromCache &&
+          !c.errors.containsKey('Accounts')) ...[
+        InfoBanner(c.reviewUnavailableReason!, warning: true),
+        const SizedBox(height: 18),
+      ],
       StaffCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SectionHeading(
               'Doctor review queue',
-              subtitle: '${c.pending.length} waiting for a decision',
+              subtitle: c.errors.containsKey('Accounts')
+                  ? 'Queue data could not be loaded'
+                  : '${c.pending.length} waiting for a decision',
               trailing: StatusPill(
-                '${c.pending.length} pending',
+                c.errors.containsKey('Accounts')
+                    ? 'Unavailable'
+                    : '${c.pending.length} pending',
                 color: StaffStyle.amber,
               ),
             ),
             if (c.pending.isEmpty)
-              const EmptyState(
+              EmptyState(
                 icon: Icons.task_alt_rounded,
-                title: 'You’re all caught up',
-                detail: 'New doctor registrations will appear here for review.',
+                title: c.errors.containsKey('Accounts') || c.accountsFromCache
+                    ? 'Review queue unavailable'
+                    : 'You’re all caught up',
+                detail: c.errors.containsKey('Accounts') || c.accountsFromCache
+                    ? 'Reconnect with authorized access to load pending registrations.'
+                    : 'New doctor registrations will appear here for review.',
               )
             else
               for (final a in c.pending)
@@ -1678,7 +1762,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
                       ),
                       const SizedBox(height: 18),
                       FilledButton.icon(
-                        onPressed: c.canWrite
+                        onPressed: c.canReview
                             ? () => _account(a, AccountDialogMode.review)
                             : null,
                         icon: const Icon(Icons.fact_check_outlined, size: 17),
@@ -1692,9 +1776,10 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
       ),
       const SizedBox(height: 18),
       TextButton(
-        onPressed: () {
-          _navigate(1);
-          setState(() => _statusFilter = 'Rejected');
+        onPressed: () async {
+          if (await _navigate(1) && mounted) {
+            setState(() => _statusFilter = 'Rejected');
+          }
         },
         child: const Text('View previously rejected registrations'),
       ),
@@ -1705,7 +1790,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       _tabs(
-        ['Staff profiles', 'Roles & permissions'],
+        ['Staff profiles', 'Roles & permissions', 'Staff directory'],
         _staffTab,
         (i) => setState(() => _staffTab = i),
       ),
@@ -1748,6 +1833,8 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
           const SizedBox(height: 18),
         ],
         _accounts(context, staffOnly: true),
+      ] else if (_staffTab == 2) ...[
+        StaffRecordsPanel(controller: c, type: StaffRecordType.directory),
       ] else ...[
         const InfoBanner(
           'Role changes affect sensitive hospital information. Only a super administrator can change another staff member’s role. Your own access cannot be changed here.',
@@ -1777,7 +1864,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
                               : role == 'Hospital administrator'
                               ? Icons.local_hospital_outlined
                               : Icons.support_agent_rounded,
-                          color: StaffStyle.green,
+                          color: StaffStyle.primary,
                           size: 27,
                         ),
                         const SizedBox(height: 16),
@@ -1825,7 +1912,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
                                           (role == 'Hospital administrator' &&
                                               permission !=
                                                   'Manage staff access')
-                                      ? StaffStyle.green
+                                      ? StaffStyle.primary
                                       : StaffStyle.muted,
                                 ),
                                 const SizedBox(width: 9),
@@ -1861,10 +1948,17 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
     ],
   );
 
-  Widget _hospital(BuildContext context) => HospitalSettingsPanel(
-    controller: c,
-    onDirty: (dirty) => _hospitalDirty = dirty,
-    onSaved: () => _notify('Hospital information saved.'),
+  Widget _hospital(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      HospitalSettingsPanel(
+        controller: c,
+        onDirty: (dirty) => _hospitalDirty = dirty,
+        onSaved: () => _notify('Hospital information saved.'),
+      ),
+      const SizedBox(height: 24),
+      StaffRecordsPanel(controller: c, type: StaffRecordType.notice),
+    ],
   );
 
   Widget _activityRow(StaffActivity item) => Padding(
@@ -1881,7 +1975,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
           child: const Icon(
             Icons.history_rounded,
             size: 17,
-            color: StaffStyle.green,
+            color: StaffStyle.primary,
           ),
         ),
         const SizedBox(width: 12),
@@ -1932,6 +2026,15 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
             InfoBanner(c.errors['Activity']!, warning: true),
             const SizedBox(height: 16),
           ],
+          if (c.activityFromCache &&
+              !c.preview &&
+              !c.errors.containsKey('Activity')) ...[
+            const InfoBanner(
+              'Showing cached activity records. Firebase has not confirmed the latest activity.',
+              warning: true,
+            ),
+            const SizedBox(height: 16),
+          ],
           TextField(
             controller: _search,
             onChanged: (_) => setState(() {}),
@@ -1941,7 +2044,13 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
             ),
           ),
           const SizedBox(height: 18),
-          if (items.isEmpty)
+          if (!c.activityLoaded || c.errors.containsKey('Activity'))
+            const EmptyState(
+              icon: Icons.history_rounded,
+              title: 'Activity unavailable',
+              detail: 'Restore authorized Firebase access and retry to load the activity log.',
+            )
+          else if (items.isEmpty)
             const EmptyState(
               icon: Icons.history_rounded,
               title: 'No activity to show',
@@ -1986,7 +2095,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
                   child: Text(alert.action),
                 ),
                 OutlinedButton(
-                  onPressed: alert.acknowledged
+                  onPressed: alert.acknowledged || !c.canManage || !c.canWrite
                       ? null
                       : () {
                           c.acknowledge(alert);
@@ -2093,16 +2202,18 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
             _healthRow(
               'Account database',
               Icons.cloud_outlined,
-              c.preview
-                  ? 'Example data'
-                  : c.errors.containsKey('Accounts')
-                  ? 'Connection issue'
-                  : 'Connected',
+              c.connectionLabel,
               c.preview
                   ? 'An isolated preview directory; no live accounts.'
                   : c.errors['Accounts'] ??
-                        'User records are received from Firebase.',
-              !c.errors.containsKey('Accounts'),
+                        (c.loading
+                            ? 'Waiting for account data.'
+                            : c.accountsFromCache
+                            ? 'Showing cached records. Changes are disabled until Firebase reconnects.'
+                            : 'User records are received from Firebase.'),
+              !c.loading &&
+                  !c.accountsFromCache &&
+                  !c.errors.containsKey('Accounts'),
             ),
             _healthRow(
               'SMS gateway',
@@ -2165,7 +2276,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: StaffStyle.green, size: 23),
+        Icon(icon, color: StaffStyle.primary, size: 23),
         const SizedBox(width: 16),
         Expanded(
           child: Column(
@@ -2186,7 +2297,7 @@ class _HospitalStaffWorkspaceState extends State<HospitalStaffWorkspace> {
               const SizedBox(height: 8),
               StatusPill(
                 status,
-                color: good ? StaffStyle.green : StaffStyle.amber,
+                color: good ? StaffStyle.primary : StaffStyle.amber,
               ),
             ],
           ),
@@ -2216,6 +2327,10 @@ class _HospitalSettingsPanelState extends State<HospitalSettingsPanel> {
   late List<Department> _departments;
   bool _dirty = false, _saving = false;
   String? _error;
+  void _changed(String _) => setState(() {
+    _dirty = true;
+    widget.onDirty(true);
+  });
   @override
   void initState() {
     super.initState();
@@ -2246,7 +2361,7 @@ class _HospitalSettingsPanelState extends State<HospitalSettingsPanel> {
 
   @override
   Widget build(BuildContext context) => PopScope(
-    canPop: !_dirty,
+    canPop: !_dirty && !_saving,
     onPopInvokedWithResult: (didPop, _) {
       if (!didPop) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -2259,10 +2374,6 @@ class _HospitalSettingsPanelState extends State<HospitalSettingsPanel> {
     child: StaffCard(
       child: Form(
         key: _key,
-        onChanged: () => setState(() {
-          _dirty = true;
-          widget.onDirty(true);
-        }),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -2277,9 +2388,19 @@ class _HospitalSettingsPanelState extends State<HospitalSettingsPanel> {
               ),
               const SizedBox(height: 16),
             ],
+            if (widget.controller.settingsFromCache &&
+                !widget.controller.errors.containsKey('Hospital settings') &&
+                !widget.controller.preview) ...[
+              const InfoBanner(
+                'Hospital settings are cached. Editing is disabled until Firebase reconnects.',
+                warning: true,
+              ),
+              const SizedBox(height: 16),
+            ],
             TextFormField(
               controller: _name,
-              readOnly: !widget.controller.canManage,
+              readOnly: !widget.controller.canEditHospital || _saving,
+              onChanged: _changed,
               decoration: const InputDecoration(labelText: 'Hospital name'),
               validator: (v) =>
                   (v ?? '').trim().length < 3 ? 'Enter a hospital name' : null,
@@ -2287,7 +2408,8 @@ class _HospitalSettingsPanelState extends State<HospitalSettingsPanel> {
             const SizedBox(height: 18),
             TextFormField(
               controller: _address,
-              readOnly: !widget.controller.canManage,
+              readOnly: !widget.controller.canEditHospital || _saving,
+              onChanged: _changed,
               decoration: const InputDecoration(labelText: 'Address'),
               validator: (v) => (v ?? '').trim().length < 5
                   ? 'Enter the hospital address'
@@ -2296,7 +2418,8 @@ class _HospitalSettingsPanelState extends State<HospitalSettingsPanel> {
             const SizedBox(height: 18),
             TextFormField(
               controller: _phone,
-              readOnly: !widget.controller.canManage,
+              readOnly: !widget.controller.canEditHospital || _saving,
+              onChanged: _changed,
               keyboardType: TextInputType.phone,
               decoration: const InputDecoration(labelText: 'Contact number'),
               validator: (v) =>
@@ -2309,7 +2432,7 @@ class _HospitalSettingsPanelState extends State<HospitalSettingsPanel> {
               'Departments',
               subtitle: 'Names and locations used by hospital staff.',
               trailing: TextButton.icon(
-                onPressed: widget.controller.canManage && !_saving
+                onPressed: widget.controller.canEditHospital && !_saving
                     ? () => _editDepartment()
                     : null,
                 icon: const Icon(Icons.add_rounded, size: 17),
@@ -2317,10 +2440,14 @@ class _HospitalSettingsPanelState extends State<HospitalSettingsPanel> {
               ),
             ),
             if (_departments.isEmpty)
-              const EmptyState(
+              EmptyState(
                 icon: Icons.local_hospital_outlined,
-                title: 'No departments added',
-                detail: 'Add a department and its location to get started.',
+                title: widget.controller.settingsLoaded
+                    ? 'No departments added'
+                    : 'Departments unavailable',
+                detail: widget.controller.settingsLoaded
+                    ? 'Add a department and its location to get started.'
+                    : 'Load the hospital configuration with authorized Firebase access.',
               ),
             for (final department in _departments)
               Container(
@@ -2332,7 +2459,7 @@ class _HospitalSettingsPanelState extends State<HospitalSettingsPanel> {
                   children: [
                     const Icon(
                       Icons.meeting_room_outlined,
-                      color: StaffStyle.green,
+                      color: StaffStyle.primary,
                       size: 22,
                     ),
                     const SizedBox(width: 12),
@@ -2361,10 +2488,17 @@ class _HospitalSettingsPanelState extends State<HospitalSettingsPanel> {
                       const StatusPill('Inactive', color: StaffStyle.muted),
                     IconButton(
                       tooltip: 'Edit ${department.name}',
-                      onPressed: widget.controller.canManage && !_saving
+                      onPressed: widget.controller.canEditHospital && !_saving
                           ? () => _editDepartment(department)
                           : null,
                       icon: const Icon(Icons.edit_outlined, size: 18),
+                    ),
+                    IconButton(
+                      tooltip: 'Delete ${department.name}',
+                      onPressed: widget.controller.canEditHospital && !_saving
+                          ? () => _deleteDepartment(department)
+                          : null,
+                      icon: const Icon(Icons.delete_outline, size: 18),
                     ),
                   ],
                 ),
@@ -2402,7 +2536,8 @@ class _HospitalSettingsPanelState extends State<HospitalSettingsPanel> {
                   child: const Text('Discard changes'),
                 ),
                 FilledButton.icon(
-                  onPressed: !_dirty || _saving || !widget.controller.canManage
+                  onPressed:
+                      !_dirty || _saving || !widget.controller.canEditHospital
                       ? null
                       : _save,
                   icon: _saving
@@ -2451,13 +2586,51 @@ class _HospitalSettingsPanelState extends State<HospitalSettingsPanel> {
     }
   }
 
+  Future<void> _deleteDepartment(Department department) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete department?'),
+        content: Text(
+          'Remove ${department.name}? Save changes to confirm the deletion. Departments assigned to accounts or staff contacts cannot be removed.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true ||
+        !mounted ||
+        !widget.controller.canEditHospital ||
+        _saving) {
+      return;
+    }
+    setState(() {
+      _departments.removeWhere((d) => d.id == department.id);
+      _dirty = true;
+      widget.onDirty(true);
+    });
+  }
+
   Future<void> _editDepartment([Department? department]) async {
     final result = await showDialog<Department>(
       context: context,
       builder: (_) =>
           DepartmentDialog(department: department, existing: _departments),
     );
-    if (result == null || !mounted) return;
+    if (result == null ||
+        !mounted ||
+        !widget.controller.canEditHospital ||
+        _saving) {
+      return;
+    }
     setState(() {
       _dirty = true;
       widget.onDirty(true);

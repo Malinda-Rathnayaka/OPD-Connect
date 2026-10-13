@@ -11,7 +11,7 @@ StaffController preview({String actor = 'preview-admin'}) => StaffController(
 );
 
 void main() {
-  for (final width in [390.0, 800.0, 1440.0]) {
+  for (final width in [320.0, 390.0, 800.0, 1440.0]) {
     testWidgets('all staff sections fit at $width pixels', (tester) async {
       tester.view.physicalSize = Size(width, 900);
       tester.view.devicePixelRatio = 1;
@@ -23,12 +23,26 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: 'Overview at $width');
       for (final section in [
+        'User accounts',
+        'Verifications',
         'Staff & roles',
         'Hospital setup',
         'Activity log',
         'System health',
       ]) {
         if (width < 1050) {
+          if (section == 'User accounts' || section == 'Verifications') {
+            await tester.tap(
+              find.text(section == 'User accounts' ? 'Accounts' : 'Reviews'),
+            );
+            await tester.pumpAndSettle();
+            expect(
+              tester.takeException(),
+              isNull,
+              reason: '$section at $width',
+            );
+            continue;
+          }
           await tester.tap(find.text('More'));
           await tester.pumpAndSettle();
         }
@@ -57,6 +71,9 @@ void main() {
       'An unsaved hospital',
     );
     await tester.pumpAndSettle();
+    // Re-selecting the current section must not clear the dirty guard.
+    await tester.tap(find.text('Hospital setup').first);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('User accounts'));
     await tester.pumpAndSettle();
     expect(find.text('Discard unsaved changes?'), findsOneWidget);
@@ -75,7 +92,12 @@ void main() {
     final c = preview();
     addTearDown(c.dispose);
     final doctor = c.pending.first;
-    await c.review(doctor, approve: true);
+    await c.review(
+      doctor,
+      approve: true,
+      identityChecked: true,
+      credentialsChecked: true,
+    );
     expect(c.pending.length, 1);
     expect(
       c.accounts.firstWhere((a) => a.id == doctor.id).status,
@@ -102,21 +124,29 @@ void main() {
       );
       var rejected = c.accounts.firstWhere((a) => a.id == doctor.id);
       expect(rejected.status, AccountStatus.rejected);
-      await c.updateAccount(
+      final reviewNote = rejected.reviewNote;
+      await c.setActive(
         rejected,
-        {'isActive': false},
-        'Deactivated',
-        'Test',
+        active: false,
+        reason: 'Account needs correction',
       );
       rejected = c.accounts.firstWhere((a) => a.id == doctor.id);
-      await c.updateAccount(
+      await c.setActive(
         rejected,
-        {
-          'isActive': true,
-          'reviewNote': 'Reactivated: Credentials remain unapproved',
-        },
-        'Reactivated',
-        'Test',
+        active: true,
+        reason: 'Credentials remain unapproved',
+      );
+      expect(
+        c.accounts.firstWhere((a) => a.id == doctor.id).reviewNote,
+        reviewNote,
+      );
+      expect(
+        c.activity.any(
+          (a) =>
+              a.title == 'Doctor registration rejected' &&
+              a.detail.contains('Medical registration could not be confirmed.'),
+        ),
+        isTrue,
       );
       expect(
         c.accounts.firstWhere((a) => a.id == doctor.id).status,
@@ -132,12 +162,17 @@ void main() {
     addTearDown(support.dispose);
     addTearDown(owner.dispose);
     await expectLater(
-      support.review(support.pending.first, approve: true),
+      support.review(
+        support.pending.first,
+        approve: true,
+        identityChecked: true,
+        credentialsChecked: true,
+      ),
       throwsStateError,
     );
     final self = owner.accounts.firstWhere((a) => a.id == owner.actorId);
     await expectLater(
-      owner.updateAccount(self, {'isActive': false}, 'Deactivate', 'Test'),
+      owner.setActive(self, active: false, reason: 'Deactivate my account'),
       throwsStateError,
     );
     await expectLater(

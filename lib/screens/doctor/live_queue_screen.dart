@@ -88,7 +88,7 @@ class LiveQueueScreen extends StatelessWidget {
             top: -140,
             left: -120,
             child: _glow(
-              color: const Color(0xFF93C5FD).withOpacity(0.35),
+              color: const Color(0xFF93C5FD).withValues(alpha: 0.35),
               radius: 260,
             ),
           ),
@@ -96,7 +96,7 @@ class LiveQueueScreen extends StatelessWidget {
             top: 100,
             right: -160,
             child: _glow(
-              color: const Color(0xFFBFDBFE).withOpacity(0.45),
+              color: const Color(0xFFBFDBFE).withValues(alpha: 0.45),
               radius: 240,
             ),
           ),
@@ -104,7 +104,7 @@ class LiveQueueScreen extends StatelessWidget {
             bottom: -180,
             left: -100,
             child: _glow(
-              color: const Color(0xFFDBEAFE).withOpacity(0.55),
+              color: const Color(0xFFDBEAFE).withValues(alpha: 0.55),
               radius: 280,
             ),
           ),
@@ -235,7 +235,7 @@ class LiveQueueScreen extends StatelessWidget {
     // Build ordered list of slots by 'order' field so circles read naturally.
     // Filled = patient still present. Vacant = already left (completed/skipped).
     final List<QueryDocumentSnapshot> allSlots = [
-      if (activePatient != null) activePatient,
+      ?activePatient,
       ...upcomingDocs,
       ...completedDocs,
     ];
@@ -257,7 +257,7 @@ class LiveQueueScreen extends StatelessWidget {
         border: Border.all(color: _border, width: 1.1),
         boxShadow: [
           BoxShadow(
-            color: _primary.withOpacity(0.06),
+            color: _primary.withValues(alpha: 0.06),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -273,7 +273,7 @@ class LiveQueueScreen extends StatelessWidget {
               const SizedBox(width: 14),
               _legendDot(color: _success, label: 'Waiting'),
               const SizedBox(width: 14),
-              _legendDot(color: _muted.withOpacity(0.35), label: 'Left'),
+              _legendDot(color: _muted.withValues(alpha: 0.35), label: 'Left'),
             ],
           ),
           const SizedBox(height: 20),
@@ -287,7 +287,7 @@ class LiveQueueScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: _primary.withOpacity(0.08),
+                      color: _primary.withValues(alpha: 0.08),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -443,7 +443,7 @@ class LiveQueueScreen extends StatelessWidget {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: fillColor.withOpacity(0.45),
+                          color: fillColor.withValues(alpha: 0.45),
                           blurRadius: 20,
                           spreadRadius: 2,
                         ),
@@ -464,26 +464,26 @@ class LiveQueueScreen extends StatelessWidget {
                         ? null
                         : LinearGradient(
                             colors: [
-                              fillColor.withOpacity(fillOpacity),
-                              fillColor.withOpacity(fillOpacity * 0.75),
+                              fillColor.withValues(alpha: fillOpacity),
+                              fillColor.withValues(alpha: fillOpacity * 0.75),
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                     // Faded fill when drained
-                    color: isEmpty ? fillColor.withOpacity(fillOpacity) : null,
+                    color: isEmpty ? fillColor.withValues(alpha: fillOpacity) : null,
                     // Ring border — brighter when filled
                     border: Border.all(
                       color: isEmpty
-                          ? ringColor.withOpacity(0.35)
-                          : ringColor.withOpacity(0.85),
+                          ? ringColor.withValues(alpha: 0.35)
+                          : ringColor.withValues(alpha: 0.85),
                       width: isEmpty ? 1.5 : 2.0,
                     ),
                     boxShadow: isEmpty
                         ? []
                         : [
                             BoxShadow(
-                              color: fillColor.withOpacity(0.30),
+                              color: fillColor.withValues(alpha: 0.30),
                               blurRadius: 12,
                               offset: const Offset(0, 5),
                             ),
@@ -494,7 +494,7 @@ class LiveQueueScreen extends StatelessWidget {
                       ? Icon(
                           Icons.remove_rounded,
                           size: 22,
-                          color: ringColor.withOpacity(0.55),
+                          color: ringColor.withValues(alpha: 0.55),
                         )
                       : Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -520,7 +520,7 @@ class LiveQueueScreen extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.95),
+                                  color: Colors.white.withValues(alpha: 0.95),
                                   fontSize: 8.5,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 0.2,
@@ -542,8 +542,8 @@ class LiveQueueScreen extends StatelessWidget {
               fontWeight: FontWeight.w800,
               letterSpacing: 0.4,
               color: isEmpty
-                  ? _muted.withOpacity(0.7)
-                  : fillColor.withOpacity(0.9),
+                  ? _muted.withValues(alpha: 0.7)
+                  : fillColor.withValues(alpha: 0.9),
             ),
           ),
         ],
@@ -668,7 +668,7 @@ class LiveQueueScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: _primary.withOpacity(0.32),
+            color: _primary.withValues(alpha: 0.32),
             blurRadius: 26,
             offset: const Offset(0, 12),
           ),
@@ -682,10 +682,10 @@ class LiveQueueScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.18),
+                  color: Colors.white.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.28),
+                    color: Colors.white.withValues(alpha: 0.28),
                     width: 1,
                   ),
                 ),
@@ -717,11 +717,11 @@ class LiveQueueScreen extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: hasActive
-                      ? Colors.white.withOpacity(0.22)
-                      : Colors.white.withOpacity(0.14),
+                      ? Colors.white.withValues(alpha: 0.22)
+                      : Colors.white.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.35),
+                    color: Colors.white.withValues(alpha: 0.35),
                     width: 1,
                   ),
                 ),
@@ -734,13 +734,13 @@ class LiveQueueScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: hasActive
                             ? const Color(0xFF4ADE80)
-                            : Colors.white.withOpacity(0.7),
+                            : Colors.white.withValues(alpha: 0.7),
                         shape: BoxShape.circle,
                         boxShadow: hasActive
                             ? [
                                 BoxShadow(
                                   color: const Color(0xFF4ADE80)
-                                      .withOpacity(0.7),
+                                      .withValues(alpha: 0.7),
                                   blurRadius: 8,
                                   spreadRadius: 1,
                                 ),
@@ -776,7 +776,7 @@ class LiveQueueScreen extends StatelessWidget {
               Container(
                 width: 1,
                 height: 42,
-                color: Colors.white.withOpacity(0.20),
+                color: Colors.white.withValues(alpha: 0.20),
               ),
               Expanded(
                 child: _heroStat(
@@ -788,7 +788,7 @@ class LiveQueueScreen extends StatelessWidget {
               Container(
                 width: 1,
                 height: 42,
-                color: Colors.white.withOpacity(0.20),
+                color: Colors.white.withValues(alpha: 0.20),
               ),
               Expanded(
                 child: _heroStat(
@@ -816,7 +816,7 @@ class LiveQueueScreen extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.18),
+            color: Colors.white.withValues(alpha: 0.18),
             borderRadius: BorderRadius.circular(9),
           ),
           child: Icon(icon, color: Colors.white, size: 14),
@@ -840,7 +840,7 @@ class LiveQueueScreen extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            color: Colors.white.withOpacity(0.85),
+            color: Colors.white.withValues(alpha: 0.85),
             fontSize: 11,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.2,
@@ -862,15 +862,15 @@ class LiveQueueScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: _surface,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: _primary.withOpacity(0.30), width: 1.5),
+        border: Border.all(color: _primary.withValues(alpha: 0.30), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: _primary.withOpacity(0.14),
+            color: _primary.withValues(alpha: 0.14),
             blurRadius: 26,
             offset: const Offset(0, 12),
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -883,8 +883,8 @@ class LiveQueueScreen extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  _primary.withOpacity(0.08),
-                  _primaryLight.withOpacity(0.03),
+                  _primary.withValues(alpha: 0.08),
+                  _primaryLight.withValues(alpha: 0.03),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -893,7 +893,7 @@ class LiveQueueScreen extends StatelessWidget {
                 top: Radius.circular(21),
               ),
               border: Border(
-                bottom: BorderSide(color: _primary.withOpacity(0.14)),
+                bottom: BorderSide(color: _primary.withValues(alpha: 0.14)),
               ),
             ),
             child: Row(
@@ -905,9 +905,9 @@ class LiveQueueScreen extends StatelessWidget {
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: _primary.withOpacity(0.12),
+                      color: _primary.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: _primary.withOpacity(0.25)),
+                      border: Border.all(color: _primary.withValues(alpha: 0.25)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -920,7 +920,7 @@ class LiveQueueScreen extends StatelessWidget {
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: _primary.withOpacity(0.6),
+                                color: _primary.withValues(alpha: 0.6),
                                 blurRadius: 8,
                                 spreadRadius: 1,
                               ),
@@ -961,7 +961,7 @@ class LiveQueueScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: _primary.withOpacity(0.32),
+                          color: _primary.withValues(alpha: 0.32),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -1002,7 +1002,7 @@ class LiveQueueScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: _primary.withOpacity(0.32),
+                            color: _primary.withValues(alpha: 0.32),
                             blurRadius: 14,
                             offset: const Offset(0, 6),
                           ),
@@ -1098,10 +1098,10 @@ class LiveQueueScreen extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: _danger,
                       side: BorderSide(
-                        color: _danger.withOpacity(0.35),
+                        color: _danger.withValues(alpha: 0.35),
                         width: 1.2,
                       ),
-                      backgroundColor: _danger.withOpacity(0.04),
+                      backgroundColor: _danger.withValues(alpha: 0.04),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
                       ),
@@ -1183,7 +1183,7 @@ class LiveQueueScreen extends StatelessWidget {
         border: Border.all(color: _border, width: 1.1),
         boxShadow: [
           BoxShadow(
-            color: _primary.withOpacity(0.05),
+            color: _primary.withValues(alpha: 0.05),
             blurRadius: 14,
             offset: const Offset(0, 6),
           ),
@@ -1204,15 +1204,15 @@ class LiveQueueScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        _primary.withOpacity(0.14),
-                        _primaryLight.withOpacity(0.08),
+                        _primary.withValues(alpha: 0.14),
+                        _primaryLight.withValues(alpha: 0.08),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(13),
                     border: Border.all(
-                      color: _primary.withOpacity(0.22),
+                      color: _primary.withValues(alpha: 0.22),
                       width: 1.2,
                     ),
                   ),
@@ -1313,9 +1313,9 @@ class LiveQueueScreen extends StatelessWidget {
                     vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: _success.withOpacity(0.10),
+                    color: _success.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: _success.withOpacity(0.30)),
+                    border: Border.all(color: _success.withValues(alpha: 0.30)),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
@@ -1424,7 +1424,7 @@ class LiveQueueScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(26),
               boxShadow: [
                 BoxShadow(
-                  color: _primary.withOpacity(0.40),
+                  color: _primary.withValues(alpha: 0.40),
                   blurRadius: 22,
                   spreadRadius: 0,
                   offset: const Offset(0, 10),
@@ -1481,7 +1481,7 @@ class LiveQueueScreen extends StatelessWidget {
       border: Border.all(color: _border, width: 1.1),
       boxShadow: [
         BoxShadow(
-          color: _primary.withOpacity(0.05),
+          color: _primary.withValues(alpha: 0.05),
           blurRadius: 14,
           offset: const Offset(0, 6),
         ),
@@ -1492,7 +1492,7 @@ class LiveQueueScreen extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: _primary.withOpacity(0.08),
+            color: _primary.withValues(alpha: 0.08),
             shape: BoxShape.circle,
           ),
           child: const Icon(
@@ -1529,7 +1529,7 @@ class LiveQueueScreen extends StatelessWidget {
       border: Border.all(color: _border, width: 1.1),
       boxShadow: [
         BoxShadow(
-          color: _primary.withOpacity(0.05),
+          color: _primary.withValues(alpha: 0.05),
           blurRadius: 14,
           offset: const Offset(0, 6),
         ),
@@ -1540,7 +1540,7 @@ class LiveQueueScreen extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: _primary.withOpacity(0.08),
+            color: _primary.withValues(alpha: 0.08),
             shape: BoxShape.circle,
           ),
           child: const Icon(Icons.queue_outlined, color: _primary, size: 30),
@@ -1571,7 +1571,7 @@ class LiveQueueScreen extends StatelessWidget {
     decoration: BoxDecoration(
       shape: BoxShape.circle,
       gradient: RadialGradient(
-        colors: [color, color.withOpacity(0.0)],
+        colors: [color, color.withValues(alpha: 0.0)],
         stops: const [0.0, 1.0],
       ),
     ),

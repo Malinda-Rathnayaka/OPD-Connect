@@ -1,0 +1,139 @@
+rules_version = '2';
+// Single-hospital staff policy reference. Merge with the owner's deployed
+// patient/doctor policy; this file does not implement general account edits.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function actor() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    function staffReader() {
+      return signedIn() && actor().role == 'admin'
+        && actor().get('isActive', true) == true
+        && actor().get('isVerified', false) == true
+        && actor().get('staffRole', '') in [
+          'Super administrator', 'Hospital administrator', 'Support coordinator'
+        ];
+    }
+    function reviewer() {
+      return staffReader() && actor().staffRole in [
+        'Super administrator', 'Hospital administrator'
+      ];
+    }
+    function pending(data) {
+      return data.role == 'doctor' && data.get('isActive', true) == true
+        && data.get('isApproved', false) == false
+        && data.get('approvalStatus', '') != 'rejected'
+        && !data.get('reviewNote', '').matches('Rejected:.*');
+    }
+    function operationalAudit(data) {
+      return reviewer() && data.keys().hasOnly([
+          'title', 'detail', 'actor', 'actorId', 'recordId', 'recordType', 'operation', 'time'
+        ]) && data.actorId == request.auth.uid && data.actor == actor().name
+        && data.time == request.time && data.title is string && data.title.size() > 0
+        && data.detail is string && data.recordId is string
+        && data.recordType in ['directory', 'notice', 'hospital']
+        && data.operation in ['created', 'updated', 'deleted'];
+    }
+    function validRecord(data) {
+      return data.keys().hasAll(['type', 'title', 'detail', 'category', 'contact', 'active', 'revision'])
+        && data.keys().hasOnly(['type', 'title', 'detail', 'category', 'contact', 'active', 'revision'])
+        && data.type in ['directory', 'notice']
+        && data.title is string && data.title.size() >= 2 && data.title.size() <= 100
+        && data.detail is string && data.detail.size() >= 2 && data.detail.size() <= 1000
+        && data.category is string && data.category.size() > 0 && data.category.size() <= 100
+        && data.contact is string && data.active is bool && data.revision is int
+        && ((data.type == 'directory' && data.contact.matches('^\\+?[0-9 ()-]{7,20}$'))
+          || (data.type == 'notice' && data.contact == ''
+            && data.category in ['All staff', 'Doctors', 'Reception', 'Administration']));
+    }
+    function validDecision(before, after) {
+      return reviewer() && pending(before)
+        && after.diff(before).affectedKeys().hasOnly([
+          'isApproved', 'isVerified', 'approvalStatus', 'reviewNote',
+          'reviewedBy', 'reviewedAt', 'reviewActivityId',
+          'identityChecked', 'credentialsChecked', 'reviewReason'
+        ])
+        && after.reviewedBy == request.auth.uid
+        && after.reviewedAt == request.time
+        && after.reviewActivityId is string
+        && after.reviewNote is string && after.reviewNote.size() > 0
+        && ((after.approvalStatus == 'approved'
+            && after.isApproved == true && after.isVerified == true
+            && after.identityChecked == true && after.credentialsChecked == true
+            && after.reviewReason == '')
+          || (after.approvalStatus == 'rejected'
+            && after.isApproved == false && after.isVerified == false
+            && after.identityChecked == false && after.credentialsChecked == false
+            && after.reviewReason is string && after.reviewReason.size() >= 8
+            && after.reviewReason.matches('^\\S(.|\\n)*\\S$')));
+    }
+    function validAudit(data, uid, decision) {
+      return data.keys().hasOnly([
+          'title', 'detail', 'actor', 'actorId', 'targetId', 'decision', 'reason', 'time'
+        ])
+        && data.actorId == request.auth.uid && data.actor == actor().name
+        && data.targetId == uid && data.time == request.time
+        && data.decision == decision.approvalStatus
+        && data.reason == decision.reviewReason
+        && data.title == (decision.isApproved
+          ? 'Doctor registration approved' : 'Doctor registration rejected')
+        && data.detail is string && data.detail.size() > 0;
+    }
+    match /users/{uid} {
+      allow get: if signedIn() && (request.auth.uid == uid || staffReader());
+      allow list: if staffReader();
+      // Self-registration cannot create administrators or preapproved doctors.
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.auth.token.email_verified == true
+        && request.resource.data.keys().hasOnly([
+          'email', 'name', 'phone', 'role', 'isActive', 'registrationNumber',
+          'department', 'isVerified', 'isApproved', 'createdAt'
+        ])
+        && request.resource.data.role in ['doctor', 'patient']
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.name is string
+        && request.resource.data.phone is string
+        && request.resource.data.isActive == true
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.isVerified == (request.resource.data.role == 'patient')
+        && request.resource.data.isApproved == (request.resource.data.role == 'patient');
+      allow update: if validDecision(resource.data, request.resource.data)
+        && !exists(/databases/$(database)/documents/staff_activity/$(request.resource.data.reviewActivityId))
+        && validAudit(
+          getAfter(/databases/$(database)/documents/staff_activity/$(request.resource.data.reviewActivityId)).data,
+          uid, request.resource.data);
+      allow delete: if false;
+    }
+    match /staff_activity/{id} {
+      allow read: if staffReader();
+      allow create: if operationalAudit(request.resource.data);
+      allow create: if reviewer()
+        && validDecision(
+          get(/databases/$(database)/documents/users/$(request.resource.data.targetId)).data,
+          getAfter(/databases/$(database)/documents/users/$(request.resource.data.targetId)).data)
+        && getAfter(/databases/$(database)/documents/users/$(request.resource.data.targetId)).data.reviewActivityId == id
+        && validAudit(request.resource.data, request.resource.data.targetId,
+          getAfter(/databases/$(database)/documents/users/$(request.resource.data.targetId)).data);
+      allow update, delete: if false;
+    }
+    match /hospital_settings/default {
+      allow read: if staffReader();
+      allow update: if reviewer()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'address', 'phone', 'departments'])
+        && request.resource.data.name is string && request.resource.data.name.size() >= 3
+        && request.resource.data.address is string && request.resource.data.address.size() >= 5
+        && request.resource.data.phone is string && request.resource.data.phone.matches('^\\+?[0-9 ()-]{7,20}$')
+        && request.resource.data.departments is list && request.resource.data.departments.size() <= 100;
+    }
+    match /staff_records/{id} {
+      allow read: if staffReader();
+      allow create: if reviewer() && validRecord(request.resource.data)
+        && request.resource.data.revision == 1;
+      allow update: if reviewer() && validRecord(request.resource.data)
+        && request.resource.data.type == resource.data.type
+        && request.resource.data.revision == resource.data.revision + 1;
+      allow delete: if reviewer();
+    }
+  }
+}

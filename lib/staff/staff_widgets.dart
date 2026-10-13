@@ -27,7 +27,7 @@ class StaffCard extends StatelessWidget {
 class StatusPill extends StatelessWidget {
   final String label;
   final Color color;
-  const StatusPill(this.label, {super.key, this.color = StaffStyle.green});
+  const StatusPill(this.label, {super.key, this.color = StaffStyle.primary});
   factory StatusPill.account(StaffAccount account) => StatusPill(
     account.reviewNote.startsWith('Invitation')
         ? 'Invitation prepared'
@@ -38,7 +38,7 @@ class StatusPill extends StatelessWidget {
             AccountStatus.inactive => 'Inactive',
           },
     color: switch (account.status) {
-      AccountStatus.active => StaffStyle.green,
+      AccountStatus.active => StaffStyle.primary,
       AccountStatus.pending => StaffStyle.amber,
       AccountStatus.rejected => StaffStyle.red,
       AccountStatus.inactive => StaffStyle.muted,
@@ -84,7 +84,7 @@ class AccountAvatar extends StatelessWidget {
     final color = account.role == 'doctor'
         ? const Color(0xFF4A73B0)
         : account.role == 'admin'
-        ? StaffStyle.green
+        ? StaffStyle.primary
         : const Color(0xFF8C69AD);
     return Container(
       width: size,
@@ -158,10 +158,10 @@ class EmptyState extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(18),
           decoration: const BoxDecoration(
-            color: StaffStyle.mint,
+            color: StaffStyle.primarySoft,
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: StaffStyle.green, size: 28),
+          child: Icon(icon, color: StaffStyle.primary, size: 28),
         ),
         const SizedBox(height: 16),
         Text(
@@ -190,7 +190,7 @@ class InfoBanner extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: warning ? const Color(0xFFFFF5E6) : StaffStyle.mint,
+      color: warning ? const Color(0xFFFFF5E6) : StaffStyle.primarySoft,
       borderRadius: BorderRadius.circular(12),
     ),
     child: Row(
@@ -199,7 +199,7 @@ class InfoBanner extends StatelessWidget {
         Icon(
           warning ? Icons.info_outline_rounded : Icons.verified_user_outlined,
           size: 19,
-          color: warning ? StaffStyle.amber : StaffStyle.green,
+          color: warning ? StaffStyle.amber : StaffStyle.primary,
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -208,7 +208,7 @@ class InfoBanner extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               height: 1.5,
-              color: warning ? StaffStyle.amber : StaffStyle.green,
+              color: warning ? StaffStyle.amber : StaffStyle.primary,
             ),
           ),
         ),

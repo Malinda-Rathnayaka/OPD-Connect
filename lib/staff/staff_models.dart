@@ -2,10 +2,60 @@ import 'package:flutter/material.dart';
 
 enum AccountStatus { active, pending, rejected, inactive }
 
+enum StaffRecordType { directory, notice }
+
+/// Operational contacts and internal notices never grant login access.
+class StaffRecord {
+  final String id, title, detail, category, contact;
+  final StaffRecordType type;
+  final bool active;
+  final int revision;
+  const StaffRecord({
+    required this.id,
+    required this.type,
+    required this.title,
+    required this.detail,
+    required this.category,
+    this.contact = '',
+    this.active = true,
+    this.revision = 0,
+  });
+  Map<String, dynamic> toMap() => {
+    'type': type.name,
+    'title': title,
+    'detail': detail,
+    'category': category,
+    'contact': contact,
+    'active': active,
+    'revision': revision,
+  };
+  factory StaffRecord.fromMap(String id, Map<String, dynamic> data) =>
+      StaffRecord(
+        id: id,
+        type: StaffRecordType.values.byName(data['type'] as String),
+        title: data['title'] as String,
+        detail: data['detail'] as String,
+        category: data['category'] as String,
+        contact: data['contact'] as String? ?? '',
+        active: data['active'] as bool,
+        revision: data['revision'] as int,
+      );
+  StaffRecord get nextRevision => StaffRecord(
+    id: id,
+    type: type,
+    title: title,
+    detail: detail,
+    category: category,
+    contact: contact,
+    active: active,
+    revision: revision + 1,
+  );
+}
+
 class StaffAccount {
   final String id, name, email, phone, role, department, registration, nic;
-  final String staffRole, reviewNote, approvalStatus;
-  final bool active, approved;
+  final String staffRole, reviewNote, approvalStatus, accountStatusReason;
+  final bool active, approved, verified;
   final DateTime? createdAt;
 
   const StaffAccount({
@@ -17,11 +67,13 @@ class StaffAccount {
     this.department = '',
     this.registration = '',
     this.nic = '',
-    this.staffRole = 'Hospital administrator',
+    this.staffRole = 'Read-only access',
     this.reviewNote = '',
     this.approvalStatus = '',
+    this.accountStatusReason = '',
     this.active = true,
     this.approved = true,
+    this.verified = true,
     this.createdAt,
   });
 
@@ -36,11 +88,13 @@ class StaffAccount {
       department: data['department'] ?? '',
       registration: data['registrationNumber'] ?? '',
       nic: data['nic'] ?? '',
-      staffRole: data['staffRole'] ?? 'Hospital administrator',
+      staffRole: data['staffRole'] ?? 'Read-only access',
       reviewNote: data['reviewNote'] ?? '',
       approvalStatus: data['approvalStatus'] ?? '',
+      accountStatusReason: data['accountStatusReason'] ?? '',
       active: data['isActive'] ?? true,
       approved: data['isApproved'] ?? (data['role'] != 'doctor'),
+      verified: data['isVerified'] == true,
       createdAt: stamp == null ? null : (stamp as dynamic).toDate(),
     );
   }
@@ -54,6 +108,8 @@ class StaffAccount {
     }
     return AccountStatus.active;
   }
+
+  bool get invitationPrepared => reviewNote.startsWith('Invitation prepared');
 
   String get roleLabel => switch (role) {
     'doctor' => 'Doctor',
@@ -82,8 +138,10 @@ class StaffAccount {
     staffRole: changes['staffRole'] ?? staffRole,
     reviewNote: changes['reviewNote'] ?? reviewNote,
     approvalStatus: changes['approvalStatus'] ?? approvalStatus,
+    accountStatusReason: changes['accountStatusReason'] ?? accountStatusReason,
     active: changes['isActive'] ?? active,
     approved: changes['isApproved'] ?? approved,
+    verified: changes['isVerified'] ?? verified,
     createdAt: createdAt,
   );
 }
@@ -127,12 +185,12 @@ class OperationsAlert {
 }
 
 abstract final class StaffStyle {
-  static const ink = Color(0xFF18332F);
-  static const muted = Color(0xFF6B7F7A);
-  static const green = Color(0xFF087F68);
-  static const canvas = Color(0xFFF5F8F7);
-  static const line = Color(0xFFE2EBE7);
-  static const mint = Color(0xFFE8F5EF);
+  static const ink = Color(0xFF202D49);
+  static const muted = Color(0xFF6B768C);
+  static const primary = Color(0xFF466BDB);
+  static const canvas = Color(0xFFF5F7FC);
+  static const line = Color(0xFFE2E7F3);
+  static const primarySoft = Color(0xFFEBF0FD);
   static const amber = Color(0xFFA8680D);
   static const red = Color(0xFFB94747);
 
@@ -140,8 +198,9 @@ abstract final class StaffStyle {
     useMaterial3: true,
     scaffoldBackgroundColor: canvas,
     colorScheme: ColorScheme.fromSeed(
-      seedColor: green,
-      primary: green,
+      seedColor: primary,
+      primary: primary,
+      onPrimary: Colors.white,
       surface: Colors.white,
     ),
     fontFamily: 'Segoe UI',
@@ -185,7 +244,7 @@ abstract final class StaffStyle {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: green, width: 1.5),
+        borderSide: const BorderSide(color: primary, width: 1.5),
       ),
       hintStyle: const TextStyle(color: muted, fontSize: 13),
     ),

@@ -345,8 +345,9 @@ class DoctorService {
     required List<Map<String, dynamic>> patients,
   }) async {
     if (patients.isEmpty) throw ArgumentError('Select at least one patient.');
-    if (patients.length > 450)
+    if (patients.length > 450) {
       throw ArgumentError('A session can contain at most 450 patients.');
+    }
     final session = _db.collection('sessions').doc();
     await session.set({
       'doctorId': doctorId,
@@ -436,10 +437,12 @@ class DoctorService {
     final sessionUpdates = <String, dynamic>{
       'updatedAt': FieldValue.serverTimestamp(),
     };
-    if (timeSlot != null && timeSlot.trim().isNotEmpty)
+    if (timeSlot != null && timeSlot.trim().isNotEmpty) {
       sessionUpdates['timeSlot'] = timeSlot.trim();
-    if (slotDate != null && slotDate.trim().isNotEmpty)
+    }
+    if (slotDate != null && slotDate.trim().isNotEmpty) {
       sessionUpdates['slotDate'] = slotDate.trim();
+    }
     if (patients != null) sessionUpdates['maxPatients'] = patients.length;
     batch.update(sessionRef, sessionUpdates);
     var order = 0;

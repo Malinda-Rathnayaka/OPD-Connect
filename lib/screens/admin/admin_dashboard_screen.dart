@@ -98,7 +98,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               borderRadius: BorderRadius.circular(10),
               boxShadow: [
                 BoxShadow(
-                  color: _accent.withOpacity(0.35),
+                  color: _accent.withValues(alpha: 0.35),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -130,7 +130,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w400,
-                  color: Colors.white.withOpacity(0.55),
+                  color: Colors.white.withValues(alpha: 0.55),
                   letterSpacing: 0.2,
                 ),
               ),
@@ -195,7 +195,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: Colors.white.withOpacity(0.25),
+                color: Colors.white.withValues(alpha: 0.25),
                 width: 1.5,
               ),
             ),
@@ -225,7 +225,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 children: [
                   CircleAvatar(
                     radius: 18,
-                    backgroundColor: _accent.withOpacity(0.12),
+                    backgroundColor: _accent.withValues(alpha: 0.12),
                     child: Text(
                       widget.admin.name.isNotEmpty
                           ? widget.admin.name[0].toUpperCase()
@@ -316,7 +316,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: _primaryDark.withOpacity(0.06),
+            color: _primaryDark.withValues(alpha: 0.06),
             blurRadius: 20,
             offset: const Offset(0, -4),
           ),
@@ -329,7 +329,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           onTap: (i) => setState(() => _currentIndex = i),
           type: BottomNavigationBarType.fixed,
           selectedItemColor: _primary,
-          unselectedItemColor: _textSecondary.withOpacity(0.7),
+          unselectedItemColor: _textSecondary.withValues(alpha: 0.7),
           selectedLabelStyle: const TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 11.5,
@@ -491,7 +491,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: _textSecondary.withOpacity(0.8),
+                      color: _textSecondary.withValues(alpha: 0.8),
                     ),
                   ),
                 ],
@@ -566,7 +566,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: _primary.withOpacity(0.25),
+            color: _primary.withValues(alpha: 0.25),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -579,13 +579,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: Colors.white.withOpacity(0.4),
+                color: Colors.white.withValues(alpha: 0.4),
                 width: 2,
               ),
             ),
             child: CircleAvatar(
               radius: 26,
-              backgroundColor: Colors.white.withOpacity(0.15),
+              backgroundColor: Colors.white.withValues(alpha: 0.15),
               child: Text(
                 widget.admin.name.isNotEmpty
                     ? widget.admin.name[0].toUpperCase()
@@ -608,7 +608,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   'Welcome back,',
                   style: TextStyle(
                     fontSize: 12.5,
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -630,7 +630,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           Container(
             padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
@@ -670,8 +670,8 @@ class _StatCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: onTap,
-        splashColor: Colors.white.withOpacity(0.15),
-        highlightColor: Colors.white.withOpacity(0.08),
+        splashColor: Colors.white.withValues(alpha: 0.15),
+        highlightColor: Colors.white.withValues(alpha: 0.08),
         child: Ink(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -682,7 +682,7 @@ class _StatCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: gradient.first.withOpacity(0.32),
+                color: gradient.first.withValues(alpha: 0.32),
                 blurRadius: 16,
                 offset: const Offset(0, 6),
               ),
@@ -699,7 +699,7 @@ class _StatCard extends StatelessWidget {
                   height: 80,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.08),
+                    color: Colors.white.withValues(alpha: 0.08),
                   ),
                 ),
               ),
@@ -711,7 +711,7 @@ class _StatCard extends StatelessWidget {
                   height: 70,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.06),
+                    color: Colors.white.withValues(alpha: 0.06),
                   ),
                 ),
               ),
@@ -726,7 +726,7 @@ class _StatCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.22),
+                        color: Colors.white.withValues(alpha: 0.22),
                         borderRadius: BorderRadius.circular(11),
                       ),
                       child: Icon(icon, color: Colors.white, size: 20),
@@ -757,7 +757,7 @@ class _StatCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.white.withOpacity(0.92),
+                            color: Colors.white.withValues(alpha: 0.92),
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.1,
                           ),
@@ -803,8 +803,8 @@ class _QuickActionTile extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
-        splashColor: color.withOpacity(0.06),
-        highlightColor: color.withOpacity(0.03),
+        splashColor: color.withValues(alpha: 0.06),
+        highlightColor: color.withValues(alpha: 0.03),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           decoration: BoxDecoration(
@@ -812,7 +812,7 @@ class _QuickActionTile extends StatelessWidget {
             border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF0F172A).withOpacity(0.04),
+                color: const Color(0xFF0F172A).withValues(alpha: 0.04),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
@@ -825,7 +825,7 @@ class _QuickActionTile extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: color, size: 22),

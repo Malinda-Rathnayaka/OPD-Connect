@@ -63,269 +63,297 @@ class _AccountDialogState extends State<AccountDialog> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: widget.controller,
+    builder: (context, _) => _build(context),
+  );
+
+  Widget _build(BuildContext context) {
     final a = widget.account;
     final review = widget.mode == AccountDialogMode.review;
     final edit = widget.mode == AccountDialogMode.edit;
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _form,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        review
-                            ? 'Review registration'
-                            : edit
-                            ? 'Edit account'
-                            : 'Account details',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Close',
-                      onPressed: _busy ? null : () => Navigator.pop(context),
-                      icon: const Icon(Icons.close_rounded),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    AccountAvatar(a, size: 52),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            a.name,
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          Text(
-                            a.roleLabel,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                    ),
-                    StatusPill.account(a),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                if (edit) ...[
-                  TextFormField(
-                    controller: _name,
-                    decoration: const InputDecoration(labelText: 'Full name'),
-                    validator: (v) => (v ?? '').trim().length < 2
-                        ? 'Enter a full name'
-                        : null,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _phone,
-                    decoration: const InputDecoration(
-                      labelText: 'Phone number',
-                    ),
-                    keyboardType: TextInputType.phone,
-                    validator: (v) =>
-                        v!.isNotEmpty &&
-                            !RegExp(r'^\+?[\d\s()-]{7,20}$').hasMatch(v)
-                        ? 'Enter a valid phone number'
-                        : null,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _department,
-                    decoration: const InputDecoration(
-                      labelText: 'Department / team',
-                    ),
-                  ),
-                  if (a.role == 'admin' &&
-                      a.id != widget.controller.actorId &&
-                      widget.controller.canManageStaff) ...[
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      initialValue: _staffRole,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Staff role',
-                      ),
-                      items:
-                          const [
-                                'Super administrator',
-                                'Hospital administrator',
-                                'Support coordinator',
-                              ]
-                              .map(
-                                (r) => DropdownMenuItem(
-                                  value: r,
-                                  child: Text(
-                                    r,
-                                    style: const TextStyle(fontSize: 13),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                      onChanged: (v) => setState(() => _staffRole = v!),
-                    ),
-                  ],
-                  const SizedBox(height: 16),
-                  const InfoBanner(
-                    'The login email stays unchanged. Contact the account owner to update their sign-in details.',
-                  ),
-                ] else ...[
-                  _field('Email address', a.email),
-                  _field(
-                    'Phone number',
-                    a.phone.isEmpty ? 'Not provided' : a.phone,
-                  ),
-                  _field(
-                    'Department',
-                    a.department.isEmpty ? 'Not assigned' : a.department,
-                  ),
-                  _field('Registered', readableDate(a.createdAt)),
-                  if (a.role == 'doctor')
-                    _field(
-                      'Medical registration',
-                      a.registration.isEmpty ? 'Not provided' : a.registration,
-                    ),
-                  if (a.nic.isNotEmpty) _field('Identity number', a.nic),
-                  if (a.reviewNote.isNotEmpty)
-                    _field('Last decision', a.reviewNote),
-                ],
-                if (review) ...[
-                  const SizedBox(height: 16),
-                  InfoBanner(
-                    widget.controller.preview
-                        ? 'Example registration. In a live review, check the doctor’s identity and medical registration with the hospital’s approved process.'
-                        : 'Confirm the doctor’s identity and medical registration using the hospital’s approved process before granting access.',
-                    warning: true,
-                  ),
-                  const SizedBox(height: 12),
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    controlAffinity: ListTileControlAffinity.leading,
-                    value: _identityChecked,
-                    onChanged: _busy
-                        ? null
-                        : (v) => setState(() => _identityChecked = v!),
-                    title: const Text(
-                      'Identity and contact details checked',
-                      style: TextStyle(fontSize: 13),
-                    ),
-                  ),
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    controlAffinity: ListTileControlAffinity.leading,
-                    value: _credentialsChecked,
-                    onChanged: _busy
-                        ? null
-                        : (v) => setState(() => _credentialsChecked = v!),
-                    title: const Text(
-                      'Medical registration and hospital assignment checked',
-                      style: TextStyle(fontSize: 13),
-                    ),
-                  ),
-                ],
-                if (_error != null) ...[
-                  const SizedBox(height: 12),
-                  InfoBanner(_error!, warning: true),
-                ],
-                const SizedBox(height: 24),
-                if (_busy)
-                  const Center(child: CircularProgressIndicator())
-                else
-                  Wrap(
-                    alignment: WrapAlignment.end,
-                    spacing: 10,
-                    runSpacing: 10,
+    return PopScope(
+      canPop: !_busy,
+      child: Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Form(
+              key: _form,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
                     children: [
-                      OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancel'),
+                      Expanded(
+                        child: Text(
+                          review
+                              ? 'Review registration'
+                              : edit
+                              ? 'Edit account'
+                              : 'Account details',
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
                       ),
-                      if (edit)
-                        FilledButton(
-                          onPressed: () {
-                            if (!_form.currentState!.validate()) return;
-                            _perform(
-                              () => widget.controller.updateAccount(
-                                a,
-                                {
-                                  'name': _name.text.trim(),
-                                  'phone': _phone.text.trim(),
-                                  'department': _department.text.trim(),
-                                  if (a.role == 'admin' &&
-                                      _staffRole != a.staffRole)
-                                    'staffRole': _staffRole,
-                                },
-                                'Account details updated',
-                                a.name,
-                              ),
-                            );
-                          },
-                          child: const Text('Save changes'),
-                        ),
-                      if (review) ...[
-                        OutlinedButton(
-                          onPressed: !widget.controller.canManage
-                              ? null
-                              : () async {
-                                  final reason = await reasonDialog(
-                                    context,
-                                    'Reject registration',
-                                    'The account will remain on record. Explain what needs to be corrected before this doctor can be approved.',
-                                    'Reject registration',
-                                  );
-                                  if (reason != null && mounted) {
-                                    _perform(
-                                      () => widget.controller.review(
-                                        a,
-                                        approve: false,
-                                        reason: reason,
-                                      ),
-                                    );
-                                  }
-                                },
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: StaffStyle.red,
-                          ),
-                          child: const Text('Reject'),
-                        ),
-                        FilledButton.icon(
-                          onPressed:
-                              _identityChecked &&
-                                  _credentialsChecked &&
-                                  widget.controller.canManage
-                              ? () => _perform(
-                                  () => widget.controller.review(
-                                    a,
-                                    approve: true,
-                                  ),
-                                )
-                              : null,
-                          icon: const Icon(Icons.check_rounded, size: 18),
-                          label: const Text('Approve doctor'),
-                        ),
-                      ],
-                      if (!edit && !review)
-                        FilledButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Done'),
-                        ),
+                      IconButton(
+                        tooltip: 'Close',
+                        onPressed: _busy ? null : () => Navigator.pop(context),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
                     ],
                   ),
-              ],
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      AccountAvatar(a, size: 52),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              a.name,
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            Text(
+                              a.roleLabel,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const SizedBox(height: 8),
+                            StatusPill.account(a),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  if (edit) ...[
+                    TextFormField(
+                      controller: _name,
+                      readOnly: _busy,
+                      decoration: const InputDecoration(labelText: 'Full name'),
+                      validator: (v) => (v ?? '').trim().length < 2
+                          ? 'Enter a full name'
+                          : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _phone,
+                      readOnly: _busy,
+                      decoration: const InputDecoration(
+                        labelText: 'Phone number',
+                      ),
+                      keyboardType: TextInputType.phone,
+                      validator: (v) =>
+                          v!.isNotEmpty &&
+                              !RegExp(r'^\+?[\d\s()-]{7,20}$').hasMatch(v)
+                          ? 'Enter a valid phone number'
+                          : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _department,
+                      readOnly: _busy,
+                      decoration: const InputDecoration(
+                        labelText: 'Department / team',
+                      ),
+                    ),
+                    if (a.role == 'admin' &&
+                        a.id != widget.controller.actorId &&
+                        widget.controller.canManageStaff) ...[
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        initialValue: _staffRole,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Staff role',
+                        ),
+                        items:
+                            const [
+                                  'Super administrator',
+                                  'Hospital administrator',
+                                  'Support coordinator',
+                                ]
+                                .map(
+                                  (r) => DropdownMenuItem(
+                                    value: r,
+                                    child: Text(
+                                      r,
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                        onChanged: _busy
+                            ? null
+                            : (v) => setState(() => _staffRole = v!),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    const InfoBanner(
+                      'The login email stays unchanged. Contact the account owner to update their sign-in details.',
+                    ),
+                  ] else ...[
+                    _field('Email address', a.email),
+                    _field(
+                      'Phone number',
+                      a.phone.isEmpty ? 'Not provided' : a.phone,
+                    ),
+                    _field(
+                      'Department',
+                      a.department.isEmpty ? 'Not assigned' : a.department,
+                    ),
+                    _field('Registered', readableDate(a.createdAt)),
+                    if (a.role == 'doctor')
+                      _field(
+                        'Medical registration',
+                        a.registration.isEmpty
+                            ? 'Not provided'
+                            : a.registration,
+                      ),
+                    if (a.nic.isNotEmpty) _field('Identity number', a.nic),
+                    if (a.reviewNote.isNotEmpty)
+                      _field('Last decision', a.reviewNote),
+                    if (a.accountStatusReason.isNotEmpty)
+                      _field('Account status reason', a.accountStatusReason),
+                  ],
+                  if (review) ...[
+                    const SizedBox(height: 16),
+                    InfoBanner(
+                      widget.controller.preview
+                          ? 'Example registration. In a live review, check the doctor’s identity and medical registration with the hospital’s approved process.'
+                          : 'Confirm the doctor’s identity and medical registration using the hospital’s approved process before granting access.',
+                      warning: true,
+                    ),
+                    const SizedBox(height: 12),
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      value: _identityChecked,
+                      onChanged: _busy
+                          ? null
+                          : (v) => setState(() => _identityChecked = v!),
+                      title: const Text(
+                        'Identity and contact details checked',
+                        style: TextStyle(fontSize: 13),
+                      ),
+                    ),
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      value: _credentialsChecked,
+                      onChanged: _busy
+                          ? null
+                          : (v) => setState(() => _credentialsChecked = v!),
+                      title: const Text(
+                        'Medical registration and hospital assignment checked',
+                        style: TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  ],
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    InfoBanner(_error!, warning: true),
+                  ],
+                  if (review &&
+                      widget.controller.reviewUnavailableReason != null) ...[
+                    const SizedBox(height: 12),
+                    InfoBanner(
+                      widget.controller.reviewUnavailableReason!,
+                      warning: true,
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  if (_busy)
+                    const Center(child: CircularProgressIndicator())
+                  else
+                    Wrap(
+                      alignment: WrapAlignment.end,
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancel'),
+                        ),
+                        if (edit)
+                          FilledButton(
+                            onPressed: () {
+                              if (!_form.currentState!.validate()) return;
+                              _perform(
+                                () => widget.controller.updateAccount(
+                                  a,
+                                  {
+                                    'name': _name.text.trim(),
+                                    'phone': _phone.text.trim(),
+                                    'department': _department.text.trim(),
+                                    if (a.role == 'admin' &&
+                                        _staffRole != a.staffRole)
+                                      'staffRole': _staffRole,
+                                  },
+                                  'Account details updated',
+                                  '${a.name} · Name: ${_name.text.trim()} · Phone: ${_phone.text.trim()} · Team: ${_department.text.trim()}${a.role == 'admin' ? ' · Role: $_staffRole' : ''}',
+                                ),
+                              );
+                            },
+                            child: const Text('Save changes'),
+                          ),
+                        if (review) ...[
+                          OutlinedButton(
+                            onPressed: !widget.controller.canReview
+                                ? null
+                                : () async {
+                                    final reason = await reasonDialog(
+                                      context,
+                                      'Reject registration',
+                                      'The account will remain on record. Explain what needs to be corrected before this doctor can be approved.',
+                                      'Reject registration',
+                                    );
+                                    if (reason != null && mounted) {
+                                      _perform(
+                                        () => widget.controller.review(
+                                          a,
+                                          approve: false,
+                                          reason: reason,
+                                        ),
+                                      );
+                                    }
+                                  },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: StaffStyle.red,
+                            ),
+                            child: const Text('Reject'),
+                          ),
+                          FilledButton.icon(
+                            onPressed:
+                                _identityChecked &&
+                                    _credentialsChecked &&
+                                    widget.controller.canReview
+                                ? () => _perform(
+                                    () => widget.controller.review(
+                                      a,
+                                      approve: true,
+                                      identityChecked: _identityChecked,
+                                      credentialsChecked: _credentialsChecked,
+                                    ),
+                                  )
+                                : null,
+                            icon: const Icon(Icons.check_rounded, size: 18),
+                            label: const Text('Approve doctor'),
+                          ),
+                        ],
+                        if (!edit && !review)
+                          FilledButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Done'),
+                          ),
+                      ],
+                    ),
+                ],
+              ),
             ),
           ),
         ),

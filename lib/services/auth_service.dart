@@ -129,14 +129,25 @@ class AuthService {
       .asyncMap((snapshot) => _profileFor(uid, snapshot.data()));
 
   Future<UserModel?> getUserData(String uid) async {
-    return _profileFor(uid, (await _db.collection('users').doc(uid).get()).data());
+    return _profileFor(
+      uid,
+      (await _db.collection('users').doc(uid).get()).data(),
+    );
   }
 
-  Future<UserModel?> _profileFor(String uid, Map<String, dynamic>? metadata) async {
+  Future<UserModel?> _profileFor(
+    String uid,
+    Map<String, dynamic>? metadata,
+  ) async {
     if (metadata == null) return null;
     final role = metadata['role']?.toString() ?? 'patient';
-    final profile = role == 'admin' ? null : (await _db
-        .collection(role == 'doctor' ? 'doctors' : 'patients').doc(uid).get()).data();
+    final profile = role == 'admin'
+        ? null
+        : (await _db
+                  .collection(role == 'doctor' ? 'doctors' : 'patients')
+                  .doc(uid)
+                  .get())
+              .data();
     final authUser = _auth.currentUser;
     final merged = <String, dynamic>{
       ...?profile,
@@ -145,7 +156,7 @@ class AuthService {
       'email': metadata['email'] ?? profile?['email'] ?? authUser?.email ?? '',
       'isVerified': metadata['isVerified'] ?? profile?['isVerified'] ?? true,
       'isApproved':
-           metadata['isApproved'] ?? profile?['isApproved'] ?? role != 'doctor',
+          metadata['isApproved'] ?? profile?['isApproved'] ?? role != 'doctor',
     };
     return UserModel.fromMap(merged, uid);
   }

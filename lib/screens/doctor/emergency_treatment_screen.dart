@@ -127,7 +127,7 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
             color: _surface,
             shape: const CircleBorder(),
             elevation: 2,
-            shadowColor: _primary.withOpacity(0.20),
+            shadowColor: _primary.withValues(alpha: 0.20),
             child: InkWell(
               customBorder: const CircleBorder(),
               onTap: () => Navigator.pop(context),
@@ -170,7 +170,7 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: _danger.withOpacity(0.6),
+                        color: _danger.withValues(alpha: 0.6),
                         blurRadius: 6,
                         spreadRadius: 1,
                       ),
@@ -211,7 +211,7 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
             top: -140,
             left: -120,
             child: _glow(
-              color: const Color(0xFF93C5FD).withOpacity(0.40),
+              color: const Color(0xFF93C5FD).withValues(alpha: 0.40),
               radius: 260,
             ),
           ),
@@ -219,7 +219,7 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
             top: 100,
             right: -160,
             child: _glow(
-              color: const Color(0xFFFCA5A5).withOpacity(0.35),
+              color: const Color(0xFFFCA5A5).withValues(alpha: 0.35),
               radius: 240,
             ),
           ),
@@ -227,7 +227,7 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
             bottom: -180,
             left: -100,
             child: _glow(
-              color: const Color(0xFFDBEAFE).withOpacity(0.55),
+              color: const Color(0xFFDBEAFE).withValues(alpha: 0.55),
               radius: 280,
             ),
           ),
@@ -332,7 +332,7 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
               borderRadius: BorderRadius.circular(28),
               boxShadow: [
                 BoxShadow(
-                  color: _danger.withOpacity(0.40),
+                  color: _danger.withValues(alpha: 0.40),
                   blurRadius: 22,
                   spreadRadius: 0,
                   offset: const Offset(0, 10),
@@ -346,7 +346,7 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: _danger,
                 foregroundColor: Colors.white,
-                disabledBackgroundColor: _danger.withOpacity(0.6),
+                disabledBackgroundColor: _danger.withValues(alpha: 0.6),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(28),
                 ),
@@ -407,12 +407,12 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: _danger.withOpacity(0.32),
+            color: _danger.withValues(alpha: 0.32),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
           BoxShadow(
-            color: _primary.withOpacity(0.08),
+            color: _primary.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -432,7 +432,7 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
                         Container(
                           padding: const EdgeInsets.all(5),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.22),
+                            color: Colors.white.withValues(alpha: 0.22),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Icon(
@@ -445,7 +445,7 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
                         Text(
                           'EMERGENCY CASE',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.92),
+                            color: Colors.white.withValues(alpha: 0.92),
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 1.2,
@@ -475,10 +475,10 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.18),
+                      color: Colors.white.withValues(alpha: 0.18),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.35),
+                        color: Colors.white.withValues(alpha: 0.35),
                         width: 1.5,
                       ),
                     ),
@@ -514,9 +514,9 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.18),
+            color: Colors.white.withValues(alpha: 0.18),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.28)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -589,7 +589,7 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
           boxShadow: isFocused
               ? [
                   BoxShadow(
-                    color: accent.withOpacity(0.18),
+                    color: accent.withValues(alpha: 0.18),
                     blurRadius: 20,
                     offset: const Offset(0, 6),
                   ),
@@ -660,7 +660,7 @@ class _EmergencyTreatmentScreenState extends State<EmergencyTreatmentScreen> {
     decoration: BoxDecoration(
       shape: BoxShape.circle,
       gradient: RadialGradient(
-        colors: [color, color.withOpacity(0.0)],
+        colors: [color, color.withValues(alpha: 0.0)],
         stops: const [0.0, 1.0],
       ),
     ),

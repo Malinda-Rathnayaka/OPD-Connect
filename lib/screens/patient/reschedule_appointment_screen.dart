@@ -363,7 +363,7 @@ class _RescheduleAppointmentScreenState
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _sessionCard(session),
                 );
-              }).toList(),
+              }),
 
               const SizedBox(height: 12),
 
@@ -374,7 +374,7 @@ class _RescheduleAppointmentScreenState
                   color: const Color(0xFFEFF6FF),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                      color: const Color(0xFF3B82F6).withOpacity(0.2)),
+                      color: const Color(0xFF3B82F6).withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -526,7 +526,7 @@ class _RescheduleAppointmentScreenState
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? sessionColor.withOpacity(0.08) : Colors.white,
+          color: isSelected ? sessionColor.withValues(alpha: 0.08) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? sessionColor : Colors.grey.shade200,
@@ -535,14 +535,14 @@ class _RescheduleAppointmentScreenState
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: sessionColor.withOpacity(0.15),
+                    color: sessionColor.withValues(alpha: 0.15),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
                 ]
               : [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.04),
+                    color: Colors.grey.withValues(alpha: 0.04),
                     blurRadius: 6,
                     spreadRadius: 1,
                   ),
@@ -556,7 +556,7 @@ class _RescheduleAppointmentScreenState
               decoration: BoxDecoration(
                 color: isSelected
                     ? sessionColor
-                    : sessionColor.withOpacity(0.12),
+                    : sessionColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(

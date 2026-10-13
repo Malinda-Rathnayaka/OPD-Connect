@@ -688,7 +688,7 @@ class VisitSummaryScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.06),
+            color: Colors.grey.withValues(alpha: 0.06),
             blurRadius: 8,
             spreadRadius: 1,
           ),
@@ -702,7 +702,7 @@ class VisitSummaryScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.15),
+                  color: iconColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: iconColor, size: 20),

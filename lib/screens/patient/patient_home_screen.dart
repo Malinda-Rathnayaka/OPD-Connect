@@ -261,7 +261,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                     Text(
                       appointment == null
                           ? 'No active queue booking'
-                          : '$appointmentDate · $appointmentTime',
+                          : '$appointmentDate Â· $appointmentTime',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -319,7 +319,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                       ),
                       const SizedBox(height: 14),
                       Text(
-                        '$appointmentDate · $appointmentTime',
+                        '$appointmentDate Â· $appointmentTime',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,

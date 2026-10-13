@@ -57,7 +57,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
           border: const Border(top: BorderSide(color: _border, width: 1)),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF2563EB).withOpacity(0.08),
+              color: const Color(0xFF2563EB).withValues(alpha: 0.08),
               blurRadius: 24,
               offset: const Offset(0, -6),
             ),
@@ -70,7 +70,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
             surfaceTintColor: _surface,
             elevation: 0,
             height: 70,
-            indicatorColor: _primary.withOpacity(0.12),
+            indicatorColor: _primary.withValues(alpha: 0.12),
             labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
             selectedIndex: _selectedIndex,
             onDestinationSelected: (index) =>
@@ -128,13 +128,15 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
       child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: _service.getDoctorSessions(_doctorId),
         builder: (context, snapshot) {
-          if (snapshot.hasError)
+          if (snapshot.hasError) {
             return _message(
               'Unable to load sessions: ${snapshot.error}',
               Icons.error_outline,
             );
-          if (!snapshot.hasData)
+          }
+          if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
+          }
           final sessions = snapshot.data!.docs.toList()
             ..sort((a, b) => _sessionDate(b).compareTo(_sessionDate(a)));
           final todayActive = sessions
@@ -233,17 +235,17 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                _primary.withOpacity(0.10),
-                _primaryLight.withOpacity(0.05),
+                _primary.withValues(alpha: 0.10),
+                _primaryLight.withValues(alpha: 0.05),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: _primary.withOpacity(0.25), width: 1.2),
+            border: Border.all(color: _primary.withValues(alpha: 0.25), width: 1.2),
             boxShadow: [
               BoxShadow(
-                color: _primary.withOpacity(0.10),
+                color: _primary.withValues(alpha: 0.10),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -262,7 +264,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: _primary.withOpacity(0.35),
+                      color: _primary.withValues(alpha: 0.35),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -317,7 +319,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(
-                      color: _primary.withOpacity(0.35),
+                      color: _primary.withValues(alpha: 0.35),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -342,21 +344,24 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
       child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: _service.getDoctorSessions(_doctorId),
         builder: (context, snapshot) {
-          if (snapshot.hasError)
+          if (snapshot.hasError) {
             return _message(
               'Unable to load live sessions.',
               Icons.error_outline,
             );
-          if (!snapshot.hasData)
+          }
+          if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
+          }
           final sessions = snapshot.data!.docs
               .where((doc) => doc.data()['status'] == 'IN_PROGRESS')
               .toList();
-          if (sessions.isEmpty)
+          if (sessions.isEmpty) {
             return _message(
               'No active session. Create one from Home.',
               Icons.queue_outlined,
             );
+          }
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
@@ -462,7 +467,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: _primary.withOpacity(0.12),
+                            color: _primary.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(
@@ -515,7 +520,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
       border: Border.all(color: _border),
       boxShadow: [
         BoxShadow(
-          color: const Color(0xFF2563EB).withOpacity(0.06),
+          color: const Color(0xFF2563EB).withValues(alpha: 0.06),
           blurRadius: 18,
           offset: const Offset(0, 8),
         ),
@@ -544,7 +549,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF7C3AED).withOpacity(0.3),
+                      color: const Color(0xFF7C3AED).withValues(alpha: 0.3),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -627,16 +632,19 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
       child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: _service.getDoctorSessions(_doctorId),
         builder: (context, snapshot) {
-          if (snapshot.hasError)
+          if (snapshot.hasError) {
             return _message(
               'Unable to load recorded sessions.',
               Icons.error_outline,
             );
-          if (!snapshot.hasData)
+          }
+          if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
+          }
           final sessions = snapshot.data!.docs;
-          if (sessions.isEmpty)
+          if (sessions.isEmpty) {
             return _message('No recorded sessions yet.', Icons.history);
+          }
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
             physics: const BouncingScrollPhysics(),
@@ -662,7 +670,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: _accent.withOpacity(0.12),
+                                color: _accent.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Icon(
@@ -743,7 +751,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
           top: -160,
           left: -120,
           child: _glow(
-            color: const Color(0xFF93C5FD).withOpacity(0.35),
+            color: const Color(0xFF93C5FD).withValues(alpha: 0.35),
             radius: 260,
           ),
         ),
@@ -751,7 +759,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
           top: 100,
           right: -160,
           child: _glow(
-            color: const Color(0xFFBFDBFE).withOpacity(0.45),
+            color: const Color(0xFFBFDBFE).withValues(alpha: 0.45),
             radius: 240,
           ),
         ),
@@ -759,7 +767,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
           bottom: -180,
           left: -100,
           child: _glow(
-            color: const Color(0xFFDBEAFE).withOpacity(0.55),
+            color: const Color(0xFFDBEAFE).withValues(alpha: 0.55),
             radius: 280,
           ),
         ),
@@ -774,7 +782,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
     decoration: BoxDecoration(
       shape: BoxShape.circle,
       gradient: RadialGradient(
-        colors: [color, color.withOpacity(0.0)],
+        colors: [color, color.withValues(alpha: 0.0)],
         stops: const [0.0, 1.0],
       ),
     ),
@@ -824,7 +832,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
             color: _surface,
             shape: const CircleBorder(),
             elevation: 2,
-            shadowColor: _primary.withOpacity(0.2),
+            shadowColor: _primary.withValues(alpha: 0.2),
             child: InkWell(
               customBorder: const CircleBorder(),
               onTap: _confirmLogout,
@@ -901,7 +909,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: _primary.withOpacity(0.32),
+            color: _primary.withValues(alpha: 0.32),
             blurRadius: 26,
             offset: const Offset(0, 12),
           ),
@@ -916,7 +924,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                 Text(
                   _greeting(),
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.85),
+                    color: Colors.white.withValues(alpha: 0.85),
                     fontSize: 13.5,
                     fontWeight: FontWeight.w500,
                     letterSpacing: 0.2,
@@ -943,10 +951,10 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
               child: Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.18),
+                  color: Colors.white.withValues(alpha: 0.18),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.35),
+                    color: Colors.white.withValues(alpha: 0.35),
                     width: 1.5,
                   ),
                 ),
@@ -973,7 +981,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
   Widget _summaryCards(
     List<QueryDocumentSnapshot<Map<String, dynamic>>> sessions,
   ) {
-    if (sessions.isEmpty)
+    if (sessions.isEmpty) {
       return Row(
         children: [
           _stat('Booked', 0, Icons.event_available_outlined, _primary),
@@ -986,6 +994,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
           ),
         ],
       );
+    }
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: _service.getSessionQueue(sessions.first.id),
       builder: (context, snapshot) {
@@ -1035,7 +1044,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
           Container(
             padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: color, size: 18),
@@ -1111,7 +1120,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                         boxShadow: isActive
                             ? [
                                 BoxShadow(
-                                  color: _primary.withOpacity(0.3),
+                                  color: _primary.withValues(alpha: 0.3),
                                   blurRadius: 12,
                                   offset: const Offset(0, 4),
                                 ),
@@ -1220,7 +1229,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
   Widget _statusPill(String text, Color color) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
     decoration: BoxDecoration(
-      color: color.withOpacity(0.12),
+      color: color.withValues(alpha: 0.12),
       borderRadius: BorderRadius.circular(20),
     ),
     child: Text(
@@ -1277,10 +1286,11 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
         if (confirmed == true) await _service.deleteSession(session.id);
       }
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Session update failed: $error')),
         );
+      }
     }
   }
 
@@ -1300,7 +1310,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withOpacity(0.12),
+                      color: const Color(0xFF10B981).withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
@@ -1334,7 +1344,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: _primary.withOpacity(0.1),
+                      color: _primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
@@ -1359,7 +1369,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: _primary.withOpacity(0.08),
+              color: _primary.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, size: 40, color: _primary),
@@ -1383,7 +1393,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
   Widget _chipIcon({required IconData icon, required Color color}) => Container(
     padding: const EdgeInsets.all(8),
     decoration: BoxDecoration(
-      color: color.withOpacity(0.1),
+      color: color.withValues(alpha: 0.1),
       borderRadius: BorderRadius.circular(10),
     ),
     child: Icon(icon, color: color, size: 18),
@@ -1491,7 +1501,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
-        barrierColor: Colors.black.withOpacity(0.45),
+        barrierColor: Colors.black.withValues(alpha: 0.45),
         builder: (sheetContext) => StatefulBuilder(
           builder: (context, setDialogState) {
             final isCreating = session == null;
@@ -1544,7 +1554,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                                 borderRadius: BorderRadius.circular(14),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: _primary.withOpacity(0.35),
+                                    color: _primary.withValues(alpha: 0.35),
                                     blurRadius: 14,
                                     offset: const Offset(0, 6),
                                   ),
@@ -1675,8 +1685,8 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                                       boxShadow: selected
                                           ? [
                                               BoxShadow(
-                                                color: _primary.withOpacity(
-                                                  0.3,
+                                                color: _primary.withValues(
+                                                  alpha: 0.3,
                                                 ),
                                                 blurRadius: 14,
                                                 offset: const Offset(0, 6),
@@ -1726,7 +1736,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                                     vertical: 3,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: _primary.withOpacity(0.12),
+                                    color: _primary.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(
@@ -1764,7 +1774,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.04),
+                              color: Colors.black.withValues(alpha: 0.04),
                               blurRadius: 16,
                               offset: const Offset(0, -6),
                             ),
@@ -1808,7 +1818,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                                     boxShadow: canSave
                                         ? [
                                             BoxShadow(
-                                              color: _primary.withOpacity(0.35),
+                                              color: _primary.withValues(alpha: 0.35),
                                               blurRadius: 18,
                                               offset: const Offset(0, 8),
                                             ),
@@ -1836,9 +1846,9 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                                       backgroundColor: _primary,
                                       foregroundColor: Colors.white,
                                       disabledBackgroundColor: _primary
-                                          .withOpacity(0.35),
+                                          .withValues(alpha: 0.35),
                                       disabledForegroundColor: Colors.white
-                                          .withOpacity(0.7),
+                                          .withValues(alpha: 0.7),
                                       padding: const EdgeInsets.symmetric(
                                         vertical: 16,
                                       ),
@@ -1886,10 +1896,11 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
         ),
       );
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Could not load patients: $error')),
         );
+      }
     } finally {
       if (mounted) setState(() => _isSavingSession = false);
     }
@@ -1934,7 +1945,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
               borderRadius: BorderRadius.circular(11),
               boxShadow: [
                 BoxShadow(
-                  color: _primary.withOpacity(0.3),
+                  color: _primary.withValues(alpha: 0.3),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -2021,7 +2032,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
         border: Border.all(color: _border, width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2563EB).withOpacity(0.04),
+            color: const Color(0xFF2563EB).withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -2042,14 +2053,14 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        _primary.withOpacity(0.16),
-                        _primaryLight.withOpacity(0.10),
+                        _primary.withValues(alpha: 0.16),
+                        _primaryLight.withValues(alpha: 0.10),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: _primary.withOpacity(0.18)),
+                    border: Border.all(color: _primary.withValues(alpha: 0.18)),
                   ),
                   alignment: Alignment.center,
                   child: Text(
@@ -2112,7 +2123,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                     vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.10),
+                    color: const Color(0xFF10B981).withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -2156,7 +2167,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: _primary.withOpacity(0.08),
+            color: _primary.withValues(alpha: 0.08),
             shape: BoxShape.circle,
           ),
           child: const Icon(
@@ -2239,14 +2250,16 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
           patients: patients,
         );
       }
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('Session saved.')));
+      }
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Could not save session: $error')),
         );
+      }
     } finally {
       if (mounted) setState(() => _isSavingSession = false);
     }
@@ -2312,7 +2325,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: _primary.withOpacity(0.12),
+                                color: _primary.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: const Icon(
@@ -2349,10 +2362,11 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
         ),
       );
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Could not load records: $error')),
         );
+      }
     }
   }
 
@@ -2377,7 +2391,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
               borderRadius: BorderRadius.circular(30),
               boxShadow: [
                 BoxShadow(
-                  color: _primary.withOpacity(0.4),
+                  color: _primary.withValues(alpha: 0.4),
                   blurRadius: 20,
                   spreadRadius: 0,
                   offset: const Offset(0, 8),
@@ -2389,7 +2403,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: _primary,
               foregroundColor: Colors.white,
-              disabledBackgroundColor: _primary.withOpacity(0.5),
+              disabledBackgroundColor: _primary.withValues(alpha: 0.5),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30),
               ),
@@ -2432,12 +2446,12 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
     border: Border.all(color: _border),
     boxShadow: [
       BoxShadow(
-        color: const Color(0xFF2563EB).withOpacity(0.06),
+        color: const Color(0xFF2563EB).withValues(alpha: 0.06),
         blurRadius: 18,
         offset: const Offset(0, 8),
       ),
       BoxShadow(
-        color: Colors.black.withOpacity(0.02),
+        color: Colors.black.withValues(alpha: 0.02),
         blurRadius: 6,
         offset: const Offset(0, 2),
       ),
