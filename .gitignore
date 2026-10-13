@@ -51,3 +51,6 @@ app.*.map.json
 .env
 .env.*
 !.env.example
+
+# Local screenshots and browser verification artifacts
+.artifacts/

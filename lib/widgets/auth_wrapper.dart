@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import '../services/auth_service.dart';
 import '../models/user_model.dart';
 import '../screens/auth/login_screen.dart';
-import '../screens/admin/admin_dashboard_screen.dart';
+import '../staff/staff_workspace.dart';
 import '../screens/doctor/doctor_dashboard_screen.dart';
 import '../screens/patient/patient_home_screen.dart';
 
@@ -18,29 +19,124 @@ class AuthWrapper extends StatelessWidget {
       stream: authService.authStateChanges,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
 
         if (!snapshot.hasData || snapshot.data == null) {
           return const LoginScreen();
         }
 
-        return FutureBuilder<UserModel?>(
-          future: authService.getUserData(snapshot.data!.uid),
+        return StreamBuilder<UserModel?>(
+          stream: authService.watchUserData(snapshot.data!.uid),
           builder: (context, userSnapshot) {
             if (userSnapshot.connectionState == ConnectionState.waiting) {
-              return const Scaffold(body: Center(child: CircularProgressIndicator()));
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
             }
 
-            if (!userSnapshot.hasData || userSnapshot.data == null) {
-              return const LoginScreen();
+            if (userSnapshot.hasError ||
+                !userSnapshot.hasData ||
+                userSnapshot.data == null) {
+              final permissionDenied =
+                  userSnapshot.error is FirebaseException &&
+                  (userSnapshot.error as FirebaseException).code ==
+                      'permission-denied';
+              return Scaffold(
+                appBar: AppBar(title: const Text('Account access unavailable')),
+                body: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.lock_outline, size: 48),
+                        const SizedBox(height: 16),
+                        Text(
+                          permissionDenied
+                              ? 'Firebase denied access to your account profile. Contact your hospital administrator.'
+                              : userSnapshot.hasError
+                              ? 'Unable to load your account profile. Check your connection and try signing in again.'
+                              : 'Your account profile is missing. Contact your hospital administrator.',
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 20),
+                        FilledButton(
+                          onPressed: authService.signOut,
+                          child: const Text('Sign out'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
             }
 
             UserModel user = userSnapshot.data!;
 
+            if (!user.isActive) {
+              return Scaffold(
+                appBar: AppBar(title: const Text('Account inactive')),
+                body: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.lock_outline, size: 48),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Your account is inactive. Contact hospital staff for help.',
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 20),
+                        FilledButton(
+                          onPressed: authService.signOut,
+                          child: const Text('Sign out'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+
             // ─── Doctor Approval Gate ──────────────────────
             // Doctor role එක සහ Admin approval නොමැති නම් Blocking screen එක pennවයි
             if (user.role == 'doctor' && !user.isApproved) {
+              if (user.approvalStatus == 'rejected') {
+                return Scaffold(
+                  appBar: AppBar(
+                    title: const Text('Registration needs correction'),
+                  ),
+                  body: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            user.reviewNote.replaceFirst('Rejected: ', ''),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Contact hospital staff to correct your registration.',
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 20),
+                          FilledButton(
+                            onPressed: authService.signOut,
+                            child: const Text('Sign out'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
               return _DoctorPendingApprovalScreen(authService: authService);
             }
 
@@ -52,12 +148,14 @@ class AuthWrapper extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('Doctor account pending IT verification (FR31).'),
+                      const Text(
+                        'Doctor account pending IT verification (FR31).',
+                      ),
                       const SizedBox(height: 20),
                       ElevatedButton(
                         onPressed: () => authService.signOut(),
                         child: const Text('Sign Out'),
-                      )
+                      ),
                     ],
                   ),
                 ),
@@ -67,7 +165,11 @@ class AuthWrapper extends StatelessWidget {
             // ─── Role-based routing ───────────────────────
             switch (user.role) {
               case 'admin':
-                return AdminDashboardScreen(admin: user);
+                return HospitalStaffWorkspace(
+                  actorId: user.uid,
+                  actorName: user.name,
+                  onSignOut: authService.signOut,
+                );
               case 'doctor':
                 return const DoctorDashboardScreen(); // Doctor Portal Dashboard
               case 'patient':
@@ -153,12 +255,18 @@ class _DoctorPendingApprovalScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: const Color(0xFFEFF6FF),
                     borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: const Color(0xFF3B82F6).withValues(alpha: 0.2),
+                    ),
                     border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.2)),
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.info_outline_rounded,
-                          color: Color(0xFF3B82F6), size: 22),
+                      Icon(
+                        Icons.info_outline_rounded,
+                        color: Color(0xFF3B82F6),
+                        size: 22,
+                      ),
                       SizedBox(width: 12),
                       Expanded(
                         child: Text(
@@ -226,7 +334,7 @@ class RoleHomeScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => AuthService().signOut(),
-          )
+          ),
         ],
       ),
       body: Center(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/auth_wrapper.dart';
 import 'register_screen.dart';
+import '../../staff/staff_workspace.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -430,7 +431,13 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           const SizedBox(height: 18),
 
-          // Register pill
+           // Register pill
+           TextButton.icon(
+             onPressed: () => Navigator.push(context, MaterialPageRoute(
+               builder: (_) => const HospitalStaffWorkspace(preview: true))),
+             icon: const Icon(Icons.preview_outlined),
+             label: const Text('Explore hospital staff preview'),
+           ),
           Center(
             child: Container(
               decoration: BoxDecoration(

@@ -16,6 +16,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _registrationController = TextEditingController();
+  final _departmentController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
@@ -36,6 +38,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _lastNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _registrationController.dispose();
+    _departmentController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -64,6 +68,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
+    if (_selectedRole == 'doctor' &&
+        (_registrationController.text.trim().isEmpty || _departmentController.text.trim().isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Enter your medical registration number and department.')));
+      return;
+    }
     if (!_isValidEmail(email)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid email address.')),
@@ -179,6 +189,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         name: fullName,
         phone: phone,
         role: _selectedRole,
+        registrationNumber: _registrationController.text.trim(),
+        department: _departmentController.text.trim(),
       );
 
       await _authService.signOut();
@@ -819,6 +831,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
         const SizedBox(height: 28),
 
         // Security
+        if (_selectedRole == 'doctor') ...[
+          _buildField(id: 'registration', controller: _registrationController,
+            label: 'Medical registration number', icon: Icons.badge_outlined),
+          const SizedBox(height: 16),
+          _buildField(id: 'department', controller: _departmentController,
+            label: 'Department', icon: Icons.local_hospital_outlined),
+          const SizedBox(height: 28),
+        ],
         _buildSectionHeader('Security'),
         const SizedBox(height: 14),
 

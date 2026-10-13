@@ -57,6 +57,8 @@ class AuthService {
     required String name,
     required String phone,
     required String role,
+    String registrationNumber = '',
+    String department = '',
   }) async {
     final user = _auth.currentUser;
     if (user == null) throw FirebaseAuthException(code: 'no-current-user');
@@ -88,73 +90,73 @@ class AuthService {
       'phone': phone,
       'name': name,
       'role': role,
+      'isActive': true,
+      if (isDoctor) 'registrationNumber': registrationNumber.trim(),
+      if (isDoctor) 'department': department.trim(),
       'isVerified': role == 'patient',
       'isApproved': role != 'doctor',
       'createdAt': FieldValue.serverTimestamp(),
     };
 
-    await _db
-        .collection('users')
-        .doc(user.uid)
-        .set(userData, SetOptions(merge: true));
-
-    await _db.collection('patients').doc(user.uid).set({
-      'fullName': name,
-      'nic': '',
-      'phone': phone,
-      'email': user.email ?? email,
-      'preferredLanguage': 'English',
-      'createdAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
     if (isDoctor) {
       batch.set(_db.collection('doctors').doc(user.uid), {
         ...profile,
         'specialization': '',
         'roomNo': '',
+        'registrationNumber': registrationNumber.trim(),
+        'department': department.trim(),
       });
     } else {
       batch.set(_db.collection('patients').doc(user.uid), {
         ...profile,
         'history': <dynamic>[],
+        'nic': '',
+        'preferredLanguage': 'English',
       });
     }
 
-    // Keep only role and approval metadata here for login routing and the
-    // existing doctor approval gate. Personal profile data lives separately.
-    batch.set(_db.collection('users').doc(user.uid), {
-      'role': role,
-      'isVerified': !isDoctor,
-      'isApproved': !isDoctor,
-      'createdAt': now,
-    });
+    // Staff review and role routing share this directory; retain contact and
+    // registration fields alongside the role-specific profile.
+    batch.set(_db.collection('users').doc(user.uid), userData);
     await batch.commit();
   }
 
   /// Load auth metadata and merge in the role-specific profile document.
-  Future<UserModel?> getUserData(String uid) async {
-    final results = await Future.wait([
-      _db.collection('users').doc(uid).get(),
-      _db.collection('patients').doc(uid).get(),
-      _db.collection('doctors').doc(uid).get(),
-    ]);
-    final metadata = results[0].data();
-    final patient = results[1].data();
-    final doctor = results[2].data();
-    if (metadata == null && patient == null && doctor == null) return null;
+  Stream<UserModel?> watchUserData(String uid) => _db
+      .collection('users')
+      .doc(uid)
+      .snapshots()
+      .asyncMap((snapshot) => _profileFor(uid, snapshot.data()));
 
-    final role =
-        metadata?['role']?.toString() ??
-        (doctor != null ? 'doctor' : 'patient');
-    final profile = role == 'doctor' ? doctor : patient;
+  Future<UserModel?> getUserData(String uid) async {
+    return _profileFor(
+      uid,
+      (await _db.collection('users').doc(uid).get()).data(),
+    );
+  }
+
+  Future<UserModel?> _profileFor(
+    String uid,
+    Map<String, dynamic>? metadata,
+  ) async {
+    if (metadata == null) return null;
+    final role = metadata['role']?.toString() ?? 'patient';
+    final profile = role == 'admin'
+        ? null
+        : (await _db
+                  .collection(role == 'doctor' ? 'doctors' : 'patients')
+                  .doc(uid)
+                  .get())
+              .data();
     final authUser = _auth.currentUser;
     final merged = <String, dynamic>{
-      ...?metadata,
       ...?profile,
+      ...metadata,
       'role': role,
-      'email': profile?['email'] ?? metadata?['email'] ?? authUser?.email ?? '',
-      'isVerified': metadata?['isVerified'] ?? profile?['isVerified'] ?? true,
+      'email': metadata['email'] ?? profile?['email'] ?? authUser?.email ?? '',
+      'isVerified': metadata['isVerified'] ?? profile?['isVerified'] ?? true,
       'isApproved':
-          metadata?['isApproved'] ?? profile?['isApproved'] ?? role != 'doctor',
+          metadata['isApproved'] ?? profile?['isApproved'] ?? role != 'doctor',
     };
     return UserModel.fromMap(merged, uid);
   }

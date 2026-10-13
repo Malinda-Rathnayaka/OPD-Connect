@@ -3,20 +3,25 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'firebase_options.dart';
-import 'services/seed_service.dart';
 import 'screens/auth/splash_screen.dart';
+import 'staff/staff_workspace.dart';
+
+const staffPreview = bool.fromEnvironment('STAFF_PREVIEW');
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  if (staffPreview) {
+    runApp(const OPDConnectApp());
+    return;
+  }
+
+  // Load environment variables from .env file
   await dotenv.load(fileName: ".env");
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  await SeedService.seedAdminAccount();
-  await SeedService.seedColomboNationalHospital();
-  await SeedService.cleanUpOtherHospitals();
-  await SeedService.seedSessionsForDoctors();
+  // Administrator profiles are provisioned by a trusted project owner.
 
   runApp(const OPDConnectApp());
 }
@@ -30,13 +35,13 @@ class OPDConnectApp extends StatelessWidget {
       title: 'OPD Connect',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF2563EB), // Primary Brand Blue
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      // Starts with SplashScreen onboarding flow on app launch
-      home: const SplashScreen(),
+      // Starts with SplashScreen onboarding flow
+      home: staffPreview
+          ? const HospitalStaffWorkspace(preview: true)
+          : const SplashScreen(),
     );
   }
 }
